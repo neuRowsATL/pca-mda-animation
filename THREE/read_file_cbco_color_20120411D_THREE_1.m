@@ -160,8 +160,9 @@ for ii = 1:size(projected_data, 2)
     end
     
     symbol_1 = '*';
-    plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii),'Marker', symbol_1, 'Color', color1, ...
-        'MarkerSize', 6, 'LineStyle', '-');
+    plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', symbol_1, 'Color', color1, 'MarkerSize', 6, 'LineStyle', '-');
+    
+    drawnow update
     %     if ii > 1
     %         plot3([projected_data(1, ii-1), projected_data(1, ii)], [projected_data(2, ii-1), projected_data(2, ii)], [projected_data(3, ii-1), projected_data(3,ii)], 'Color', color1);
     %     end
