@@ -130,12 +130,12 @@ tugs_ol = tugs_ol_data{1};
 
 
 figure; hold on;
+xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
+view([30, 30, 30])
+axis tight;
+set(gca,'BoxStyle','full','Box','off')
 for ii = 1:size(projected_data, 2)
-    
-    % if ((EVENT ON TIME < time_data) & (time_data < EVENT END TIME)) |
-    % if ((EVENT ON TIME < time_data) & (time_data < EVENT ON TIME + DURATION)) |
-    % if ((row 1 column 1 of data file < time_data) & (time_data < r1c1 + r1c2)) |
-    time_data = t_linspace(ii + 1)
+    time_data = t_linspace(ii + 1);
     a = find( diff(sign(CL(:,1)-time_data)) == 2);
     b = find( diff(sign(dec_sine(:,1)-time_data)) == 2);
     c = find( diff(sign(inc_sine(:,1)-time_data)) == 2);
@@ -144,35 +144,22 @@ for ii = 1:size(projected_data, 2)
     f = find( diff(sign(inf_sine(:,1)-time_data)) == 2);
     
     if (time_data > CL(a,1)) & (time_data < CL(a,1) + CL(a,2))
-        color1 = 'r'
+        color1 = 'r';
     elseif (time_data > dec_sine(b,1)) & (time_data < dec_sine(b,1) + dec_sine(b,2))
-        color1 = 'm'
+        color1 = 'm';
     elseif (time_data > inc_sine(c,1)) & (time_data < inc_sine(c,1) + inc_sine(c,2))
-        color1 = 'k'
+        color1 = 'k';
     elseif (time_data > inf_sine(f,1)) & (time_data < inf_sine(f,1) + inf_sine(f,2))
-        color1 = 'c'
+        color1 = 'c';
     elseif (time_data > no_sim(d,1)) & (time_data < no_sim(d,1) + no_sim(d,2))
-        color1 = 'b'
+        color1 = 'b';
     elseif (time_data > tugs_ol(e,1)) & (time_data < tugs_ol(e,1) + tugs_ol(e,2))
-        color1 = 'y'
+        color1 = 'y';
     else
-        color1 = 'g'
+        color1 = 'g';
     end
     
-    symbol_1 = '*';
-    plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', symbol_1, 'Color', color1, 'MarkerSize', 6, 'LineStyle', '-');
-    
-    drawnow update
-    %     if ii > 1
-    %         plot3([projected_data(1, ii-1), projected_data(1, ii)], [projected_data(2, ii-1), projected_data(2, ii)], [projected_data(3, ii-1), projected_data(3,ii)], 'Color', color1);
-    %     end
+    plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '.', 'Color', color1, 'MarkerSize', 6, 'LineStyle', '-');
 end
-xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18)
-% plot3(projected_data(1, :), projected_data(2, :), projected_data(3, :));
-% title([experiment_filename ' PCA'], 'FontSize', 18)
-
-
-view([30, 30])
-
 
 
