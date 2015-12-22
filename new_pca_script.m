@@ -36,7 +36,7 @@ nr_points = nr_points + 1;
 
 frequency_responses = zeros(nvar, nr_points);
 for ii = 1:nvar
-    ii
+    ii;
     for jj = 1:nr_points
         p1 = find(firing_times(2, :) == ii);
         frequency_responses(ii, jj) = sum(find(firing_times(1, p1) > t_linspace(jj) & firing_times(1, p1) < t_linspace(jj + 1)))/delta_t;
@@ -131,11 +131,12 @@ tugs_ol = tugs_ol_data{1};
 
 pca_fig = figure('vis', 'on'); hold on;
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
-view([30, 30, 30])
+
 axis vis3d;
-set(gca,'BoxStyle','full','Box','off')
-h = animatedline('Color', 'y', 'LineWidth',0.5);
+set(gca,'BoxStyle','full','Box','on')
+h = animatedline('Color', 'm', 'LineWidth', 0.1, 'LineStyle', '-.', 'MaximumNumPoints', 1000);
 tic;
+deg = 1;
 for ii = 1:size(projected_data, 2)
     time_data = t_linspace(ii + 1);
     a = find( diff(sign(CL(:,1)-time_data)) == 2);
@@ -161,10 +162,14 @@ for ii = 1:size(projected_data, 2)
         color1 = 'g';
     end
     
-    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '.', 'Color', color1, 'MarkerSize', 6, 'LineStyle', '-');
-    addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
+    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
+    if mod(ii, 5) == 0
+        addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
+        deg = mod(deg + 1, 360)
+    end
+    view([deg, 30 + 15 * sin(deg/60), 10])
     b = toc;
-    if b > (1/5000)
+    if b > (1/50000)
         drawnow update;
         tic;
     end
