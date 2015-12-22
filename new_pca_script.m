@@ -129,10 +129,15 @@ tugs_ol_data = textscan(fid_tugs_ol, '%f %f', 'Delimiter', '\t', 'CollectOutput'
 tugs_ol = tugs_ol_data{1};
 
 
+F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
+writerObj = VideoWriter('examplemovie.avi');
+open(writerObj);
+
+
 pca_fig = figure('vis', 'off', 'GraphicsSmoothing', 'on'); hold on;
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
-
 axis vis3d;
+zoom out;
 set(gca,'BoxStyle','full','Box','on')
 h = animatedline('Color', 'c', 'LineWidth', 0.1, 'LineStyle', '-', 'MaximumNumPoints', 1000);
 tic;
@@ -161,28 +166,33 @@ for ii = 1:size(projected_data, 2)
     else
         color1 = 'g';
     end
-    
-    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '>', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
-    if mod(ii, 5) == 0
-        deg = mod(deg + 0.01, 360)
-        set(pca_fig, 'vis', 'on')
-        addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
-    end
+    p1 = projected_data(1, ii);
+    p2 = projected_data(2, ii);
+    p3 = projected_data(3, ii);
+    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
+
+    deg = mod(deg + 0.25, 360)
+    set(pca_fig, 'vis', 'on')
+    addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
+
     b = toc;
     if b > (1.0/10000000)
         view([deg + 5, 15 + sin(deg/60)])
         drawnow update;
+        F(:,ii) = getframe;
+        writeVideo(writerObj,F(:,ii))
         tic;
     end
 end
-pauseit = 1;
-while pauseit == 1
-    deg = mod(deg + 0.01, 360);
-    b = toc;
-    if b > (1.0/10000000)
-        view([deg + 5, 15 + sin(deg/60)])
-        drawnow update;
-        tic;
-    end
-end
+% movie(F)
+% pauseit = 1;
+% while pauseit == 1
+%     deg = mod(deg + 0.01, 360);
+%     b = toc;
+%     if b > (1.0/10000000)
+%         view([deg + 5, 15 + sin(deg/60)])
+%         drawnow update;
+%         tic;
+%     end
+% end
 
