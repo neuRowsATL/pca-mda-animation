@@ -129,12 +129,12 @@ tugs_ol_data = textscan(fid_tugs_ol, '%f %f', 'Delimiter', '\t', 'CollectOutput'
 tugs_ol = tugs_ol_data{1};
 
 
-pca_fig = figure('vis', 'on'); hold on;
+pca_fig = figure('vis', 'off', 'GraphicsSmoothing', 'on'); hold on;
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
 
 axis vis3d;
 set(gca,'BoxStyle','full','Box','on')
-h = animatedline('Color', 'm', 'LineWidth', 0.1, 'LineStyle', '-.', 'MaximumNumPoints', 1000);
+h = animatedline('Color', 'c', 'LineWidth', 0.1, 'LineStyle', '-', 'MaximumNumPoints', 1000);
 tic;
 deg = 1;
 for ii = 1:size(projected_data, 2)
@@ -162,24 +162,27 @@ for ii = 1:size(projected_data, 2)
         color1 = 'g';
     end
     
-    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
+    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '>', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
     if mod(ii, 5) == 0
+        deg = mod(deg + 0.01, 360)
+        set(pca_fig, 'vis', 'on')
         addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
-        deg = mod(deg + 1, 360)
     end
-    view([deg, 30 + 15 * sin(deg/60), 10])
     b = toc;
-    if b > (1/50000)
+    if b > (1.0/10000000)
+        view([deg + 5, 15 + sin(deg/60)])
         drawnow update;
         tic;
     end
 end
-% figure;
-% xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
-% view([30, 30, 30])
-% axis tight;
-% set(gca,'BoxStyle','full','Box','off')
-% for k = 1:size(projected_data, 2)
-%     plot3(projected_data(1, 1:k), projected_data(2, 1:k), projected_data(3, 1:k), 'Marker', '.', 'Color', color1, 'MarkerSize', 6, 'LineStyle', '-');
-%     drawnow update
-% end
+pauseit = 1;
+while pauseit == 1
+    deg = mod(deg + 0.01, 360);
+    b = toc;
+    if b > (1.0/10000000)
+        view([deg + 5, 15 + sin(deg/60)])
+        drawnow update;
+        tic;
+    end
+end
+
