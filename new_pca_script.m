@@ -3,7 +3,7 @@ clear; close all;
 cbco_data = [];
 
 for ii = 1:34
-    file1 = ['.\THREE\20120411D_CBCO-' num2str(ii) '.txt'];
+    file1 = ['THREE/20120411D_CBCO-' num2str(ii) '.txt'];
     
     fid = fopen(file1);
     
@@ -62,7 +62,7 @@ min_summed_frequencies = min(summed_frequencies);
 max_summed_frequencies = max(summed_frequencies);
 
 
-fid_CL = fopen('.\THREE\CL.txt');
+fid_CL = fopen('THREE/CL.txt');
 
 cl_line_one = textscan(fid_CL, '%s %s %s \n');
 cl_line_two = textscan(fid_CL, '%s %s\t     %s\n');
@@ -73,7 +73,7 @@ cl_data = textscan(fid_CL, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 CL = cl_data{1};
 
 
-fid_dec_sine = fopen('.\THREE\low_sine.txt');
+fid_dec_sine = fopen('THREE/low_sine.txt');
 
 dec_sine_line_one = textscan(fid_dec_sine, '%s %s %s \n');
 dec_sine_line_two = textscan(fid_dec_sine, '%s %s\t     %s\n');
@@ -83,7 +83,7 @@ dec_sine_data = textscan(fid_dec_sine, '%f %f', 'Delimiter', '\t', 'CollectOutpu
 
 dec_sine = dec_sine_data{1};
 
-fid_inf_sine = fopen('.\THREE\inf_sine.txt');
+fid_inf_sine = fopen('THREE/inf_sine.txt');
 
 inf_sine_line_one = textscan(fid_inf_sine, '%s %s %s \n');
 inf_sine_line_two = textscan(fid_inf_sine, '%s %s\t     %s\n');
@@ -94,7 +94,7 @@ inf_sine_data = textscan(fid_inf_sine, '%f %f', 'Delimiter', '\t', 'CollectOutpu
 inf_sine = inf_sine_data{1};
 
 
-fid_inc_sine = fopen('.\THREE\top_sine.txt');
+fid_inc_sine = fopen('THREE/top_sine.txt');
 
 inc_sine_line_one = textscan(fid_inc_sine, '%s %s %s \n');
 inc_sine_line_two = textscan(fid_inc_sine, '%s %s\t     %s\n');
@@ -106,7 +106,7 @@ inc_sine_data = textscan(fid_inc_sine, '%f %f', 'Delimiter', '\t', 'CollectOutpu
 inc_sine = inc_sine_data{1};
 
 
-fid_no_sim = fopen('.\THREE\no_sim.txt');
+fid_no_sim = fopen('THREE/no_sim.txt');
 
 no_sim_line_one = textscan(fid_no_sim, '%s %s %s \n');
 no_sim_line_two = textscan(fid_no_sim, '%s %s\t     %s\n');
@@ -117,7 +117,7 @@ no_sim_data = textscan(fid_no_sim, '%f %f', 'Delimiter', '\t', 'CollectOutput', 
 
 no_sim = no_sim_data{1};
 
-fid_tugs_ol = fopen('.\THREE\tugs_ol.txt');
+fid_tugs_ol = fopen('THREE/tugs_ol.txt');
 
 tugs_ol_line_one = textscan(fid_tugs_ol, '%s %s %s \n');
 tugs_ol_line_two = textscan(fid_tugs_ol, '%s %s\t     %s\n');
@@ -133,16 +133,24 @@ F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
 writerObj = VideoWriter('examplemovie.avi');
 open(writerObj);
 
+p1_dat = projected_data(1, :);
+p2_dat = projected_data(2, :);
+p3_dat = projected_data(3, :);
 
-pca_fig = figure('vis', 'off', 'GraphicsSmoothing', 'on'); hold on;
+
+pca_fig = figure('GraphicsSmoothing', 'on');
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
-axis vis3d;
-zoom out;
-set(gca,'BoxStyle','full','Box','on')
-h = animatedline('Color', 'c', 'LineWidth', 0.1, 'LineStyle', '-', 'MaximumNumPoints', 1000);
+set(gca,'BoxStyle','full','Box','on', 'Position', [0.25, 0.25, 0.5, 0.5]);
+% axis([-0.7, 1, -2, 1, 0.6, 2])
+axis([min(p1_dat), max(p1_dat), min(p2_dat), max(p2_dat), min(p3_dat), max(p3_dat)])
+hold on;
+h = animatedline('Color', 'c', 'LineWidth', 0.1, 'LineStyle', '-', 'MaximumNumPoints', 100);
 tic;
 deg = 1;
+saved_color = 'b';
+color1 = 'b';
 for ii = 1:size(projected_data, 2)
+    ii
     time_data = t_linspace(ii + 1);
     a = find( diff(sign(CL(:,1)-time_data)) == 2);
     b = find( diff(sign(dec_sine(:,1)-time_data)) == 2);
@@ -150,7 +158,7 @@ for ii = 1:size(projected_data, 2)
     d = find( diff(sign(no_sim(:,1)-time_data)) == 2);
     e = find( diff(sign(tugs_ol(:,1)-time_data)) == 2);
     f = find( diff(sign(inf_sine(:,1)-time_data)) == 2);
-    
+    saved_color = color1;
     if (time_data > CL(a,1)) & (time_data < CL(a,1) + CL(a,2))
         color1 = 'r';
     elseif (time_data > dec_sine(b,1)) & (time_data < dec_sine(b,1) + dec_sine(b,2))
@@ -166,20 +174,25 @@ for ii = 1:size(projected_data, 2)
     else
         color1 = 'g';
     end
+        
     p1 = projected_data(1, ii);
     p2 = projected_data(2, ii);
     p3 = projected_data(3, ii);
-    pca_plot = plot3(projected_data(1, ii), projected_data(2, ii), projected_data(3, ii), 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
-
-    deg = mod(deg + 0.25, 360)
-    set(pca_fig, 'vis', 'on')
+    pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
+    
+    if saved_color ~= color1
+        set(pca_plot(1:ii-1), 'MarkerSize', 0.5);
+        clearpoints(h);
+    end
+    
+    deg = mod(deg + 0.25, 360);
     addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
 
     b = toc;
-    if b > (1.0/10000000)
+    if b > (1.0/1000)
         view([deg + 5, 15 + sin(deg/60)])
         drawnow update;
-        F(:,ii) = getframe;
+        F(:,ii) = getframe(gcf);
         writeVideo(writerObj,F(:,ii))
         tic;
     end
