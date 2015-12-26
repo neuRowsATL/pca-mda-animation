@@ -7,10 +7,6 @@ for ii = 1:34
     
     fid = fopen(file1);
     
-    % c = textscan(fid, ...
-    %                 '%*s v1=%f v2=%f v3=%f %*s', ...
-    %                 'Delimiter', '\n', ...
-    %                 'CollectOutput', true);
     
     c1 = textscan(fid, '%s %s %s \n');
     c2 = textscan(fid, '%s %s \n');
@@ -47,14 +43,9 @@ frequency_responses = (frequency_responses - repmat(mean(frequency_responses')',
     repmat(std(frequency_responses')', 1, size(frequency_responses, 2));
 
 frequency_responses = (1 + tanh(frequency_responses))/2;
-%frequency_responses = log(frequency_responses);
 
 [eigenvectors1, eigenvalues1] = eig(cov(frequency_responses'));
 projected_data = eigenvectors1(:, end - 2:end)'*frequency_responses;
-
-
-% projected_data = log(projected_data);
-% figure; plot3(projected_data(1, :), projected_data(2, :), projected_data(3, :), '.');
 
 
 summed_frequencies = sum(frequency_responses);
@@ -67,7 +58,6 @@ fid_CL = fopen('THREE/CL.txt');
 cl_line_one = textscan(fid_CL, '%s %s %s \n');
 cl_line_two = textscan(fid_CL, '%s %s\t     %s\n');
 
-%  ca = textscan(fid, '%f %f', 'Delimiter', '\n', 'CollectOutput', true);
 cl_data = textscan(fid_CL, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 
 CL = cl_data{1};
@@ -78,7 +68,6 @@ fid_dec_sine = fopen('THREE/low_sine.txt');
 dec_sine_line_one = textscan(fid_dec_sine, '%s %s %s \n');
 dec_sine_line_two = textscan(fid_dec_sine, '%s %s\t     %s\n');
 
-%  ca = textscan(fid, '%f %f', 'Delimiter', '\n', 'CollectOutput', true);
 dec_sine_data = textscan(fid_dec_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 
 dec_sine = dec_sine_data{1};
@@ -88,7 +77,6 @@ fid_inf_sine = fopen('THREE/inf_sine.txt');
 inf_sine_line_one = textscan(fid_inf_sine, '%s %s %s \n');
 inf_sine_line_two = textscan(fid_inf_sine, '%s %s\t     %s\n');
 
-%  ca = textscan(fid, '%f %f', 'Delimiter', '\n', 'CollectOutput', true);
 inf_sine_data = textscan(fid_inf_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 
 inf_sine = inf_sine_data{1};
@@ -100,7 +88,6 @@ inc_sine_line_one = textscan(fid_inc_sine, '%s %s %s \n');
 inc_sine_line_two = textscan(fid_inc_sine, '%s %s\t     %s\n');
 
 
-%  ca = textscan(fid, '%f %f', 'Delimiter', '\n', 'CollectOutput', true);
 inc_sine_data = textscan(fid_inc_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 
 inc_sine = inc_sine_data{1};
@@ -112,7 +99,7 @@ no_sim_line_one = textscan(fid_no_sim, '%s %s %s \n');
 no_sim_line_two = textscan(fid_no_sim, '%s %s\t     %s\n');
 
 
-%  ca = textscan(fid, '%f %f', 'Delimiter', '\n', 'CollectOutput', true);
+
 no_sim_data = textscan(fid_no_sim, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 
 no_sim = no_sim_data{1};
@@ -123,7 +110,6 @@ tugs_ol_line_one = textscan(fid_tugs_ol, '%s %s %s \n');
 tugs_ol_line_two = textscan(fid_tugs_ol, '%s %s\t     %s\n');
 
 
-%  ca = textscan(fid, '%f %f', 'Delimiter', '\n', 'CollectOutput', true);
 tugs_ol_data = textscan(fid_tugs_ol, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 
 tugs_ol = tugs_ol_data{1};
@@ -131,6 +117,8 @@ tugs_ol = tugs_ol_data{1};
 
 F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
 writerObj = VideoWriter('examplemovie.avi');
+writerObj.Quality = 100;
+writerObj.FrameRate = 60;
 open(writerObj);
 
 p1_dat = projected_data(1, :);
@@ -141,7 +129,6 @@ p3_dat = projected_data(3, :);
 pca_fig = figure('GraphicsSmoothing', 'on');
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
 set(gca,'BoxStyle','full','Box','on', 'Position', [0.25, 0.25, 0.5, 0.5]);
-% axis([-0.7, 1, -2, 1, 0.6, 2])
 axis([min(p1_dat), max(p1_dat), min(p2_dat), max(p2_dat), min(p3_dat), max(p3_dat)])
 hold on;
 h = animatedline('Color', 'c', 'LineWidth', 0.1, 'LineStyle', '-', 'MaximumNumPoints', 100);
@@ -182,7 +169,6 @@ for ii = 1:size(projected_data, 2)
     
     if saved_color ~= color1
         set(pca_plot(1:ii-1), 'MarkerSize', 0.5);
-%         clearpoints(h);
     end
     
     deg = mod(deg + 0.25, 360);
@@ -197,15 +183,4 @@ for ii = 1:size(projected_data, 2)
         tic;
     end
 end
-% movie(F)
-% pauseit = 1;
-% while pauseit == 1
-%     deg = mod(deg + 0.01, 360);
-%     b = toc;
-%     if b > (1.0/10000000)
-%         view([deg + 5, 15 + sin(deg/60)])
-%         drawnow update;
-%         tic;
-%     end
-% end
 

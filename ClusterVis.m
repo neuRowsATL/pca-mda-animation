@@ -1,9 +1,12 @@
-function [ ] = Untitled2( projected_data )
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
+function [ ] = ClusterVis( projected_data )
+%ClusterVis : Creates a 3d visualization of clustered data
+%   input: data separated into 3 rows
+%   output: saves a movie as './examplemovie.avi'
 
 F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
 writerObj = VideoWriter('examplemovie.avi');
+writerObj.Quality = 100;
+writerObj.FrameRate = 60;
 open(writerObj);
 
 p1_dat = projected_data(1, :);
@@ -23,30 +26,6 @@ saved_color = 'b';
 color1 = 'b';
 for ii = 1:size(projected_data, 2)
     ii
-    time_data = t_linspace(ii + 1);
-    a = find( diff(sign(CL(:,1)-time_data)) == 2);
-    b = find( diff(sign(dec_sine(:,1)-time_data)) == 2);
-    c = find( diff(sign(inc_sine(:,1)-time_data)) == 2);
-    d = find( diff(sign(no_sim(:,1)-time_data)) == 2);
-    e = find( diff(sign(tugs_ol(:,1)-time_data)) == 2);
-    f = find( diff(sign(inf_sine(:,1)-time_data)) == 2);
-    saved_color = color1;
-    if (time_data > CL(a,1)) & (time_data < CL(a,1) + CL(a,2))
-        color1 = 'r';
-    elseif (time_data > dec_sine(b,1)) & (time_data < dec_sine(b,1) + dec_sine(b,2))
-        color1 = 'm';
-    elseif (time_data > inc_sine(c,1)) & (time_data < inc_sine(c,1) + inc_sine(c,2))
-        color1 = 'k';
-    elseif (time_data > inf_sine(f,1)) & (time_data < inf_sine(f,1) + inf_sine(f,2))
-        color1 = 'c';
-    elseif (time_data > no_sim(d,1)) & (time_data < no_sim(d,1) + no_sim(d,2))
-        color1 = 'b';
-    elseif (time_data > tugs_ol(e,1)) & (time_data < tugs_ol(e,1) + tugs_ol(e,2))
-        color1 = 'y';
-    else
-        color1 = 'g';
-    end
-        
     p1 = projected_data(1, ii);
     p2 = projected_data(2, ii);
     p3 = projected_data(3, ii);

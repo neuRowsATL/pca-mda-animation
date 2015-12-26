@@ -1,18 +1,12 @@
 
 % display stuff
 color_and_symbol_5_classes = ['k.'; 'cd'; 'go'; 'gx'; 'b^'; 'bs'; 'm*';];
-
 color_and_symbol_5_classes = ['k.'; 'go'; 'b^'; 'm*'; 'cd'];
-
-
-
 color_and_symbol = color_and_symbol_5_classes;
 
 clear h;
 
 nr_classes = 5;
-
-
 
 figure
 for jj = 1:5
@@ -99,7 +93,7 @@ if(size(Disc, 2) > 2)
     end
 
 
-    theta1 = 30; phi1 = -10; view([theta1, phi1]);
+    
     camlight headlight;
     alpha(0.3);
 
