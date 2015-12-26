@@ -182,7 +182,7 @@ for ii = 1:size(projected_data, 2)
     
     if saved_color ~= color1
         set(pca_plot(1:ii-1), 'MarkerSize', 0.5);
-        clearpoints(h);
+%         clearpoints(h);
     end
     
     deg = mod(deg + 0.25, 360);
