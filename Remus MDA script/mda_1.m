@@ -4,15 +4,20 @@ rand('state', 1)
 
 to_plot = 1; 
 
-create_data;
-
-% Means = Means_th;
-
 weights = ones(1, nr_classes);
 
-% weights = [1 4 4 4 4];
+pdat = projected_data';
+pdat_labels = zeros(1, size(pdat, 2));
+nr_classes = size(pdat, 2);
+for pdat_row=1:size(pdat, 1)
+    for pdat_class=1:nr_classes
+        if pdat_row/nr_classes <= pdat_class/nr_classes
+           pdat_labels(pdat_row) = pdat_class; 
+        end
+    end
+end
 
-Sw_0 = cov(training_data - Means(g_training_set, :));
+Sw_0 = cov(projected_data - Means(pdat_labels, :));
 
 Sb_exp = zeros(nvar, nvar);
 for ii = 1:nr_classes
@@ -21,7 +26,7 @@ end
 
 Sw_exp = zeros(nvar, nvar, nr_classes );
 for ii = 1:nr_classes
-    Sw_exp(:, :, ii) = cov(training_data(find(g_training_set == ii), :) - Means(g_training_set(find(g_training_set == ii)), :));
+    Sw_exp(:, :, ii) = cov(pdat(find(pdat_labels == ii), :) - Means(pdat_labels(find(pdat_labels == ii)), :));
 end
 Sw_exp_0 = Sw_exp;
 
@@ -34,9 +39,9 @@ for ii = 1:nr_classes
     stds_1 = zeros(nvar, nr_classes);
     for jj = 1:nvar
         for kk = 1:nr_classes
-            p1 = find(g_training_set == kk);
-            errors(jj, kk) = sum(((training_data(p1, :) - repmat(Means(ii, :), length(p1), 1))*v2(:, jj)).^2);
-            stds_1(jj, kk) = std(training_data(p1, :)*v2(:, jj));
+            p1 = find(pdat_labels == kk);
+            errors(jj, kk) = sum(((pdat(p1, :) - repmat(Means(ii, :), length(p1), 1))*v2(:, jj)).^2);
+            stds_1(jj, kk) = std(pdat(p1, :)*v2(:, jj));
         end
     end
 
@@ -81,7 +86,7 @@ Sb = (1 - lambda_2)*Sb_0 + lambda_2*ones(size(Sb_0));
 
 % Sw = 0*Sw;
 % for ii = 1:nr_classes + 1
-%     Sw = Sw + length(find(g_training_set == ii))*S_corr(:, :, ii);
+%     Sw = Sw + length(find(pdat_labels == ii))*S_corr(:, :, ii);
 % end
 
 
@@ -101,7 +106,7 @@ Disc = v(:, Order2);
 Disc = Disc(:, 1:5);
 
 % compute the projection in the low-dimensional space
-y_train = training_data * Disc;
+y_train = pdat * Disc;
 if(nr_features > nr_classes)
     y_train = y_train(:, 1:nr_classes);
 end
@@ -120,7 +125,7 @@ y_test_set = y_test;
 if(to_plot == 1)
 %     display_clusters_7_points;
     %     display_clusters_7_points_ver2;
-    ClusterVis()
+    ClusterVis(pdat, pdat_labels)
 end
 
 
