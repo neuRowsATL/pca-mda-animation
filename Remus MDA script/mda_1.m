@@ -26,6 +26,7 @@ end
 
 Sw_exp = zeros(nvar, nvar, nr_classes );
 for ii = 1:nr_classes
+    Means(pdat_labels(find(pdat_labels == ii)), :)
     Sw_exp(:, :, ii) = cov(pdat(find(pdat_labels == ii), :) - Means(pdat_labels(find(pdat_labels == ii)), :));
 end
 Sw_exp_0 = Sw_exp;
