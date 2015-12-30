@@ -6,7 +6,7 @@ function ClusterVis( projected_data, class_label_vector )
 F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
 writerObj = VideoWriter('examplemovie.avi');
 writerObj.Quality = 100;
-writerObj.FrameRate = 60;
+writerObj.FrameRate = 30;
 open(writerObj);
 
 p1_dat = projected_data(:, 1);
@@ -20,7 +20,7 @@ set(gcf, 'OuterPosition', [400, 400, 1000, 700])
 axis([min(p1_dat), max(p1_dat), min(p2_dat), max(p2_dat), min(p3_dat), max(p3_dat)])
 hold on;
 
-h = animatedline('Color', 'g', 'LineWidth', 1, 'LineStyle', '-', 'MaximumNumPoints', 20);
+h = animatedline('Color', 'g', 'LineWidth', 1, 'LineStyle', '-', 'MaximumNumPoints', 75);
 
 tic;
 deg = 1;
@@ -28,7 +28,7 @@ deg = 1;
 saved_color = 'b';
 colors = ['r', 'b', 'k', 'm', 'c', 'g'];
 UpdateRate = 1e-8;
-chunkData = round(length(projected_data)/10);
+chunkData = round(length(projected_data)/5);
 saved_val = 1;
 
 for ii = 1:size(projected_data, 1)
@@ -40,9 +40,9 @@ for ii = 1:size(projected_data, 1)
     p2 = projected_data(ii, 2);
     p3 = projected_data(ii, 3);
     
-    pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '.', 'Color', color1, 'MarkerSize', 15);
+    pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '.', 'Color', color1, 'MarkerSize', 20);
     
-    if saved_color ~= color1 || ii > saved_val + chunkData
+    if ii >= saved_val + chunkData
         saved_color = color1;
         saved_val = ii;
         set(pca_plot(1:ii-1), 'MarkerSize', 5);

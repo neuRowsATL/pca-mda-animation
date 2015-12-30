@@ -8,20 +8,7 @@ function [pdat, labels] = HCAClass(data, numb_classes)
 pdat = eigenvectors1(:, end - 2:end)'*data;
 
 % Label the data
-if size(pdat, 1) < size(pdat, 2)
-    pdat_labels = LSC(pdat', numb_classes);
-elseif size(pdat, 1) > size(pdat, 2)
-    pdat_labels = LSC(pdat, numb_classes);
-end
-
-% SVM classifier
-% Function from here: http://www.mathworks.com/matlabcentral/fileexchange/39352-multi-class-svm
-% Author: Cody
-% training_x = pdat(:, 1:length(pdat)*(2/5))';
-% training_y = pdat_labels(1:length(pdat_labels)*(2/5), :);
-% test_x = pdat(:, length(pdat)*(2/5):end)';
-% results = multisvm(training_x, training_y, test_x);
-% second_results = multisvm(test_x, results, training_x);
 labels = kmeans(pdat', numb_classes);
+
 end
 
