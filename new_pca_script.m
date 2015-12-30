@@ -44,19 +44,9 @@ frequency_responses = (frequency_responses - repmat(mean(frequency_responses')',
     repmat(std(frequency_responses')', 1, size(frequency_responses, 2));
 frequency_responses = (1 + tanh(frequency_responses))/2;
 
-% Run PCA
-opt = statset('ppca');
-opt.MaxIter = 100e3;
-opt.TolFun = 1e-8;
-opt.TolX = 1e-8;
-[pdat0, score, ~] = ppca(cov(frequency_responses), 3, 'Options', opt);
-no_clust = 5;
-pdat = clusterdata(pdat0, 'maxclust', no_clust);
-for jj = 1:no_clust
-    jj;
-    print_clust(:, jj) = [jj; nnz(pdat==jj)];
-end
-print_clust
+% % Run initial clustering with PCA
+% [eigenvectors1, ~] = eig(cov(frequency_responses'));
+% pdat = eigenvectors1(:, end - 2:end)'*frequency_responses;
 %% Classification data
 fid_CL = fopen('THREE/CL.txt');
 cl_line_one = textscan(fid_CL, '%s %s %s \n');
@@ -100,10 +90,18 @@ p2_dat = pdat(2, :);
 p3_dat = pdat(3, :);
 
 plot_dat = false;
-clust_vis = true;
+clust_vis = false;
 
 if clust_vis
     pdat_labels = LSC(pdat', 5, ['p', 400, 'numRep', 7]);
+    ClusterVis(pdat', pdat_labels);
+end
+
+%% HCA
+hca_vis = true;
+
+if hca_vis
+    [pdat, pdat_labels] = HCAClass(frequency_responses, 5);
     ClusterVis(pdat', pdat_labels);
 end
 
