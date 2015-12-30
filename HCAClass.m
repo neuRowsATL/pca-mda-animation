@@ -3,12 +3,20 @@ function [ output_args ] = HCAClass(data, numb_classes)
 %   input:  - data (vector of length N containing the projected data)
 %           - numb_classes (# of classes to target)
 
-% Label the data
+% Run initial clustering with PCA
 if size(data, 1) < size(data, 2)
-    pdat_labels = LSC(data', numb_classes);
+    pdat = pca(data);
 elseif size(data, 1) > size(data, 2)
-    pdat_labels = LSC(data, numb_classes);
+    pdat = pca(data');
 end
+
+% Label the data
+if size(pdat, 1) < size(pdat, 2)
+    pdat_labels = LSC(pdat', numb_classes);
+elseif size(pdat, 1) > size(pdat, 2)
+    pdat_labels = LSC(pdat, numb_classes);
+end
+
 
 
 

@@ -1,6 +1,5 @@
-clear; close all;
-
 %% Get data
+clear; close all;
 cbco_data = [];
 
 for ii = 1:34
@@ -21,8 +20,8 @@ end
 
 cbco_data = cbco_data';
 
-%% PCA
-firing_times = [cbco_data];
+%% Initial Clusering
+firing_times = cbco_data;
 
 nvar = max(firing_times(2, :));
 
@@ -32,6 +31,7 @@ delta_t = t_linspace(2) - t_linspace(1);
 t_linspace = [t_linspace(1) - delta_t, t_linspace, t_linspace(end) + delta_t];
 nr_points = nr_points + 1;
 
+% Find frequency responses
 frequency_responses = zeros(nvar, nr_points);
 for ii = 1:nvar
     ii;
@@ -40,20 +40,23 @@ for ii = 1:nvar
         frequency_responses(ii, jj) = sum(find(firing_times(1, p1) > t_linspace(jj) & firing_times(1, p1) < t_linspace(jj + 1)))/delta_t;
     end
 end
-
 frequency_responses = (frequency_responses - repmat(mean(frequency_responses')', 1, size(frequency_responses, 2)))./ ...
     repmat(std(frequency_responses')', 1, size(frequency_responses, 2));
-
 frequency_responses = (1 + tanh(frequency_responses))/2;
 
-[eigenvectors1, eigenvalues1] = eig(cov(frequency_responses'));
-projected_data = eigenvectors1(:, end - 2:end)'*frequency_responses;
-
-
-summed_frequencies = sum(frequency_responses);
-min_summed_frequencies = min(summed_frequencies);
-max_summed_frequencies = max(summed_frequencies);
-
+% Run PCA
+opt = statset('ppca');
+opt.MaxIter = 100e3;
+opt.TolFun = 1e-8;
+opt.TolX = 1e-8;
+[pdat0, score, ~] = ppca(cov(frequency_responses), 3, 'Options', opt);
+no_clust = 5;
+pdat = clusterdata(pdat0, 'maxclust', no_clust);
+for jj = 1:no_clust
+    jj;
+    print_clust(:, jj) = [jj; nnz(pdat==jj)];
+end
+print_clust
 %% Classification data
 fid_CL = fopen('THREE/CL.txt');
 cl_line_one = textscan(fid_CL, '%s %s %s \n');
@@ -73,7 +76,6 @@ inf_sine_line_two = textscan(fid_inf_sine, '%s %s\t     %s\n');
 inf_sine_data = textscan(fid_inf_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 inf_sine = inf_sine_data{1};
 
-
 fid_inc_sine = fopen('THREE/top_sine.txt');
 inc_sine_line_one = textscan(fid_inc_sine, '%s %s %s \n');
 inc_sine_line_two = textscan(fid_inc_sine, '%s %s\t     %s\n');
@@ -83,9 +85,6 @@ inc_sine = inc_sine_data{1};
 fid_no_sim = fopen('THREE/no_sim.txt');
 no_sim_line_one = textscan(fid_no_sim, '%s %s %s \n');
 no_sim_line_two = textscan(fid_no_sim, '%s %s\t     %s\n');
-
-
-
 no_sim_data = textscan(fid_no_sim, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
 no_sim = no_sim_data{1};
 
@@ -96,22 +95,21 @@ tugs_ol_data = textscan(fid_tugs_ol, '%f %f', 'Delimiter', '\t', 'CollectOutput'
 tugs_ol = tugs_ol_data{1};
 
 %% LSC(), ClusterVis()
-
-p1_dat = projected_data(1, :);
-p2_dat = projected_data(2, :);
-p3_dat = projected_data(3, :);
+p1_dat = pdat(1, :);
+p2_dat = pdat(2, :);
+p3_dat = pdat(3, :);
 
 plot_dat = false;
 clust_vis = true;
 
 if clust_vis
-    pdat_labels = LSC(projected_data', 5, ['p', 400, 'numRep', 7]);
-    ClusterVis(projected_data', pdat_labels);
+    pdat_labels = LSC(pdat', 5, ['p', 400, 'numRep', 7]);
+    ClusterVis(pdat', pdat_labels);
 end
 
 %% Original plot func
 if plot_dat
-    F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
+    F(size(pdat, 2)) = struct('cdata',[],'colormap',[]); % movie
     writerObj = VideoWriter('examplemovie.avi');
     writerObj.Quality = 100;
     writerObj.FrameRate = 60;
@@ -126,7 +124,7 @@ if plot_dat
     deg = 1;
     saved_color = 'b';
     color1 = 'b';
-    for ii = 1:size(projected_data, 2)
+    for ii = 1:size(pdat, 2)
         ii
         time_data = t_linspace(ii + 1);
         a = find( diff(sign(CL(:,1)-time_data)) == 2);
@@ -152,9 +150,9 @@ if plot_dat
             color1 = 'g';
         end
 
-        p1 = projected_data(1, ii);
-        p2 = projected_data(2, ii);
-        p3 = projected_data(3, ii);
+        p1 = pdat(1, ii);
+        p2 = pdat(2, ii);
+        p3 = pdat(3, ii);
         pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
 
         if saved_color ~= color1
@@ -162,7 +160,7 @@ if plot_dat
         end
 
         deg = mod(deg + 0.25, 360);
-        addpoints(h, projected_data(1, ii), projected_data(2, ii), projected_data(3, ii));
+        addpoints(h, pdat(1, ii), pdat(2, ii), pdat(3, ii));
 
         b = toc;
         if b > (1.0/1000)
