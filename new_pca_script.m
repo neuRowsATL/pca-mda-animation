@@ -1,5 +1,6 @@
 clear; close all;
 
+%% Get data
 cbco_data = [];
 
 for ii = 1:34
@@ -20,6 +21,7 @@ end
 
 cbco_data = cbco_data';
 
+%% PCA
 firing_times = [cbco_data];
 
 nvar = max(firing_times(2, :));
@@ -52,85 +54,68 @@ summed_frequencies = sum(frequency_responses);
 min_summed_frequencies = min(summed_frequencies);
 max_summed_frequencies = max(summed_frequencies);
 
-
+%% Classification data
 fid_CL = fopen('THREE/CL.txt');
-
 cl_line_one = textscan(fid_CL, '%s %s %s \n');
 cl_line_two = textscan(fid_CL, '%s %s\t     %s\n');
-
 cl_data = textscan(fid_CL, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
-
 CL = cl_data{1};
 
-
 fid_dec_sine = fopen('THREE/low_sine.txt');
-
 dec_sine_line_one = textscan(fid_dec_sine, '%s %s %s \n');
 dec_sine_line_two = textscan(fid_dec_sine, '%s %s\t     %s\n');
-
 dec_sine_data = textscan(fid_dec_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
-
 dec_sine = dec_sine_data{1};
 
 fid_inf_sine = fopen('THREE/inf_sine.txt');
-
 inf_sine_line_one = textscan(fid_inf_sine, '%s %s %s \n');
 inf_sine_line_two = textscan(fid_inf_sine, '%s %s\t     %s\n');
-
 inf_sine_data = textscan(fid_inf_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
-
 inf_sine = inf_sine_data{1};
 
 
 fid_inc_sine = fopen('THREE/top_sine.txt');
-
 inc_sine_line_one = textscan(fid_inc_sine, '%s %s %s \n');
 inc_sine_line_two = textscan(fid_inc_sine, '%s %s\t     %s\n');
-
-
 inc_sine_data = textscan(fid_inc_sine, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
-
 inc_sine = inc_sine_data{1};
 
-
 fid_no_sim = fopen('THREE/no_sim.txt');
-
 no_sim_line_one = textscan(fid_no_sim, '%s %s %s \n');
 no_sim_line_two = textscan(fid_no_sim, '%s %s\t     %s\n');
 
 
 
 no_sim_data = textscan(fid_no_sim, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
-
 no_sim = no_sim_data{1};
 
 fid_tugs_ol = fopen('THREE/tugs_ol.txt');
-
 tugs_ol_line_one = textscan(fid_tugs_ol, '%s %s %s \n');
 tugs_ol_line_two = textscan(fid_tugs_ol, '%s %s\t     %s\n');
-
-
 tugs_ol_data = textscan(fid_tugs_ol, '%f %f', 'Delimiter', '\t', 'CollectOutput', true);
-
 tugs_ol = tugs_ol_data{1};
 
-
-F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
-writerObj = VideoWriter('examplemovie.avi');
-writerObj.Quality = 100;
-writerObj.FrameRate = 60;
-open(writerObj);
+%% LSC(), ClusterVis()
 
 p1_dat = projected_data(1, :);
 p2_dat = projected_data(2, :);
 p3_dat = projected_data(3, :);
+
 plot_dat = false;
 clust_vis = true;
+
 if clust_vis
     pdat_labels = LSC(projected_data', 5, ['p', 400, 'numRep', 7]);
     ClusterVis(projected_data', pdat_labels);
 end
+
+%% Original plot func
 if plot_dat
+    F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
+    writerObj = VideoWriter('examplemovie.avi');
+    writerObj.Quality = 100;
+    writerObj.FrameRate = 60;
+    open(writerObj);
     pca_fig = figure('GraphicsSmoothing', 'on');
     xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
     set(gca,'BoxStyle','full','Box','on', 'Position', [0.25, 0.25, 0.5, 0.5]);
