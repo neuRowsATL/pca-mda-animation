@@ -85,9 +85,6 @@ tugs_ol_data = textscan(fid_tugs_ol, '%f %f', 'Delimiter', '\t', 'CollectOutput'
 tugs_ol = tugs_ol_data{1};
 
 %% LSC(), ClusterVis()
-p1_dat = pdat(1, :);
-p2_dat = pdat(2, :);
-p3_dat = pdat(3, :);
 
 plot_dat = false;
 clust_vis = false;
@@ -106,6 +103,9 @@ if hca_vis
 end
 
 %% Original plot func
+p1_dat = pdat(1, :);
+p2_dat = pdat(2, :);
+p3_dat = pdat(3, :);
 if plot_dat
     F(size(pdat, 2)) = struct('cdata',[],'colormap',[]); % movie
     writerObj = VideoWriter('examplemovie.avi');
