@@ -36,10 +36,10 @@ for ii = 1:size(projected_data, 1)
     p2 = projected_data(ii, 2);
     p3 = projected_data(ii, 3);
     
-    pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '*', 'Color', color1, 'MarkerSize', 3, 'LineStyle', '-');
+    pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '*', 'Color', color1, 'MarkerSize', 7, 'LineStyle', '-');
     
     if saved_color ~= color1
-        set(pca_plot(1:ii-1), 'MarkerSize', 0.5);
+        set(pca_plot(1:ii-1), 'MarkerSize', 3);
     end
     
     deg = mod(deg + 0.25, 360);

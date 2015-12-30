@@ -127,7 +127,7 @@ p3_dat = projected_data(3, :);
 plot_dat = false;
 clust_vis = true;
 if clust_vis
-    pdat_labels = LabelData(projected_data');
+    pdat_labels = LSC(projected_data', 5, ['p', 400, 'numRep', 7]);
     ClusterVis(projected_data', pdat_labels);
 end
 if plot_dat
