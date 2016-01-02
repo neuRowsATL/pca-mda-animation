@@ -96,11 +96,15 @@ end
 
 %% HCA
 hca_vis = true;
+clust_vis = false;
 
 if hca_vis
     [pdat, pdat_labels] = HCAClass(frequency_responses, 5);
+end
+if clust_vis
     ClusterVis(pdat', pdat_labels);
 end
+
 
 %% Original plot func
 p1_dat = pdat(1, :);
