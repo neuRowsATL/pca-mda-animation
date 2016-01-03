@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 15:44:40
+% Last Modified by GUIDE v2.5 03-Jan-2016 15:52:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,7 +52,7 @@ function ClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to ClusterGUI (see VARARGIN)
 
-axis vis3d;
+set(handles.checkbox1,'Enable','off');
 
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
@@ -162,9 +162,18 @@ if strcmp(handles.analysis, 'None (display raw data)')
 elseif strcmp(handles.analysis, 'PCA')
     [eigenvectors1, ~] = eig(cov(handles.odat'));
     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
-    if length(dims) == 3
-        plot3(handles.plot_dat(1, :), handles.plot_dat(2, :), handles.plot_dat(3, :),...
-        'Marker', '.', 'LineStyle', 'none');
+    if length(dims) == 3 && ~handles.checkbox1.Value
+        colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
+        hold on;
+        for ii=1:length(handles.plot_dat)
+            color_num = handles.plot_labels(ii);
+            color1 = colors(color_num);
+            plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii), handles.plot_dat(3, ii),...
+            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
+        end
+        view([30 30 15])
+    elseif length(dims) == 3 && handles.checkbox1.Value
+        ClusterVis(handles.plot_dat', handles.plot_labels);
     elseif length(dims) <= 2
         axis(handles.axes1);
         plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
@@ -194,6 +203,11 @@ function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
 % Select Analysis method
 contents = cellstr(get(hObject,'String'));
 handles.analysis = contents{get(hObject,'Value')};
+if regexp(handles.analysis, 'PCA*') == 1
+    set(handles.checkbox1,'Enable','on');
+elseif regexp(handles.analysis, 'PCA*') ~= 1
+    set(handles.checkbox1,'Enable','off');
+end
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -217,3 +231,17 @@ function labelsPushButton_Callback(hObject, eventdata, handles)
 % hObject    handle to labelsPushButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+[filename1,filepath1] = uigetfile({'*.txt','ASCII Data Files'}, 'Select Labels File');
+cd(filepath1);
+datafile = load(filename1,'-ascii');
+handles.plot_labels = datafile;
+guidata(hObject, handles);
+
+% --- Executes on button press in checkbox1.
+function checkbox1_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox
+guidata(hObject, handles);

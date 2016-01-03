@@ -96,11 +96,14 @@ if clust_vis
 end
 
 %% LabelDat()
-% pdat_labels = LabelData(projected_data, 2);
+label_dat = true;
 
+if label_dat
+    pdat_labels = LabelData(projected_data, 2);
+end
 
 %% HCA
-hca_vis = true;
+hca_vis = false;
 clust_vis = false;
 
 if hca_vis

@@ -26,7 +26,7 @@ tic;
 deg = 1;
 
 saved_color = 'b';
-colors = ['r', 'b', 'k', 'm', 'c', 'g'];
+colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
 UpdateRate = 1e-8;
 chunkData = round(length(projected_data)/5);
 saved_val = 1;

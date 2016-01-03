@@ -88,7 +88,7 @@ cbco_data = cbco_data';
     t_linspace = [t_linspace(1) - delta_t, t_linspace, t_linspace(end) + delta_t];
     nr_points = nr_points + 1;
     pdat_labels = zeros(1, size(pdat, 2));
-    color1 = 'b';
+    color1 = 1;
     for ii=1:length(pdat)
         time_data = t_linspace(ii + 1);
         a = find( diff(sign(CL(:,1)-time_data)) == 2);
@@ -99,19 +99,19 @@ cbco_data = cbco_data';
         f = find( diff(sign(inf_sine(:,1)-time_data)) == 2);
         saved_color = color1;
         if (time_data > CL(a,1)) & (time_data < CL(a,1) + CL(a,2))
-            color1 = 'r';
+            color1 = 2;
         elseif (time_data > dec_sine(b,1)) & (time_data < dec_sine(b,1) + dec_sine(b,2))
-            color1 = 'm';
+            color1 = 3;
         elseif (time_data > inc_sine(c,1)) & (time_data < inc_sine(c,1) + inc_sine(c,2))
-            color1 = 'k';
+            color1 = 4;
         elseif (time_data > inf_sine(f,1)) & (time_data < inf_sine(f,1) + inf_sine(f,2))
-            color1 = 'c';
+            color1 = 5;
         elseif (time_data > no_sim(d,1)) & (time_data < no_sim(d,1) + no_sim(d,2))
-            color1 = 'b';
+            color1 = 1;
         elseif (time_data > tugs_ol(e,1)) & (time_data < tugs_ol(e,1) + tugs_ol(e,2))
-            color1 = 'y';
+            color1 = 6;
         else
-            color1 = 'g';
+            color1 = 7;
         end
         pdat_labels(ii) = color1;
     end
