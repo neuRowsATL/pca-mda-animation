@@ -52,6 +52,7 @@ function ClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to ClusterGUI (see VARARGIN)
 
+axis vis3d;
 
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
@@ -98,7 +99,13 @@ function popupmenu1_Callback(hObject, eventdata, handles)
 
 % Get Plot Ax. Info
 contents = cellstr(get(hObject,'String'));
-handles.plot_axis = contents{get(hObject, 'Value')}; 
+handles.plot_axis = contents{get(hObject, 'Value')};
+dims = eval(handles.plot_axis);
+handles.ax1 = dims(1);
+handles.ax2 = dims(2);
+if length(dims) > 2
+    handles.ax3 = dims(3);
+end
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -112,7 +119,11 @@ function popupmenu1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-handles.plot_axis = '< P1, P2, P3 >';
+handles.plot_axis = '[1, 2, 3]';
+dims = eval(handles.plot_axis);
+handles.ax1 = dims(1);
+handles.ax2 = dims(2);
+handles.ax3 = dims(3);
 guidata(hObject, handles);
 
 
@@ -123,7 +134,15 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get Dimensions selected
-dims = regexp(handles.plot_axis(regexp(handles.plot_axis, '\d')), '\d');
+dims = eval(handles.plot_axis);
+handles.ax1 = dims(1);
+handles.ax2 = dims(2);
+if length(dims) > 2
+    handles.ax3 = dims(3);
+%     handles.axes1.ZLabel.String = strcat('P', num2str(handles.ax3));
+end
+% set(handles.axes1.XLabel.String, strcat('P', num2str(handles.ax1)));
+% set(handles.axes1.YLabel.String, strcat('P', num2str(handles.ax2)));
 
 % Analyze & Plot Data
 if strcmp(handles.analysis, 'None (display raw data)')
@@ -132,10 +151,13 @@ if strcmp(handles.analysis, 'None (display raw data)')
         plot3(handles.plot_dat(1, :), handles.plot_dat(2, :), handles.plot_dat(3, :),...
         'Marker', '.', 'LineStyle', 'none');
     elseif length(dims) <= 2
-        ax1 = dims(1);
-        ax2 = dims(2);
-        plot(handles.plot_dat(ax1, :), handles.plot_dat(ax2, :), 'Marker', '.',...
+        axis(handles.axes1);
+        plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
         'LineStyle', 'none');
+        axis on;
+        xlabel(strcat('P', num2str(handles.ax1)));
+        ylabel(strcat('P', num2str(handles.ax2)));
+        drawnow;
     end
 elseif strcmp(handles.analysis, 'PCA')
     [eigenvectors1, ~] = eig(cov(handles.odat'));
