@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 02-Jan-2016 14:24:37
+% Last Modified by GUIDE v2.5 03-Jan-2016 15:44:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -75,9 +75,9 @@ function varargout = ClusterGUI_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
+% --- Executes on button press in DataPushButton.
+function DataPushButton_Callback(hObject, eventdata, handles)
+% hObject    handle to DataPushButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -88,14 +88,14 @@ datafile = load(filename1,'-ascii');
 handles.odat = datafile;
 guidata(hObject, handles);
 
-% --- Executes on selection change in popupmenu1.
-function popupmenu1_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
+% --- Executes on selection change in AxesMenu.
+function AxesMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to AxesMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+% Hints: contents = cellstr(get(hObject,'String')) returns AxesMenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from AxesMenu
 
 % Get Plot Ax. Info
 contents = cellstr(get(hObject,'String'));
@@ -109,8 +109,8 @@ end
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function popupmenu1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
+function AxesMenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to AxesMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -161,7 +161,19 @@ if strcmp(handles.analysis, 'None (display raw data)')
     end
 elseif strcmp(handles.analysis, 'PCA')
     [eigenvectors1, ~] = eig(cov(handles.odat'));
-    handles.pdat = eigenvectors1(:, end - 2:end)'*handles.odat;
+    handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
+    if length(dims) == 3
+        plot3(handles.plot_dat(1, :), handles.plot_dat(2, :), handles.plot_dat(3, :),...
+        'Marker', '.', 'LineStyle', 'none');
+    elseif length(dims) <= 2
+        axis(handles.axes1);
+        plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
+        'LineStyle', 'none');
+        axis on;
+        xlabel(strcat('P', num2str(handles.ax1)));
+        ylabel(strcat('P', num2str(handles.ax2)));
+        drawnow;
+    end
 elseif regexp(handles.analysis, 'PCA + *') == 1
     [handles.pdat, handles.labels] = HCAClass(handles.odat, 4);
     ClusterVis(handles.pdat', handles.labels);
@@ -170,14 +182,14 @@ elseif strcmp(handles.analysis, 'MDA')
 end
 
 
-% --- Executes on selection change in popupmenu2.
-function popupmenu2_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu2 (see GCBO)
+% --- Executes on selection change in AnalysisMethodMenu.
+function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to AnalysisMethodMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+% Hints: contents = cellstr(get(hObject,'String')) returns AnalysisMethodMenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from AnalysisMethodMenu
 
 % Select Analysis method
 contents = cellstr(get(hObject,'String'));
@@ -185,8 +197,8 @@ handles.analysis = contents{get(hObject,'Value')};
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function popupmenu2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu2 (see GCBO)
+function AnalysisMethodMenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to AnalysisMethodMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -198,3 +210,10 @@ end
 
 handles.analysis = 'None (display raw data)';
 guidata(hObject, handles);
+
+
+% --- Executes on button press in labelsPushButton.
+function labelsPushButton_Callback(hObject, eventdata, handles)
+% hObject    handle to labelsPushButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
