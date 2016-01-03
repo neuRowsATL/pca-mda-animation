@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 30-Dec-2015 10:13:21
+% Last Modified by GUIDE v2.5 02-Jan-2016 14:24:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,30 +81,11 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get input data
-[filename1,filepath1] = uigetfile({'*.mat','MATLAB Data Files'}, 'Select Input Data');
+[filename1,filepath1] = uigetfile({'*.txt','ASCII Data Files'}, 'Select Input Data');
 cd(filepath1);
-pdat = load([filepath1 filename1]);
-
-% Determine whether rows or columns specify classes of data
-size_pdat = size(pdat);
-row_class = 0;
-col_class = 0;
-if size_pdat(1) > size_pdat(2)
-    col_class = 1;
-elseif size_pdat(1) < size_pdat(2)
-    row_class = 1;
-end
-
-if col_class == 1
-    handles.P1 = pdat(:, 1);
-    handles.P2 = pdat(:, 2);
-    handles.P3 = pdat(:, 3);
-elseif row_class ==1
-    handles.P1 = pdat(1, :);
-    handles.P2 = pdat(2, :);
-    handles.P3 = pdat(3, :);
-end
-
+datafile = load(filename1,'-ascii');
+handles.odat = datafile;
+guidata(hObject, handles);
 
 % --- Executes on selection change in popupmenu1.
 function popupmenu1_Callback(hObject, eventdata, handles)
@@ -115,6 +96,10 @@ function popupmenu1_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmenu1
 
+% Get Plot Ax. Info
+contents = cellstr(get(hObject,'String'));
+handles.plot_axis = contents{get(hObject, 'Value')}; 
+guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function popupmenu1_CreateFcn(hObject, eventdata, handles)
@@ -127,6 +112,8 @@ function popupmenu1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+handles.plot_axis = '< P1, P2, P3 >';
+guidata(hObject, handles);
 
 
 % --- Executes on button press in pushbutton2.
@@ -135,7 +122,57 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get labels
-[filename2,filepath2] = uigetfile({'*.mat','MATLAB Data Files'}, 'Select Labels');
-cd(filepath2);
-pdat = load([filepath2 filename2]);
+% Get Dimensions selected
+dims = regexp(handles.plot_axis(regexp(handles.plot_axis, '\d')), '\d');
+
+% Analyze & Plot Data
+if strcmp(handles.analysis, 'None (display raw data)')
+    handles.plot_dat = handles.odat;
+    if length(dims) == 3
+        plot3(handles.plot_dat(1, :), handles.plot_dat(2, :), handles.plot_dat(3, :),...
+        'Marker', '.', 'LineStyle', 'none');
+    elseif length(dims) <= 2
+        ax1 = dims(1);
+        ax2 = dims(2);
+        plot(handles.plot_dat(ax1, :), handles.plot_dat(ax2, :), 'Marker', '.',...
+        'LineStyle', 'none');
+    end
+elseif strcmp(handles.analysis, 'PCA')
+    [eigenvectors1, ~] = eig(cov(handles.odat'));
+    handles.pdat = eigenvectors1(:, end - 2:end)'*handles.odat;
+elseif regexp(handles.analysis, 'PCA + *') == 1
+    [handles.pdat, handles.labels] = HCAClass(handles.odat, 4);
+    ClusterVis(handles.pdat', handles.labels);
+elseif strcmp(handles.analysis, 'MDA')
+    % Remus MDA Script
+end
+
+
+% --- Executes on selection change in popupmenu2.
+function popupmenu2_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+% Select Analysis method
+contents = cellstr(get(hObject,'String'));
+handles.analysis = contents{get(hObject,'Value')};
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.analysis = 'None (display raw data)';
+guidata(hObject, handles);

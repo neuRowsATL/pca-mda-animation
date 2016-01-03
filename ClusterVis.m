@@ -13,10 +13,10 @@ p1_dat = projected_data(:, 1);
 p2_dat = projected_data(:, 2);
 p3_dat = projected_data(:, 3);
 
-pca_fig = figure('GraphicsSmoothing', 'on', 'Renderer', 'opengl');
+figure('GraphicsSmoothing', 'on', 'Renderer', 'opengl');
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
 set(gca,'BoxStyle','full','Box','on', 'Position', [0.25, 0.25, 0.5, 0.5]);
-set(gcf, 'OuterPosition', [400, 400, 1000, 700])
+set(gcf, 'OuterPosition', [400, 400, 900, 600])
 axis([min(p1_dat), max(p1_dat), min(p2_dat), max(p2_dat), min(p3_dat), max(p3_dat)])
 hold on;
 

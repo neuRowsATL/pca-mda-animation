@@ -1,7 +1,8 @@
 %% Get data
 clear; close all;
-cbco_data = [];
 
+
+cbco_data = [];
 for ii = 1:34
     file1 = ['THREE/20120411D_CBCO-' num2str(ii) '.txt'];
     
@@ -45,8 +46,8 @@ frequency_responses = (frequency_responses - repmat(mean(frequency_responses')',
 frequency_responses = (1 + tanh(frequency_responses))/2;
 
 % % Run initial clustering with PCA
-% [eigenvectors1, ~] = eig(cov(frequency_responses'));
-% pdat = eigenvectors1(:, end - 2:end)'*frequency_responses;
+[eigenvectors1, ~] = eig(cov(frequency_responses'));
+projected_data = eigenvectors1(:, end - 2:end)'*frequency_responses;
 %% Classification data
 fid_CL = fopen('THREE/CL.txt');
 cl_line_one = textscan(fid_CL, '%s %s %s \n');
@@ -94,12 +95,16 @@ if clust_vis
     ClusterVis(pdat', pdat_labels);
 end
 
+%% LabelDat()
+% pdat_labels = LabelData(projected_data, 2);
+
+
 %% HCA
 hca_vis = true;
 clust_vis = false;
 
 if hca_vis
-    [pdat, pdat_labels] = HCAClass(frequency_responses, 5);
+    [pdat, pdat_labels] = HCAClass(frequency_responses, 4);
 end
 if clust_vis
     ClusterVis(pdat', pdat_labels);
@@ -107,10 +112,11 @@ end
 
 
 %% Original plot func
-p1_dat = pdat(1, :);
-p2_dat = pdat(2, :);
-p3_dat = pdat(3, :);
+
 if plot_dat
+    p1_dat = pdat(1, :);
+    p2_dat = pdat(2, :);
+    p3_dat = pdat(3, :);
     F(size(pdat, 2)) = struct('cdata',[],'colormap',[]); % movie
     writerObj = VideoWriter('examplemovie.avi');
     writerObj.Quality = 100;

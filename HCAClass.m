@@ -8,7 +8,7 @@ function [pdat, labels] = HCAClass(data, numb_classes)
 pdat = eigenvectors1(:, end - 2:end)'*data;
 
 % Label the data
-labels = kmeans(pdat', numb_classes, 'Replicates', 10);
+labels = kmeans(pdat', numb_classes, 'Replicates', 10, 'MaxIter', 1e4);
 
 % Experiment showing that 4 clusters is the most likely for this data
 % for ii=1:10
