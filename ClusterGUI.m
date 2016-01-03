@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 15:52:27
+% Last Modified by GUIDE v2.5 03-Jan-2016 18:05:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -80,6 +80,10 @@ function DataPushButton_Callback(hObject, eventdata, handles)
 % hObject    handle to DataPushButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.plot_labels)
+    handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
+end
 
 % Get input data
 [filename1,filepath1] = uigetfile({'*.txt','ASCII Data Files'}, 'Select Input Data');
@@ -160,10 +164,11 @@ if strcmp(handles.analysis, 'None (display raw data)')
         drawnow;
     end
 elseif strcmp(handles.analysis, 'PCA')
+    colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
     [eigenvectors1, ~] = eig(cov(handles.odat'));
     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
     if length(dims) == 3 && ~handles.checkbox1.Value
-        colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
+        cla;
         hold on;
         for ii=1:length(handles.plot_dat)
             color_num = handles.plot_labels(ii);
@@ -171,14 +176,25 @@ elseif strcmp(handles.analysis, 'PCA')
             plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii), handles.plot_dat(3, ii),...
             'Marker', '.', 'LineStyle', 'none', 'Color', color1);
         end
+        hold off;
         view([30 30 15])
     elseif length(dims) == 3 && handles.checkbox1.Value
         ClusterVis(handles.plot_dat', handles.plot_labels);
     elseif length(dims) <= 2
         axis(handles.axes1);
-        plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
-        'LineStyle', 'none');
-        axis on;
+        cla;
+        hold on;
+        for ii=1:length(handles.plot_dat)
+            color_num = handles.plot_labels(ii);
+            color1 = colors(color_num);
+            plot(handles.plot_dat(handles.ax1, ii), handles.plot_dat(handles.ax2, ii),...
+            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
+        end
+        hold off;
+        view([0, 90])
+%         plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
+%         'LineStyle', 'none');
+       axis on;
         xlabel(strcat('P', num2str(handles.ax1)));
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
@@ -202,6 +218,11 @@ function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
 
 % Select Analysis method
 contents = cellstr(get(hObject,'String'));
+if isempty(handles.plot_labels)
+    hObject.String(2) = {'!! Open labels file to use PCA !!'};
+elseif ~isempty(handles.plot_labels)
+    hObject.String(2) = {'PCA'};
+end
 handles.analysis = contents{get(hObject,'Value')};
 if regexp(handles.analysis, 'PCA*') == 1
     set(handles.checkbox1,'Enable','on');
@@ -223,6 +244,10 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 handles.analysis = 'None (display raw data)';
+handles.plot_labels = [];
+if isempty(handles.plot_labels)
+    handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
+end
 guidata(hObject, handles);
 
 
@@ -235,6 +260,11 @@ function labelsPushButton_Callback(hObject, eventdata, handles)
 cd(filepath1);
 datafile = load(filename1,'-ascii');
 handles.plot_labels = datafile;
+if isempty(handles.plot_labels)
+    handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
+elseif ~isempty(handles.plot_labels)
+    handles.AnalysisMethodMenu.String(2) = {'PCA'};
+end
 guidata(hObject, handles);
 
 % --- Executes on button press in checkbox1.
@@ -245,3 +275,10 @@ function checkbox1_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox
 guidata(hObject, handles);
+
+
+% --- Executes on button press in GenerateLabelsButton.
+function GenerateLabelsButton_Callback(hObject, eventdata, handles)
+% hObject    handle to GenerateLabelsButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
