@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 21:48:48
+% Last Modified by GUIDE v2.5 04-Jan-2016 01:17:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -53,8 +53,18 @@ function ClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to ClusterGUI (see VARARGIN)
 
 % initialization for later objects
+try
+    datafile = load('fdat.txt','-ascii');
+    handles.odat = datafile;
+catch
+end
+try
+    labelfile = load('pdat_labels.txt','-ascii');
+    handles.plot_labels = labelfile;
+catch
+end
 set(handles.checkbox1,'Enable','off');
-handles.is_fdat = 0;
+handles.is_fdat = 1;
 handles.is_pdat = 0;
 cla;
 
@@ -308,9 +318,8 @@ function AnalysisMethodMenu_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-handles.analysis = 'None (display raw data)';
 handles.plot_labels = [];
+handles.analysis = 'None (display raw data)';
 if isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
     handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
@@ -428,3 +437,12 @@ function axes1_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate axes1
+
+
+% --- Executes during object creation, after setting all properties.
+function fdat_radio_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to fdat_radio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+hObject.Value = 1;
+guidata(hObject, handles);
