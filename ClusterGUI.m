@@ -201,13 +201,13 @@ elseif strcmp(handles.analysis, 'PCA')
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
-elseif regexp(handles.analysis, 'PCA + *') == 1
+elseif strcmp(handles.analysis, 'PCA labelled (k-means)') == 1
     [handles.pdat, handles.labels] = HCAClass(handles.odat, 4);
     handles.plot_dat = handles.pdat;
     handles.plot_labels = handles.labels;
     if handles.checkbox1.Value == 1
         ClusterVis(handles.pdat', handles.labels);
-    elseif handles.checkbox1.Value == 0
+    elseif handles.checkbox1.Value == 0 && length(dims) == 3
         cla;
         xlabel(strcat('P', num2str(handles.ax1)));
         ylabel(strcat('P', num2str(handles.ax2)));
@@ -221,6 +221,22 @@ elseif regexp(handles.analysis, 'PCA + *') == 1
         end
         hold off;
         view([30 30 15])
+    elseif handles.checkbox1.Value == 0 && length(dims) == 2
+        axis(handles.axes1);
+        cla;
+        hold on;
+        for ii=1:length(handles.plot_dat)
+            color_num = handles.plot_labels(ii);
+            color1 = colors(color_num);
+            plot(handles.plot_dat(handles.ax1, ii), handles.plot_dat(handles.ax2, ii),...
+            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
+        end
+        hold off;
+        view([0, 90])
+        axis on;
+        xlabel(strcat('P', num2str(handles.ax1)));
+        ylabel(strcat('P', num2str(handles.ax2)));
+        drawnow;
     end
 elseif strcmp(handles.analysis, 'MDA')
     % Remus MDA Script
@@ -328,9 +344,6 @@ function pdat_radio_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of pdat_radio
 handles.is_pdat = get(hObject,'Value');
-if handles.is_pdat == 1
-    handles.AnalysisMethodMenu.String(2) = {'!! Already Projected !!'};
-end
 if handles.is_fdat == 1
     set(handles.fdat_radio, 'Value', 0);
     set(handles.pdat_radio, 'Value', 1);
