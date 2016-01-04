@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 18:41:33
+% Last Modified by GUIDE v2.5 03-Jan-2016 19:54:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -202,7 +202,7 @@ elseif strcmp(handles.analysis, 'PCA')
         drawnow;
     end
 elseif strcmp(handles.analysis, 'PCA labelled (k-means)') == 1
-    [handles.pdat, handles.labels] = HCAClass(handles.odat, 4);
+    [handles.pdat, handles.labels] = HCAClass(handles.odat, handles.no_classes);
     handles.plot_dat = handles.pdat;
     handles.plot_labels = handles.labels;
     if handles.checkbox1.Value == 1
@@ -254,16 +254,23 @@ function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
 
 % Select Analysis method
 contents = cellstr(get(hObject,'String'));
+
 if isempty(handles.plot_labels) && handles.is_fdat == 1
     hObject.String(2) = {'!! Open labels file to use PCA !!'};
 elseif ~isempty(handles.plot_labels)
     hObject.String(2) = {'PCA'};
 end
+
 handles.analysis = contents{get(hObject,'Value')};
+
 if regexp(handles.analysis, 'PCA*') == 1
     set(handles.checkbox1,'Enable','on');
 elseif regexp(handles.analysis, 'PCA*') ~= 1
     set(handles.checkbox1,'Enable','off');
+end
+
+if ~isempty(regexp(handles.analysis, ' *k-means', 'once'))
+    set(handles.NoClassesEdit, 'enable', 'on');
 end
 guidata(hObject, handles);
 
@@ -333,7 +340,6 @@ if handles.is_pdat == 1
     handles.is_pdat = 0;
     handles.is_fdat = 1;
 end
-
 guidata(hObject, handles);
 
 % --- Executes on button press in pdat_radio.
@@ -350,4 +356,29 @@ if handles.is_fdat == 1
     handles.is_fdat = 0;
     handles.is_pdat = 1;
 end
+guidata(hObject, handles);
+
+function NoClassesEdit_Callback(hObject, eventdata, handles)
+% hObject    handle to NoClassesEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of NoClassesEdit as text
+%        str2double(get(hObject,'String')) returns contents of NoClassesEdit as a double
+handles.no_classes = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function NoClassesEdit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to NoClassesEdit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+handles.no_classes = 4;
+set(hObject, 'enable', 'off');
 guidata(hObject, handles);
