@@ -108,7 +108,7 @@ clust_vis = false;
 
 if hca_vis
     [pdat, pdat_labels] = HCAClass(frequency_responses, 4);
-    kels = KmeansVis(pdat, pdat_labels, 4);
+    KmeansVis(pdat, pdat_labels, 4);
 end
 if clust_vis
     ClusterVis(pdat', pdat_labels);

@@ -1,4 +1,4 @@
-function [ kels ] = KmeansVis(data, labels, no_classes)
+function KmeansVis(data, labels, no_classes)
 %KmeansVis Create a set of ellipsoids centered at each cluster
 %   input:  
 %       - data : array of doubles; has been projected (PCA) and labeled (k-means)
@@ -11,6 +11,9 @@ if size(data, 1) ~= size(labels, 1)
     data = data';
 end
 
+colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
+
+hold on
 for ii=1:no_classes
     data_in_class = data(labels==ii, :);
     
@@ -30,8 +33,10 @@ for ii=1:no_classes
     c2 = median(col2);
     c3 = median(col3);
     
-    kels(ii) = ellipsoid(c1, c2, c3, max1*std(col1), max2*std(col2), max3*std(col3));
-    
+    [x, y, z] = ellipsoid(c1, c2, c3, std(col1), std(col2), std(col3));
+    surf(x, y, z, 'FaceColor', colors(ii), 'EdgeColor', 'none');
+    alpha(0.4);
+    view([30 30 15])
 end
 
 end
