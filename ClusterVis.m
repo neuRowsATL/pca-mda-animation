@@ -3,6 +3,11 @@ function ClusterVis( projected_data, class_label_vector )
 %   input: data separated into columns; each is a separate class
 %   output: saves a movie as './examplemovie.avi'
 
+% Resize projected_data
+if length(projected_data) > size(projected_data, 1)
+    projected_data = projected_data';
+end
+
 F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
 writerObj = VideoWriter('examplemovie.avi');
 writerObj.Quality = 100;

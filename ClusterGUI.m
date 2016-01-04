@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 18:05:31
+% Last Modified by GUIDE v2.5 03-Jan-2016 18:41:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,7 +52,10 @@ function ClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to ClusterGUI (see VARARGIN)
 
+% initialization for later objects
 set(handles.checkbox1,'Enable','off');
+handles.is_fdat = 0;
+handles.is_pdat = 0;
 
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
@@ -143,10 +146,9 @@ handles.ax1 = dims(1);
 handles.ax2 = dims(2);
 if length(dims) > 2
     handles.ax3 = dims(3);
-%     handles.axes1.ZLabel.String = strcat('P', num2str(handles.ax3));
 end
-% set(handles.axes1.XLabel.String, strcat('P', num2str(handles.ax1)));
-% set(handles.axes1.YLabel.String, strcat('P', num2str(handles.ax2)));
+
+colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
 
 % Analyze & Plot Data
 if strcmp(handles.analysis, 'None (display raw data)')
@@ -164,11 +166,13 @@ if strcmp(handles.analysis, 'None (display raw data)')
         drawnow;
     end
 elseif strcmp(handles.analysis, 'PCA')
-    colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
     [eigenvectors1, ~] = eig(cov(handles.odat'));
     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
     if length(dims) == 3 && ~handles.checkbox1.Value
         cla;
+        xlabel(strcat('P', num2str(handles.ax1)));
+        ylabel(strcat('P', num2str(handles.ax2)));
+        zlabel(strcat('P', num2str(handles.ax3)));
         hold on;
         for ii=1:length(handles.plot_dat)
             color_num = handles.plot_labels(ii);
@@ -192,16 +196,32 @@ elseif strcmp(handles.analysis, 'PCA')
         end
         hold off;
         view([0, 90])
-%         plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
-%         'LineStyle', 'none');
-       axis on;
+        axis on;
         xlabel(strcat('P', num2str(handles.ax1)));
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
 elseif regexp(handles.analysis, 'PCA + *') == 1
     [handles.pdat, handles.labels] = HCAClass(handles.odat, 4);
-    ClusterVis(handles.pdat', handles.labels);
+    handles.plot_dat = handles.pdat;
+    handles.plot_labels = handles.labels;
+    if handles.checkbox1.Value == 1
+        ClusterVis(handles.pdat', handles.labels);
+    elseif handles.checkbox1.Value == 0
+        cla;
+        xlabel(strcat('P', num2str(handles.ax1)));
+        ylabel(strcat('P', num2str(handles.ax2)));
+        zlabel(strcat('P', num2str(handles.ax3)));
+        hold on;
+        for ii=1:length(handles.plot_dat)
+            color_num = handles.plot_labels(ii);
+            color1 = colors(color_num);
+            plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii), handles.plot_dat(3, ii),...
+            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
+        end
+        hold off;
+        view([30 30 15])
+    end
 elseif strcmp(handles.analysis, 'MDA')
     % Remus MDA Script
 end
@@ -218,7 +238,7 @@ function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
 
 % Select Analysis method
 contents = cellstr(get(hObject,'String'));
-if isempty(handles.plot_labels)
+if isempty(handles.plot_labels) && handles.is_fdat == 1
     hObject.String(2) = {'!! Open labels file to use PCA !!'};
 elseif ~isempty(handles.plot_labels)
     hObject.String(2) = {'PCA'};
@@ -261,7 +281,7 @@ cd(filepath1);
 datafile = load(filename1,'-ascii');
 handles.plot_labels = datafile;
 if isempty(handles.plot_labels)
-    handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
+    handles.AnalysisMethodMenu.String(2) = {'!! Import labels first !!'};
 elseif ~isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'PCA'};
 end
@@ -276,9 +296,45 @@ function checkbox1_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkbox
 guidata(hObject, handles);
 
-
 % --- Executes on button press in GenerateLabelsButton.
 function GenerateLabelsButton_Callback(hObject, eventdata, handles)
 % hObject    handle to GenerateLabelsButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in fdat_radio.
+function fdat_radio_Callback(hObject, eventdata, handles)
+% hObject    handle to fdat_radio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of fdat_radio
+handles.is_fdat = get(hObject,'Value');
+if handles.is_pdat == 1
+    set(handles.pdat_radio, 'Value', 0);
+    set(handles.fdat_radio, 'Value', 1);
+    handles.is_pdat = 0;
+    handles.is_fdat = 1;
+end
+
+guidata(hObject, handles);
+
+% --- Executes on button press in pdat_radio.
+function pdat_radio_Callback(hObject, eventdata, handles)
+% hObject    handle to pdat_radio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of pdat_radio
+handles.is_pdat = get(hObject,'Value');
+if handles.is_pdat == 1
+    handles.AnalysisMethodMenu.String(2) = {'!! Already Projected !!'};
+end
+if handles.is_fdat == 1
+    set(handles.fdat_radio, 'Value', 0);
+    set(handles.pdat_radio, 'Value', 1);
+    handles.is_fdat = 0;
+    handles.is_pdat = 1;
+end
+guidata(hObject, handles);
