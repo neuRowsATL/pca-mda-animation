@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 21:15:43
+% Last Modified by GUIDE v2.5 03-Jan-2016 21:48:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,7 @@ function ClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 set(handles.checkbox1,'Enable','off');
 handles.is_fdat = 0;
 handles.is_pdat = 0;
+cla;
 
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
@@ -202,7 +203,7 @@ elseif strcmp(handles.analysis, 'PCA') == 1
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
-elseif strcmp(handles.analysis, 'PCA labelled (k-means)') == 1
+elseif ~isempty(regexp(handles.analysis, 'PCA labelled *', 'once'))
     [handles.pdat, handles.labels] = HCAClass(handles.odat, handles.no_classes);
     handles.plot_dat = handles.pdat;
     handles.plot_labels = handles.labels;
@@ -239,10 +240,14 @@ elseif strcmp(handles.analysis, 'PCA labelled (k-means)') == 1
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
-elseif ~isempty(regexp(handles.analysis, 'PCA + *'))
+elseif ~isempty(regexp(handles.analysis, 'PCA + *', 'once'))
     [handles.pdat, handles.labels] = HCAClass(handles.odat, handles.no_classes);
     handles.plot_dat = handles.pdat;
+    cla;
     KmeansVis(handles.plot_dat, handles.labels, handles.no_classes);
+    xlabel(strcat('P', num2str(handles.ax1)));
+    ylabel(strcat('P', num2str(handles.ax2)));
+    zlabel(strcat('P', num2str(handles.ax3)));
     hold on;
     for ii=1:length(handles.plot_dat)
         color_num = handles.plot_labels(ii);
@@ -413,3 +418,11 @@ function saveButton_Callback(hObject, eventdata, handles)
 cd(pathname);
 saveas(gcf, filename);
 
+
+% --- Executes during object creation, after setting all properties.
+function axes1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate axes1
