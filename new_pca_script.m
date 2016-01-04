@@ -96,18 +96,19 @@ if clust_vis
 end
 
 %% LabelDat()
-label_dat = true;
+label_dat = false;
 
 if label_dat
     pdat_labels = LabelData(projected_data, 2);
 end
 
 %% HCA
-hca_vis = false;
+hca_vis = true;
 clust_vis = false;
 
 if hca_vis
     [pdat, pdat_labels] = HCAClass(frequency_responses, 4);
+    kels = KmeansVis(pdat, pdat_labels, 4);
 end
 if clust_vis
     ClusterVis(pdat', pdat_labels);

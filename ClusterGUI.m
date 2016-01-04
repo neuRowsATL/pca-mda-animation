@@ -242,7 +242,6 @@ elseif strcmp(handles.analysis, 'MDA')
     % Remus MDA Script
 end
 
-
 % --- Executes on selection change in AnalysisMethodMenu.
 function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to AnalysisMethodMenu (see GCBO)
