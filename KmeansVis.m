@@ -12,7 +12,7 @@ if size(data, 1) ~= size(labels, 1)
 end
 
 colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
-
+set(gca, 'BoxStyle', 'full', 'Box', 'on');
 hold on
 for ii=1:no_classes
     data_in_class = data(labels==ii, :);
@@ -34,8 +34,10 @@ for ii=1:no_classes
     c3 = median(col3);
     
     [x, y, z] = ellipsoid(c1, c2, c3, std(col1), std(col2), std(col3));
-    surf(x, y, z, 'FaceColor', colors(ii), 'EdgeColor', 'none');
+    surf(x, y, z, 'FaceColor', colors(ii),...
+        'EdgeColor', 'none');
     alpha(0.4);
+    alphamap('vup');
     view([30 30 15])
 end
 

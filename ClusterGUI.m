@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 03-Jan-2016 19:54:07
+% Last Modified by GUIDE v2.5 03-Jan-2016 21:15:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -86,6 +86,7 @@ function DataPushButton_Callback(hObject, eventdata, handles)
 
 if isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
+    handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
 end
 
 % Get input data
@@ -165,7 +166,7 @@ if strcmp(handles.analysis, 'None (display raw data)')
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
-elseif strcmp(handles.analysis, 'PCA')
+elseif strcmp(handles.analysis, 'PCA') == 1
     [eigenvectors1, ~] = eig(cov(handles.odat'));
     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
     if length(dims) == 3 && ~handles.checkbox1.Value
@@ -238,9 +239,23 @@ elseif strcmp(handles.analysis, 'PCA labelled (k-means)') == 1
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
+elseif ~isempty(regexp(handles.analysis, 'PCA + *'))
+    [handles.pdat, handles.labels] = HCAClass(handles.odat, handles.no_classes);
+    handles.plot_dat = handles.pdat;
+    KmeansVis(handles.plot_dat, handles.labels, handles.no_classes);
+    hold on;
+    for ii=1:length(handles.plot_dat)
+        color_num = handles.plot_labels(ii);
+        color1 = colors(color_num);
+        plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii),...
+        handles.plot_dat(3, ii), 'Marker', '.',...
+        'LineStyle', 'none', 'Color', color1);
+    end
+    hold off;
 elseif strcmp(handles.analysis, 'MDA')
     % Remus MDA Script
 end
+guidata(hObject, handles);
 
 % --- Executes on selection change in AnalysisMethodMenu.
 function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
@@ -256,8 +271,10 @@ contents = cellstr(get(hObject,'String'));
 
 if isempty(handles.plot_labels) && handles.is_fdat == 1
     hObject.String(2) = {'!! Open labels file to use PCA !!'};
+    hObject.String(3) = {'!! Open labels file to use PCA !!'};
 elseif ~isempty(handles.plot_labels)
     hObject.String(2) = {'PCA'};
+    hObject.String(3) = {'PCA + k-means (ellipsoids)'};
 end
 
 handles.analysis = contents{get(hObject,'Value')};
@@ -289,6 +306,7 @@ handles.analysis = 'None (display raw data)';
 handles.plot_labels = [];
 if isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
+    handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
 end
 guidata(hObject, handles);
 
@@ -304,8 +322,10 @@ datafile = load(filename1,'-ascii');
 handles.plot_labels = datafile;
 if isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'!! Import labels first !!'};
+    handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
 elseif ~isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'PCA'};
+    handles.AnalysisMethodMenu.String(3) = {'PCA + k-means (ellipsoids)'};
 end
 guidata(hObject, handles);
 
@@ -381,3 +401,15 @@ end
 handles.no_classes = 4;
 set(hObject, 'enable', 'off');
 guidata(hObject, handles);
+
+
+% --- Executes on button press in saveButton.
+function saveButton_Callback(hObject, eventdata, handles)
+% hObject    handle to saveButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[filename, pathname]= uiputfile({'*.png', 'PNG Image'}, 'Save as...', pwd());
+cd(pathname);
+saveas(gcf, filename);
+
