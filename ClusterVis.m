@@ -1,4 +1,4 @@
-function ClusterVis( projected_data, class_label_vector )
+function ClusterVis( projected_data, class_label_vector, outfile )
 %ClusterVis : Creates a 3d visualization of clustered data
 %   input: data separated into columns; each is a separate class
 %   output: saves a movie as './examplemovie.avi'
@@ -9,7 +9,11 @@ if length(projected_data) > size(projected_data, 1)
 end
 
 F(size(projected_data, 2)) = struct('cdata',[],'colormap',[]); % movie
-writerObj = VideoWriter('examplemovie.avi');
+if exist('outfile', 'var')
+    writerObj = VideoWriter(outfile);
+elseif ~exist('outfile', 'var')
+    writerObj = VideoWriter('example_movie.avi');
+end
 writerObj.Quality = 100;
 writerObj.FrameRate = 30;
 open(writerObj);

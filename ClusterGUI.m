@@ -185,7 +185,8 @@ elseif strcmp(handles.analysis, 'PCA') == 1
         hold off;
         view([30 30 15])
     elseif length(dims) == 3 && handles.checkbox1.Value
-        ClusterVis(handles.plot_dat', handles.plot_labels);
+        [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
+        ClusterVis(handles.plot_dat', handles.plot_labels, strcat(filepath, filename));
     elseif length(dims) <= 2
         axis(handles.axes1);
         cla;
@@ -208,7 +209,8 @@ elseif ~isempty(regexp(handles.analysis, 'PCA labelled *', 'once'))
     handles.plot_dat = handles.pdat;
     handles.plot_labels = handles.labels;
     if handles.checkbox1.Value == 1
-        ClusterVis(handles.pdat', handles.labels);
+        [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
+        ClusterVis(handles.pdat', handles.labels, strcat(filepath, filename));
     elseif handles.checkbox1.Value == 0 && length(dims) == 3
         cla;
         xlabel(strcat('P', num2str(handles.ax1)));
