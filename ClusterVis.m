@@ -51,6 +51,8 @@ for px=1:3
     projected_data(up_thresh<projected_data(:, px) | down_thresh>projected_data(:, px)) = [];
 end
 
+thresh = 100;
+
 for ii = 1:size(projected_data, 1)
     ii
     cidx=class_label_vector(ii);
@@ -74,7 +76,7 @@ for ii = 1:size(projected_data, 1)
                 addpoints(h, class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3));
                 plotted(cidx) = 1;
             end
-            if class_means(cidx, cx) >= 20*std(oldvals(:, cidx, cx))
+            if class_means(cidx, cx) >= thresh*std(oldvals(:, cidx, cx)) + mean(oldvals(:, cidx, cx)) || class_means(cidx, cx) <= mean(oldvals(:, cidx, cx)) - thresh*std(oldvals(:, cidx, cx))
                 pca_plot(ii) = plot3(class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3), 'Marker', 'o', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 10);
                 addpoints(h, class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3));
                 plotted(cidx) = 1;
