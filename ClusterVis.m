@@ -26,19 +26,30 @@ figure('GraphicsSmoothing', 'on', 'Renderer', 'opengl');
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
 set(gca,'BoxStyle','full','Box','on', 'Position', [0.25, 0.25, 0.5, 0.5]);
 set(gcf, 'OuterPosition', [400, 400, 900, 600])
-axis([min(p1_dat), max(p1_dat), min(p2_dat), max(p2_dat), min(p3_dat), max(p3_dat)])
+axis([min(p1_dat)-0.5, max(p1_dat), min(p2_dat)-0.5, max(p2_dat), min(p3_dat)-1.0, max(p3_dat)])
 hold on;
 
-h = animatedline('Color', 'g', 'LineWidth', 1, 'LineStyle', '-', 'MaximumNumPoints', 75);
+h = animatedline('Color', 'b', 'LineWidth', 0.5, 'LineStyle', '-', 'MaximumNumPoints', 100);
 
 tic;
 deg = 1;
 
 saved_color = 'b';
-colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
-UpdateRate = 1e-8;
+colors = ['r', 'b', 'k', 'm', 'c', 'g', 'w'];
+class_means = zeros(length(colors), 6);
+UpdateRate = 1e-10; % smaller is slower
 chunkData = round(length(projected_data)/5);
 saved_val = 1;
+oldvals = [];
+plotted = zeros(length(colors));
+
+for px=1:3
+    p_thresh = 5*std(projected_data(:, px));
+    p_mean = mean(projected_data(:, px));
+    up_thresh = p_mean + p_thresh;
+    down_thresh = p_mean - p_thresh;
+    projected_data(up_thresh<projected_data(:, px) | down_thresh>projected_data(:, px)) = [];
+end
 
 for ii = 1:size(projected_data, 1)
     ii
@@ -49,16 +60,34 @@ for ii = 1:size(projected_data, 1)
     p2 = projected_data(ii, 2);
     p3 = projected_data(ii, 3);
     
-    pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '.', 'Color', color1, 'MarkerSize', 20);
+    push_ = 1.;
+    class_means(cidx, 4) = class_means(cidx, 4) + 1;
+    class_means(cidx, 1) = (class_means(cidx, 1) + p1 * push_ ) / class_means(cidx,4);
+    class_means(cidx, 2) = (class_means(cidx, 2) + p2 * push_ ) / class_means(cidx,4);
+    class_means(cidx, 3) = (class_means(cidx, 3) + p3 * push_ ) / class_means(cidx,4);
     
-    if ii >= saved_val + chunkData
-        saved_color = color1;
-        saved_val = ii;
-        set(pca_plot(1:ii-1), 'MarkerSize', 5);
+%     pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '.', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 20);
+    for cx=1:3
+        if ii > 1
+            if plotted(cidx) == 0
+                pca_plot(ii) = plot3(class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3), 'Marker', 'o', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 10);
+                addpoints(h, class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3));
+                plotted(cidx) = 1;
+            end
+            if class_means(cidx, cx) >= 20*std(oldvals(:, cidx, cx))
+                pca_plot(ii) = plot3(class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3), 'Marker', 'o', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 10);
+                addpoints(h, class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3));
+                plotted(cidx) = 1;
+            end
+        end
     end
+%     if ii >= saved_val + chunkData
+%         saved_color = color1;
+%         saved_val = ii;
+%         set(pca_plot(1:ii-1), 'MarkerSize', 5);
+%     end
     
     deg = mod(deg + 0.25, 360);
-    addpoints(h, projected_data(ii, 1), projected_data(ii, 2), projected_data(ii, 3));
 
     b = toc;
     if b > UpdateRate
@@ -68,6 +97,8 @@ for ii = 1:size(projected_data, 1)
         writeVideo(writerObj,F(:,ii))
         tic;
     end
+    
+    oldvals(ii, :, :) = class_means(:, 1:3);
     
 end
 

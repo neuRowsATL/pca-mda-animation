@@ -107,6 +107,7 @@ end
 % Get input data
 [filename1,filepath1] = uigetfile({'*.txt','ASCII Data Files'}, 'Select Input Data');
 cd(filepath1);
+set(handles.edit2,'String',{strcat(filepath1, filename1)});
 datafile = load(filename1,'-ascii');
 handles.odat = datafile;
 guidata(hObject, handles);
@@ -217,61 +218,6 @@ elseif strcmp(handles.analysis, 'PCA') == 1
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
-elseif ~isempty(regexp(handles.analysis, 'PCA labelled *', 'once'))
-    [handles.pdat, handles.labels] = HCAClass(handles.odat, handles.no_classes);
-    handles.plot_dat = handles.pdat;
-    handles.plot_labels = handles.labels;
-    if handles.checkbox1.Value == 1
-        [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
-        ClusterVis(handles.pdat', handles.labels, strcat(filepath, filename));
-    elseif handles.checkbox1.Value == 0 && length(dims) == 3
-        cla;
-        xlabel(strcat('P', num2str(handles.ax1)));
-        ylabel(strcat('P', num2str(handles.ax2)));
-        zlabel(strcat('P', num2str(handles.ax3)));
-        hold on;
-        for ii=1:length(handles.plot_dat)
-            color_num = handles.plot_labels(ii);
-            color1 = colors(color_num);
-            plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii), handles.plot_dat(3, ii),...
-            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
-        end
-        hold off;
-        view([30 30 15])
-    elseif handles.checkbox1.Value == 0 && length(dims) == 2
-        axis(handles.axes1);
-        cla;
-        hold on;
-        for ii=1:length(handles.plot_dat)
-            color_num = handles.plot_labels(ii);
-            color1 = colors(color_num);
-            plot(handles.plot_dat(handles.ax1, ii), handles.plot_dat(handles.ax2, ii),...
-            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
-        end
-        hold off;
-        view([0, 90])
-        axis on;
-        xlabel(strcat('P', num2str(handles.ax1)));
-        ylabel(strcat('P', num2str(handles.ax2)));
-        drawnow;
-    end
-elseif ~isempty(regexp(handles.analysis, 'PCA + *', 'once'))
-    [handles.pdat, handles.labels] = HCAClass(handles.odat, handles.no_classes);
-    handles.plot_dat = handles.pdat;
-    cla;
-    KmeansVis(handles.plot_dat, handles.labels, handles.no_classes);
-    xlabel(strcat('P', num2str(handles.ax1)));
-    ylabel(strcat('P', num2str(handles.ax2)));
-    zlabel(strcat('P', num2str(handles.ax3)));
-    hold on;
-    for ii=1:length(handles.plot_dat)
-        color_num = handles.plot_labels(ii);
-        color1 = colors(color_num);
-        plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii),...
-        handles.plot_dat(3, ii), 'Marker', '.',...
-        'LineStyle', 'none', 'Color', color1);
-    end
-    hold off;
 elseif strcmp(handles.analysis, 'MDA')
     % Remus MDA Script
 end
@@ -341,7 +287,7 @@ if isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
 elseif ~isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'PCA'};
-    handles.AnalysisMethodMenu.String(3) = {'PCA + k-means (ellipsoids)'};
+    set(handles.edit3,'String',{strcat(filepath1, filename1)});
 end
 guidata(hObject, handles);
 
@@ -353,12 +299,6 @@ function checkbox1_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox
 guidata(hObject, handles);
-
-% --- Executes on button press in GenerateLabelsButton.
-function GenerateLabelsButton_Callback(hObject, eventdata, handles)
-% hObject    handle to GenerateLabelsButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 
 % --- Executes on button press in saveButton.
