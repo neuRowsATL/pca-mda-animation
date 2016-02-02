@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 04-Jan-2016 01:17:19
+% Last Modified by GUIDE v2.5 02-Feb-2016 07:42:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,17 +56,21 @@ function ClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 try
     datafile = load('fdat.txt','-ascii');
     handles.odat = datafile;
+    set(handles.edit2,'String',{'.\fdat.txt'});
+    handles.plot_dat = handles.odat;
 catch
 end
 try
     labelfile = load('pdat_labels.txt','-ascii');
     handles.plot_labels = labelfile;
+    set(handles.edit3,'String',{'.\pdat_labels.txt'});
 catch
 end
 set(handles.checkbox1,'Enable','off');
-handles.is_fdat = 1;
-handles.is_pdat = 0;
 cla;
+histogram(handles.plot_dat);
+xlabel('Data Points');
+ylabel('N');
 
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
@@ -138,11 +142,14 @@ function AxesMenu_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-handles.plot_axis = '[1, 2, 3]';
+handles.plot_axis = '[1, 2]';
 dims = eval(handles.plot_axis);
 handles.ax1 = dims(1);
 handles.ax2 = dims(2);
-handles.ax3 = dims(3);
+if numel(dims)>=3
+    handles.ax3 = dims(3);
+end
+% histogram(handles.odat);
 guidata(hObject, handles);
 
 
@@ -163,20 +170,16 @@ end
 colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
 
 % Analyze & Plot Data
-if strcmp(handles.analysis, 'None (display raw data)')
+if strcmp(handles.analysis, 'Histogram') == 1
     handles.plot_dat = handles.odat;
-    if length(dims) == 3
-        plot3(handles.plot_dat(1, :), handles.plot_dat(2, :), handles.plot_dat(3, :),...
-        'Marker', '.', 'LineStyle', 'none');
-    elseif length(dims) <= 2
-        axis(handles.axes1);
-        plot(handles.plot_dat(handles.ax1, :), handles.plot_dat(handles.ax2, :), 'Marker', '.',...
-        'LineStyle', 'none');
-        axis on;
-        xlabel(strcat('P', num2str(handles.ax1)));
-        ylabel(strcat('P', num2str(handles.ax2)));
-        drawnow;
-    end
+    cla;
+    axis(handles.axes1);
+    histogram(handles.plot_dat);
+    axis on;
+    xlabel('Data Points');
+    ylabel('N');
+    drawnow;
+    view([0, 90])
 elseif strcmp(handles.analysis, 'PCA') == 1
     [eigenvectors1, ~] = eig(cov(handles.odat'));
     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
@@ -291,7 +294,6 @@ if isempty(handles.plot_labels) && handles.is_fdat == 1
     hObject.String(3) = {'!! Open labels file to use PCA !!'};
 elseif ~isempty(handles.plot_labels)
     hObject.String(2) = {'PCA'};
-    hObject.String(3) = {'PCA + k-means (ellipsoids)'};
 end
 
 handles.analysis = contents{get(hObject,'Value')};
@@ -300,10 +302,6 @@ if regexp(handles.analysis, 'PCA*') == 1
     set(handles.checkbox1,'Enable','on');
 elseif regexp(handles.analysis, 'PCA*') ~= 1
     set(handles.checkbox1,'Enable','off');
-end
-
-if ~isempty(regexp(handles.analysis, ' *k-means', 'once'))
-    set(handles.NoClassesEdit, 'enable', 'on');
 end
 guidata(hObject, handles);
 
@@ -336,6 +334,8 @@ function labelsPushButton_Callback(hObject, eventdata, handles)
 cd(filepath1);
 datafile = load(filename1,'-ascii');
 handles.plot_labels = datafile;
+handles.labels_path = filepath1;
+handles.labels_file = filename1;
 if isempty(handles.plot_labels)
     handles.AnalysisMethodMenu.String(2) = {'!! Import labels first !!'};
     handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
@@ -361,64 +361,6 @@ function GenerateLabelsButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on button press in fdat_radio.
-function fdat_radio_Callback(hObject, eventdata, handles)
-% hObject    handle to fdat_radio (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of fdat_radio
-handles.is_fdat = get(hObject,'Value');
-if handles.is_pdat == 1
-    set(handles.pdat_radio, 'Value', 0);
-    set(handles.fdat_radio, 'Value', 1);
-    handles.is_pdat = 0;
-    handles.is_fdat = 1;
-end
-guidata(hObject, handles);
-
-% --- Executes on button press in pdat_radio.
-function pdat_radio_Callback(hObject, eventdata, handles)
-% hObject    handle to pdat_radio (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of pdat_radio
-handles.is_pdat = get(hObject,'Value');
-if handles.is_fdat == 1
-    set(handles.fdat_radio, 'Value', 0);
-    set(handles.pdat_radio, 'Value', 1);
-    handles.is_fdat = 0;
-    handles.is_pdat = 1;
-end
-guidata(hObject, handles);
-
-function NoClassesEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to NoClassesEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of NoClassesEdit as text
-%        str2double(get(hObject,'String')) returns contents of NoClassesEdit as a double
-handles.no_classes = str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function NoClassesEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to NoClassesEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-handles.no_classes = 4;
-set(hObject, 'enable', 'off');
-guidata(hObject, handles);
-
-
 % --- Executes on button press in saveButton.
 function saveButton_Callback(hObject, eventdata, handles)
 % hObject    handle to saveButton (see GCBO)
@@ -439,10 +381,45 @@ function axes1_CreateFcn(hObject, eventdata, handles)
 % Hint: place code in OpeningFcn to populate axes1
 
 
+function edit2_Callback(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit2 as text
+%        str2double(get(hObject,'String')) returns contents of edit2 as a double
+
+
 % --- Executes during object creation, after setting all properties.
-function fdat_radio_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to fdat_radio (see GCBO)
+function edit2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-hObject.Value = 1;
-guidata(hObject, handles);
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit3_Callback(hObject, eventdata, handles)
+% hObject    handle to edit3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit3 as text
+%        str2double(get(hObject,'String')) returns contents of edit3 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
