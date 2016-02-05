@@ -29,7 +29,7 @@ set(gcf, 'OuterPosition', [400, 400, 900, 600])
 axis([min(p1_dat)-0.5, max(p1_dat), min(p2_dat)-0.5, max(p2_dat), min(p3_dat)-1.0, max(p3_dat)])
 hold on;
 
-h = animatedline('Color', 'b', 'LineWidth', 0.5, 'LineStyle', '-', 'MaximumNumPoints', 100);
+h = animatedline('Color', 'b', 'LineWidth', 0.5, 'LineStyle', '-', 'MaximumNumPoints', 10);
 
 tic;
 deg = 1;
@@ -37,7 +37,7 @@ deg = 1;
 saved_color = 'b';
 colors = ['r', 'b', 'k', 'm', 'c', 'g', 'w'];
 class_means = zeros(length(colors), 6);
-UpdateRate = 1e-10; % smaller is slower
+UpdateRate = 1e-7; % smaller is slower
 chunkData = round(length(projected_data)/5);
 saved_val = 1;
 oldvals = [];
@@ -58,9 +58,9 @@ for ii = 1:size(projected_data, 1)
     cidx=class_label_vector(ii);
     color1 = colors(cidx);
     
-    p1 = projected_data(ii, 1);
-    p2 = projected_data(ii, 2);
-    p3 = projected_data(ii, 3);
+    p1 = (projected_data(ii, 1));
+    p2 = (projected_data(ii, 2));
+    p3 = (projected_data(ii, 3));
     
     push_ = 1.;
     class_means(cidx, 4) = class_means(cidx, 4) + 1;
@@ -68,26 +68,20 @@ for ii = 1:size(projected_data, 1)
     class_means(cidx, 2) = (class_means(cidx, 2) + p2 * push_ ) / class_means(cidx,4);
     class_means(cidx, 3) = (class_means(cidx, 3) + p3 * push_ ) / class_means(cidx,4);
     
-%     pca_plot(ii) = plot3(p1, p2, p3, 'Marker', '.', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 20);
     for cx=1:3
         if ii > 1
-            if plotted(cidx) == 0
+            if class_means(cidx, cx) >= thresh*std(oldvals(:, cidx, cx)) + mean(oldvals(:, cidx, cx)) || class_means(cidx, cx) <= mean(oldvals(:, cidx, cx)) - thresh*std(oldvals(:, cidx, cx))
                 pca_plot(ii) = plot3(class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3), 'Marker', 'o', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 10);
                 addpoints(h, class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3));
                 plotted(cidx) = 1;
             end
-            if class_means(cidx, cx) >= thresh*std(oldvals(:, cidx, cx)) + mean(oldvals(:, cidx, cx)) || class_means(cidx, cx) <= mean(oldvals(:, cidx, cx)) - thresh*std(oldvals(:, cidx, cx))
+            if plotted(cidx) == 0 % check: has this class mean already been plotted?
                 pca_plot(ii) = plot3(class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3), 'Marker', 'o', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b', 'MarkerSize', 10);
                 addpoints(h, class_means(cidx, 1), class_means(cidx, 2), class_means(cidx, 3));
                 plotted(cidx) = 1;
             end
         end
     end
-%     if ii >= saved_val + chunkData
-%         saved_color = color1;
-%         saved_val = ii;
-%         set(pca_plot(1:ii-1), 'MarkerSize', 5);
-%     end
     
     deg = mod(deg + 0.25, 360);
 
