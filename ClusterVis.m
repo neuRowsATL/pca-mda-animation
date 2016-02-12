@@ -1,9 +1,9 @@
-function ClusterVis( projected_data, class_label_vector, outfile )
+function ClusterVis( projected_data, class_label_vector, outfile, thresh )
 %ClusterVis : Creates a 3d visualization of clustered data
 %   input: data separated into columns; each is a separate class
 %   output: saves a movie as './examplemovie.avi'
 
-% Resize projected_data
+% transpose projected_data
 if length(projected_data) > size(projected_data, 1)
     projected_data = projected_data';
 end
@@ -15,7 +15,7 @@ elseif ~exist('outfile', 'var')
     writerObj = VideoWriter('example_movie.avi');
 end
 writerObj.Quality = 100;
-writerObj.FrameRate = 30;
+writerObj.FrameRate = 60;
 open(writerObj);
 
 p1_dat = projected_data(:, 1);
@@ -43,15 +43,7 @@ saved_val = 1;
 oldvals = [];
 plotted = zeros(length(colors));
 
-for px=1:3
-    p_thresh = 5*std(projected_data(:, px));
-    p_mean = mean(projected_data(:, px));
-    up_thresh = p_mean + p_thresh;
-    down_thresh = p_mean - p_thresh;
-    projected_data(up_thresh<projected_data(:, px) | down_thresh>projected_data(:, px)) = [];
-end
-
-thresh = 100;
+thresh = thresh; % threshold for number of standard deviations tolerated
 
 for ii = 1:size(projected_data, 1)
     ii
@@ -61,12 +53,11 @@ for ii = 1:size(projected_data, 1)
     p1 = (projected_data(ii, 1));
     p2 = (projected_data(ii, 2));
     p3 = (projected_data(ii, 3));
-    
-    push_ = 1.;
-    class_means(cidx, 4) = class_means(cidx, 4) + 1;
-    class_means(cidx, 1) = (class_means(cidx, 1) + p1 * push_ ) / class_means(cidx,4);
-    class_means(cidx, 2) = (class_means(cidx, 2) + p2 * push_ ) / class_means(cidx,4);
-    class_means(cidx, 3) = (class_means(cidx, 3) + p3 * push_ ) / class_means(cidx,4);
+
+    class_means(cidx, 4) = class_means(cidx, 4) + 1; % number of iterations
+    class_means(cidx, 1) = (class_means(cidx, 1) + p1 ) / class_means(cidx,4); % p1 mean
+    class_means(cidx, 2) = (class_means(cidx, 2) + p2 ) / class_means(cidx,4); % p2 mean
+    class_means(cidx, 3) = (class_means(cidx, 3) + p3 ) / class_means(cidx,4); % p3 mean
     
     for cx=1:3
         if ii > 1
@@ -94,7 +85,7 @@ for ii = 1:size(projected_data, 1)
         tic;
     end
     
-    oldvals(ii, :, :) = class_means(:, 1:3);
+    oldvals(ii, :, :) = class_means(:, 1:3); % save all means
     
 end
 

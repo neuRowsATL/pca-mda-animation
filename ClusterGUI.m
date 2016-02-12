@@ -22,7 +22,7 @@ function varargout = ClusterGUI(varargin)
 
 % Edit the above text to modify the response to help ClusterGUI
 
-% Last Modified by GUIDE v2.5 02-Feb-2016 07:42:25
+% Last Modified by GUIDE v2.5 12-Feb-2016 00:24:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,11 +66,6 @@ try
     set(handles.edit3,'String',{'.\pdat_labels.txt'});
 catch
 end
-set(handles.checkbox1,'Enable','off');
-cla;
-histogram(handles.plot_dat);
-xlabel('Data Points');
-ylabel('N');
 
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
@@ -98,11 +93,6 @@ function DataPushButton_Callback(hObject, eventdata, handles)
 % hObject    handle to DataPushButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-if isempty(handles.plot_labels)
-    handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
-    handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
-end
 
 % Get input data
 [filename1,filepath1] = uigetfile({'*.txt','ASCII Data Files'}, 'Select Input Data');
@@ -140,10 +130,11 @@ function AxesMenu_CreateFcn(hObject, eventdata, handles)
 
 % Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
+cla;
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-handles.plot_axis = '[1, 2]';
+handles.plot_axis = '[1, 2, 3]';
 dims = eval(handles.plot_axis);
 handles.ax1 = dims(1);
 handles.ax2 = dims(2);
@@ -175,16 +166,16 @@ if strcmp(handles.analysis, 'Histogram') == 1
     handles.plot_dat = handles.odat;
     cla;
     axis(handles.axes1);
-    histogram(handles.plot_dat);
+    histogram(handles.odat);
     axis on;
-    xlabel('Data Points');
+    xlabel('Data Values');
     ylabel('N');
     drawnow;
     view([0, 90])
 elseif strcmp(handles.analysis, 'PCA') == 1
     [eigenvectors1, ~] = eig(cov(handles.odat'));
     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
-    if length(dims) == 3 && ~handles.checkbox1.Value
+    if length(dims) == 3
         cla;
         xlabel(strcat('P', num2str(handles.ax1)));
         ylabel(strcat('P', num2str(handles.ax2)));
@@ -198,9 +189,6 @@ elseif strcmp(handles.analysis, 'PCA') == 1
         end
         hold off;
         view([30 30 15])
-    elseif length(dims) == 3 && handles.checkbox1.Value
-        [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
-        ClusterVis(handles.plot_dat', handles.plot_labels, strcat(filepath, filename));
     elseif length(dims) <= 2
         axis(handles.axes1);
         cla;
@@ -218,8 +206,14 @@ elseif strcmp(handles.analysis, 'PCA') == 1
         ylabel(strcat('P', num2str(handles.ax2)));
         drawnow;
     end
-elseif strcmp(handles.analysis, 'MDA')
+elseif strcmp(handles.analysis, 'MDA') == 1
     % Remus MDA Script
+    'Please wait... calculating...'
+    mda_code;
+elseif strcmp(handles.analysis, 'CMA') == 1
+    % Robbie's CMA Script
+    [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
+    ClusterVis(handles.plot_dat', handles.plot_labels, strcat(filepath, filename), handles.thresh);
 end
 guidata(hObject, handles);
 
@@ -235,19 +229,11 @@ function AnalysisMethodMenu_Callback(hObject, eventdata, handles)
 % Select Analysis method
 contents = cellstr(get(hObject,'String'));
 
-if isempty(handles.plot_labels) && handles.is_fdat == 1
-    hObject.String(2) = {'!! Open labels file to use PCA !!'};
-    hObject.String(3) = {'!! Open labels file to use PCA !!'};
-elseif ~isempty(handles.plot_labels)
-    hObject.String(2) = {'PCA'};
-end
-
 handles.analysis = contents{get(hObject,'Value')};
-
-if regexp(handles.analysis, 'PCA*') == 1
-    set(handles.checkbox1,'Enable','on');
-elseif regexp(handles.analysis, 'PCA*') ~= 1
-    set(handles.checkbox1,'Enable','off');
+if strcmp(handles.analysis, 'CMA') == 1
+    set(handles.edit5, 'Visible','on');
+elseif strcmp(handles.analysis, 'CMA') ~= 1
+    set(handles.edit5, 'Visible','off');
 end
 guidata(hObject, handles);
 
@@ -263,11 +249,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 handles.plot_labels = [];
-handles.analysis = 'None (display raw data)';
-if isempty(handles.plot_labels)
-    handles.AnalysisMethodMenu.String(2) = {'!! Open labels file to use PCA !!'};
-    handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
-end
+handles.analysis = 'PCA';
 guidata(hObject, handles);
 
 
@@ -282,24 +264,7 @@ datafile = load(filename1,'-ascii');
 handles.plot_labels = datafile;
 handles.labels_path = filepath1;
 handles.labels_file = filename1;
-if isempty(handles.plot_labels)
-    handles.AnalysisMethodMenu.String(2) = {'!! Import labels first !!'};
-    handles.AnalysisMethodMenu.String(3) = {'!! Open labels file to use PCA !!'};
-elseif ~isempty(handles.plot_labels)
-    handles.AnalysisMethodMenu.String(2) = {'PCA'};
-    set(handles.edit3,'String',{strcat(filepath1, filename1)});
-end
 guidata(hObject, handles);
-
-% --- Executes on button press in checkbox1.
-function checkbox1_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox
-guidata(hObject, handles);
-
 
 % --- Executes on button press in saveButton.
 function saveButton_Callback(hObject, eventdata, handles)
@@ -363,3 +328,27 @@ function edit3_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+function edit5_Callback(hObject, eventdata, handles)
+% hObject    handle to edit5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit5 as text
+%        str2double(get(hObject,'String')) returns contents of edit5 as a double
+handles.thresh = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit5_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+set(hObject,'Visible','off');
