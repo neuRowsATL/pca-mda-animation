@@ -15,7 +15,7 @@ elseif ~exist('outfile', 'var')
     writerObj = VideoWriter('example_movie.avi');
 end
 writerObj.Quality = 100;
-writerObj.FrameRate = 60;
+writerObj.FrameRate = 30;
 open(writerObj);
 
 p1_dat = projected_data(:, 1);
@@ -26,7 +26,7 @@ figure('GraphicsSmoothing', 'on', 'Renderer', 'opengl');
 xlabel('PCA 1', 'FontSize', 18); ylabel('PCA 2', 'FontSize', 18); zlabel('PCA 3', 'FontSize', 18);
 set(gca,'BoxStyle','full','Box','on', 'Position', [0.25, 0.25, 0.5, 0.5]);
 set(gcf, 'OuterPosition', [400, 400, 900, 600])
-axis([min(p1_dat)-0.5, max(p1_dat), min(p2_dat)-0.5, max(p2_dat), min(p3_dat)-1.0, max(p3_dat)])
+axis([min(p1_dat)-0.005, max(p1_dat)+0.005, min(p2_dat)-0.005, max(p2_dat)+0.005, min(p3_dat)-0.005, max(p3_dat)+0.005])
 hold on;
 
 h = animatedline('Color', 'b', 'LineWidth', 0.5, 'LineStyle', '-', 'MaximumNumPoints', 10);
@@ -37,7 +37,7 @@ deg = 1;
 saved_color = 'b';
 colors = ['r', 'b', 'k', 'm', 'c', 'g', 'w'];
 class_means = zeros(length(colors), 6);
-UpdateRate = 1e-7; % smaller is slower
+UpdateRate = 1e-11; % smaller is slower
 chunkData = round(length(projected_data)/5);
 saved_val = 1;
 oldvals = [];

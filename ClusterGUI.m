@@ -67,6 +67,8 @@ try
 catch
 end
 
+handles.thresh = str2double(get(handles.edit5,'String'));
+
 % Choose default command line output for ClusterGUI
 handles.output = hObject;
 
@@ -164,6 +166,8 @@ colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
 % Analyze & Plot Data
 if strcmp(handles.analysis, 'Histogram') == 1
     handles.plot_dat = handles.odat;
+    'Standard deviation: '
+    std(handles.plot_dat)
     cla;
     axis(handles.axes1);
     histogram(handles.odat);
@@ -212,6 +216,9 @@ elseif strcmp(handles.analysis, 'MDA') == 1
     mda_code;
 elseif strcmp(handles.analysis, 'CMA') == 1
     % Robbie's CMA Script
+%     [eigenvectors1, ~] = eig(cov(handles.odat'));
+%     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
+    handles.plot_dat = pca(handles.odat);
     [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
     ClusterVis(handles.plot_dat', handles.plot_labels, strcat(filepath, filename), handles.thresh);
 end
@@ -351,4 +358,5 @@ function edit5_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+handles.thresh = str2double(get(hObject,'String'));
 set(hObject,'Visible','off');
