@@ -161,13 +161,11 @@ if length(dims) > 2
     handles.ax3 = dims(3);
 end
 
-colors = ['r', 'b', 'k', 'm', 'c', 'g', 'y'];
+colors = ['r', 'b', 'k', 'm', 'w', 'g', 'c'];
 
 % Analyze & Plot Data
 if strcmp(handles.analysis, 'Histogram') == 1
     handles.plot_dat = handles.odat;
-    'Standard deviation: '
-    std(handles.plot_dat)
     cla;
     axis(handles.axes1);
     histogram(handles.odat);
@@ -176,9 +174,25 @@ if strcmp(handles.analysis, 'Histogram') == 1
     ylabel('N');
     drawnow;
     view([0, 90])
+elseif strcmp(handles.analysis, 'SEM') == 1
+    projected_data = pca(handles.odat, 'NumComponents', 3);
+    sem = zeros(max(handles.plot_labels), 3);
+    for lab=1:max(handles.plot_labels)
+        sem(lab, :) = std(projected_data(handles.plot_labels==lab, :)) / sqrt(numel(handles.plot_labels(handles.plot_labels==lab)));
+    end
+    cla;
+    axis(handles.axes1);
+    bar(sem);
+    axis on;
+    xlabel('Class');
+    ylabel('SEM');
+    title('Standard Mean Error');
+    drawnow;
+    view([0, 90])
 elseif strcmp(handles.analysis, 'PCA') == 1
-    [eigenvectors1, ~] = eig(cov(handles.odat'));
-    handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
+%     [eigenvectors1, ~] = eig(cov(handles.odat'));
+%     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
+    handles.plot_dat = pca(handles.odat, 'NumComponents', 3);
     if length(dims) == 3
         cla;
         xlabel(strcat('P', num2str(handles.ax1)));
@@ -189,7 +203,7 @@ elseif strcmp(handles.analysis, 'PCA') == 1
             color_num = handles.plot_labels(ii);
             color1 = colors(color_num);
             plot3(handles.plot_dat(1, ii), handles.plot_dat(2, ii), handles.plot_dat(3, ii),...
-            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
+            'Marker', 'o', 'LineStyle', 'none', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b');
         end
         hold off;
         view([30 30 15])
@@ -216,9 +230,7 @@ elseif strcmp(handles.analysis, 'MDA') == 1
     mda_code;
 elseif strcmp(handles.analysis, 'CMA') == 1
     % Robbie's CMA Script
-%     [eigenvectors1, ~] = eig(cov(handles.odat'));
-%     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
-    handles.plot_dat = pca(handles.odat);
+    handles.plot_dat = pca(handles.odat, 3);
     [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
     ClusterVis(handles.plot_dat', handles.plot_labels, strcat(filepath, filename), handles.thresh);
 end
