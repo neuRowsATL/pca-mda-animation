@@ -192,7 +192,7 @@ elseif strcmp(handles.analysis, 'SEM') == 1
 elseif strcmp(handles.analysis, 'PCA') == 1
 %     [eigenvectors1, ~] = eig(cov(handles.odat'));
 %     handles.plot_dat = eigenvectors1(:, end - 2:end)'*handles.odat;
-    handles.plot_dat = pca(handles.odat, 'NumComponents', 3);
+    handles.plot_dat = pca(handles.odat, 'NumComponents', 3)';
     if length(dims) == 3
         cla;
         xlabel(strcat('P', num2str(handles.ax1)));
@@ -215,7 +215,7 @@ elseif strcmp(handles.analysis, 'PCA') == 1
             color_num = handles.plot_labels(ii);
             color1 = colors(color_num);
             plot(handles.plot_dat(handles.ax1, ii), handles.plot_dat(handles.ax2, ii),...
-            'Marker', '.', 'LineStyle', 'none', 'Color', color1);
+            'Marker', 'o', 'LineStyle', 'none', 'MarkerFaceColor', color1, 'MarkerEdgeColor', 'b');
         end
         hold off;
         view([0, 90])
