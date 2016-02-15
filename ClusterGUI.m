@@ -230,7 +230,7 @@ elseif strcmp(handles.analysis, 'MDA') == 1
     mda_code;
 elseif strcmp(handles.analysis, 'CMA') == 1
     % Robbie's CMA Script
-    handles.plot_dat = pca(handles.odat, 3);
+    handles.plot_dat = pca(handles.odat, 'NumComponents', 3);
     [filename, filepath]=uiputfile('example_movie.avi', 'Save file as...');
     ClusterVis(handles.plot_dat', handles.plot_labels, strcat(filepath, filename), handles.thresh);
 end
