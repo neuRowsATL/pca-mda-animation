@@ -78,9 +78,9 @@ y_test_set = y_test;
 
 
 if(to_plot == 1)
-%     display_clusters_7_points;
-mda_se_ellipsoids;
-    %     display_clusters_7_points_ver2;
+    display_clusters_7_points;
+% mda_se_ellipsoids;
+%     %     display_clusters_7_points_ver2;
 end
 
 
