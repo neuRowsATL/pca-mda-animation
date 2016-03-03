@@ -196,13 +196,28 @@ class Analyze(wx.Panel):
 
         init_dat = self.data_arr[self.data_arr.keys()[0]]
         init_labels = np.loadtxt('pdat_labels.txt')
-        init_labels = [(1/lab, lab*0.12, lab*0.1, 1.0) for lab in init_labels]
-        self.axes.scatter(init_dat[:, 0], init_dat[:, 1], init_dat[:, 2],
-                          c=init_labels)
+        labelled_data = self.ellipsoid_creation(init_labels, init_dat)
+        init_labels = self.matplotize_colors(init_labels)
+        for class_label in labelled_data.keys():
+            current_class = labelled_data[class_label]
+            # xx, yy = np.meshgrid(current_class[:, 0],
+            #                      current_class[:, 1], sparse=True, indexing='xy')
+            # zz = current_class[:, 2]
+            # print xx.shape, yy.shape, zz.shape
+            """TODO:: just take the min and max in each direction and plot everything between."""
+            self.axes.plot_wireframe(xx, yy, zz, color=init_labels[class_label])
+        # self.axes.scatter(init_dat[:, 0], init_dat[:, 1], init_dat[:, 2],
+        #                   c=init_labels)
         self.canvas.draw()
 
-    def ellipsoid_creation(self, labels, data):
+    def matplotize_colors(self, colors):
+        return [(1/lab, lab*0.12, lab*0.1, 1.0) for lab in colors]
 
+    def ellipsoid_creation(self, labels, data):
+        classes = dict()
+        for label in range(int(min(labels)), int(max(labels))+1):
+            classes[label] = data[labels==label,:]
+        return classes
 
 class MainFrame(wx.Frame):
     def __init__(self):
