@@ -17,8 +17,9 @@ from matplotlib.backends.backend_wxagg import \
 
 import numpy as np
 import pylab as plt
-
+from ellipsoid import EllipsoidTool
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import normalize
 
 class ImportFiles(wx.Panel):
     def __init__(self, parent):
@@ -91,6 +92,7 @@ class LabelData(wx.Panel):
         self.fig = Figure((5.0, 3.0), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.data_arr = dict()
+        self.cond_arr = dict()
         self.t = 0
         self.create_listctrl()
         self.create_neur_box()
@@ -101,12 +103,16 @@ class LabelData(wx.Panel):
             data = np.loadtxt(filename)
             if data.shape[0] > data.shape[1]:
                 data = data.T
-            for neurno in range(data.shape[0]):
-                self.neur_box.InsertItems(pos=neurno, items=[str(neurno)])
             self.data_arr.update({filename: data})
+            self.neur = filename
         if self.t == 0:
             self.init_plot()
             self.t += 1
+
+    def load_conditions(self, filenames):
+        for filename in filenames:
+            conds = np.loadtxt(filename)
+            self.cond_arr.update({filename: conds})
 
     def create_listctrl(self):
         self.listCtrl = wx.ListCtrl(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
@@ -114,25 +120,74 @@ class LabelData(wx.Panel):
         self.listCtrl.InsertColumn(1, "File Data Type")
         self.listCtrl.SetColumnWidth(0, 200)
         self.listCtrl.SetColumnWidth(1, 100)
+        self.listCtrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.populate_neur_box)
 
     def create_neur_box(self):
         self.neur_title = wx.StaticText(self, -1, "Select Neuron:")
         self.neur_box = wx.ListBox(self, -1, 
-                                   style=wx.LB_SINGLE|wx.LB_NEEDED_SB, size=(100,500))
+                                   style=wx.LB_SINGLE|wx.LB_NEEDED_SB, size=(100,100))
         self.neur_box.Bind(wx.EVT_LISTBOX, self.plot_selected)
 
+    def populate_neur_box(self, event):
+        neur, cond = self.separate_selected()
+        if self.neur != neur:
+            self.neur = neur
+            for idx in range(self.neur_box.GetCount()):
+                self.neur_box.Delete(idx)
+            neurfile = neur[0]
+            for neurno in range(self.data_arr[neurfile].shape[0]):
+                self.neur_box.InsertItems(pos=neurno, items=[str(neurno)])
+
     def plot_selected(self, event):
-        sel_neuron = self.neur_box.GetSelection()
-        self.plot_data.set_xdata(np.arange(self.data_arr[self.data_arr.keys()[0]].shape[1]))
-        self.plot_data.set_ydata(self.data_arr[self.data_arr.keys()[0]][sel_neuron, :])
-        self.canvas.draw()
+        neur, cond = self.separate_selected()
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        if len(neur) > 0:
+            sel_neuron = self.neur_box.GetSelection()
+            self.plot_data.set_xdata(np.arange(self.data_arr[neur[0]].shape[1]))
+            self.plot_data.set_ydata(self.data_arr[neur[0]][sel_neuron, :])
+            self.axes.plot()
+            if len(cond) > 0:
+                current_cond = self.cond_arr[cond[0]]
+                current_neuron_range = np.arange(self.data_arr[neur[0]].shape[1])
+                classes = np.arange(min(current_cond), max(current_cond)+1)
+                for class_ in classes:
+                    selected_class = current_neuron_range[current_cond==class_]
+                    self.axes.axvspan(min(selected_class), max(selected_class), facecolor=color_list[int(class_)-1], 
+                        alpha=0.5)
+            self.canvas.draw()
+        else:
+            print('You must select a Neural file to plot frequency.')
+
+    def separate_selected(self):
+        neur = list()
+        cond = list()
+        if self.listCtrl.GetSelectedItemCount() != 0:
+            sel_files = self.get_selected()
+            for sel in sel_files:
+                filename = self.listCtrl.GetItemText(sel, 0)
+                filetype = self.listCtrl.GetItemText(sel, 1)
+                if filetype == 'Condition':
+                    cond.append(filename)
+                elif filetype == 'Neural':
+                    neur.append(filename)
+        return neur, cond
+
+    def get_selected(self):
+        current = -1
+        selection = list()
+        while True:
+            next_ = self.listCtrl.GetNextSelected(current)
+            if next_ == -1:
+                return selection
+            selection.append(next_)
+            current = next_
 
     def init_plot(self):
         self.axes = self.fig.add_subplot(111)
         self.axes.set_axis_bgcolor('white')
         self.axes.set_title('Frequency Response', size=10)
-        self.axes.set_xlabel('time (sec)')
-        self.axes.set_ylabel('frequency (hz)')
+        self.axes.set_xlabel('time (sec)', size=5)
+        self.axes.set_ylabel('frequency (hz)', size=5)
         
         plt.setp(self.axes.get_xticklabels(), fontsize=5)
         plt.setp(self.axes.get_yticklabels(), fontsize=5)
@@ -145,15 +200,13 @@ class LabelData(wx.Panel):
         self.canvas.draw()
 
     def __do_layout(self):
-        sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_1.Add(self.listCtrl, 0, wx.ALIGN_LEFT, 5)
-        sizer_2 = wx.BoxSizer()
-        sizer_2.Add(self.canvas, 2, wx.ALIGN_CENTER)
-        sizer_3 = wx.BoxSizer(wx.VERTICAL)
-        sizer_3.Add(self.neur_title)
-        sizer_3.Add(self.neur_box)
-        sizer_2.Add(sizer_3)
+        sizer_1 = wx.BoxSizer()
+        sizer_2 = wx.BoxSizer(wx.VERTICAL)
+        sizer_2.Add(self.listCtrl, 0, wx.ALIGN_LEFT, 5)
+        sizer_2.Add(self.neur_title, 0, wx.ALIGN_LEFT, 1)
+        sizer_2.Add(self.neur_box, 0, wx.ALIGN_LEFT)
         sizer_1.Add(sizer_2)
+        sizer_1.Add(self.canvas)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()
@@ -166,8 +219,10 @@ class Analyze(wx.Panel):
         self.fig = Figure((5.0, 3.0), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.data_arr = dict()
+        self.cond_arr = dict()
         self.neurons = list()
         self.conditions = list()
+        self.__do_layout()
 
     def load_data(self, filenames):
         for filename in filenames:
@@ -176,11 +231,16 @@ class Analyze(wx.Panel):
                 data = data.T
             pca = PCA(n_components=3)
             pca.fit(data.T)
-            data = pca.transform(data.T)
+            data = normalize(pca.transform(data.T))
             self.data_arr.update({filename: data})
         if self.t == 0:
             self.init_plot()
             self.t += 1
+
+    def load_conditions(self, filenames):
+        for filename in filenames:
+            conds = np.loadtxt(filename)
+            self.cond_arr.update({filename: conds})
 
     def init_plot(self):
         self.axes = self.fig.add_subplot(111, projection='3d')
@@ -195,33 +255,60 @@ class Analyze(wx.Panel):
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
 
         init_dat = self.data_arr[self.data_arr.keys()[0]]
-        init_labels = np.loadtxt('pdat_labels.txt')
-        labelled_data = self.ellipsoid_creation(init_labels, init_dat)
-        init_labels = self.matplotize_colors(init_labels)
+        try:
+            init_labels = self.cond_arr[self.cond_arr.keys()[0]]
+        except IndexError:
+            init_labels = np.loadtxt('pdat_labels.txt')
+        labelled_data = self.class_creation(init_labels, init_dat)
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         for class_label in labelled_data.keys():
+
             current_class = labelled_data[class_label]
-            # xx, yy = np.meshgrid(current_class[:, 0],
-            #                      current_class[:, 1], sparse=True, indexing='xy')
-            # zz = current_class[:, 2]
-            # print xx.shape, yy.shape, zz.shape
-            """TODO:: just take the min and max in each direction and plot everything between."""
-            self.axes.plot_wireframe(xx, yy, zz, color=init_labels[class_label])
-        # self.axes.scatter(init_dat[:, 0], init_dat[:, 1], init_dat[:, 2],
-        #                   c=init_labels)
+
+            pca = PCA(n_components=3)
+            pca.fit(current_class)
+            projected_class = normalize(pca.transform(current_class))
+            projected_class = current_class*projected_class
+
+            x = projected_class[:, 0]
+            y = projected_class[:, 1]
+            z = projected_class[:, 2]
+
+            self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], marker='.', edgecolor='k')
+            center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+            """ 
+            EllipsoidTool from:
+            https://github.com/minillinim/ellipsoid 
+            """
+            EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                                        cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
         self.canvas.draw()
 
-    def matplotize_colors(self, colors):
-        return [(1/lab, lab*0.12, lab*0.1, 1.0) for lab in colors]
+    def pca_selected(self, event):
+        pass
 
-    def ellipsoid_creation(self, labels, data):
+    def mda_selected(self, event):
+        pass
+
+    def kmeans_selected(self, event):
+        pass
+
+    def class_creation(self, labels, data):
         classes = dict()
         for label in range(int(min(labels)), int(max(labels))+1):
             classes[label] = data[labels==label,:]
         return classes
 
+    def __do_layout(self):
+        sizer_1 = wx.BoxSizer()
+        sizer_1.Add(self.canvas)
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
+        self.Layout()
+
 class MainFrame(wx.Frame):
     def __init__(self):
-        wx.Frame.__init__(self, None, title="FreqPy", size=(1500, 800))
+        wx.Frame.__init__(self, None, title="FreqPy", size=(900, 900))
 
         self.neurons = list()
         self.conditions = list()
@@ -262,7 +349,9 @@ class MainFrame(wx.Frame):
                 self.label_data.load_data(self.import_files.neurons)
                 self.analyze.load_data(self.import_files.neurons)
             elif self.import_files.state == 'Condition':
-                self.import_files.append(dialog.GetPath())
+                self.import_files.conditions.append(dialog.GetPath())
+                self.analyze.load_conditions(self.import_files.conditions)
+                self.label_data.load_conditions(self.import_files.conditions)
 
         dialog.Destroy()
 
