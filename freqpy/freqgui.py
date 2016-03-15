@@ -95,7 +95,6 @@ class LabelData(wx.Panel):
         self.cond_arr = dict()
         self.t = 0
         self.create_listctrl()
-        self.create_neur_box()
         self.__do_layout()
 
     def load_data(self, filenames):
@@ -118,45 +117,40 @@ class LabelData(wx.Panel):
         self.listCtrl = wx.ListCtrl(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
         self.listCtrl.InsertColumn(0, "File Path")
         self.listCtrl.InsertColumn(1, "File Data Type")
-        self.listCtrl.SetColumnWidth(0, 200)
-        self.listCtrl.SetColumnWidth(1, 100)
-        self.listCtrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.populate_neur_box)
+        self.listCtrl.SetColumnWidth(0, 300)
+        self.listCtrl.SetColumnWidth(1, 200)
+        self.listCtrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.plot_selected)
 
-    def create_neur_box(self):
-        self.neur_title = wx.StaticText(self, -1, "Select Neuron:")
-        self.neur_box = wx.ListBox(self, -1, 
-                                   style=wx.LB_SINGLE|wx.LB_NEEDED_SB, size=(100,100))
-        self.neur_box.Bind(wx.EVT_LISTBOX, self.plot_selected)
-
-    def populate_neur_box(self, event):
-        neur, cond = self.separate_selected()
-        if self.neur != neur:
-            self.neur = neur
-            for idx in range(self.neur_box.GetCount()):
-                self.neur_box.Delete(idx)
-            neurfile = neur[0]
-            for neurno in range(self.data_arr[neurfile].shape[0]):
-                self.neur_box.InsertItems(pos=neurno, items=[str(neurno)])
+    def raster(self, event_times_list, color='k'):
+        """
+        https://scimusing.wordpress.com/2013/05/06/making-raster-plots-in-python-with-matplotlib/
+        Creates a raster plot
+        """
+        self.axes.set_axis_bgcolor('white')
+        self.axes.set_title('Raster Plot', size=10)
+        self.axes.set_xlabel('time (sec)', size=5)
+        self.axes.set_ylabel('Neuron', size=5)
+        for ith, trial in enumerate(event_times_list):
+            self.axes.vlines(trial*event_times_list.shape[1], ith + 0.5, ith + 1.5, color=color, linewidth=0.2)
+        plt.ylim(0.5, len(event_times_list) + .5)
+        plt.xticks(np.arange(0, event_times_list.shape[1]+1, 1), fontsize="small")
+        plt.yticks(np.arange(0.5, event_times_list.shape[0]+1, 1), fontsize="small")
 
     def plot_selected(self, event):
         neur, cond = self.separate_selected()
-        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c'] 
         if len(neur) > 0:
-            sel_neuron = self.neur_box.GetSelection()
-            self.plot_data.set_xdata(np.arange(self.data_arr[neur[0]].shape[1]))
-            self.plot_data.set_ydata(self.data_arr[neur[0]][sel_neuron, :])
-            self.axes.plot()
+            neur_dat = self.data_arr[neur[0]]
             if len(cond) > 0:
                 current_cond = self.cond_arr[cond[0]]
                 current_neuron_range = np.arange(self.data_arr[neur[0]].shape[1])
                 classes = np.arange(min(current_cond), max(current_cond)+1)
                 for class_ in classes:
                     selected_class = current_neuron_range[current_cond==class_]
-                    self.axes.axvspan(min(selected_class), max(selected_class), facecolor=color_list[int(class_)-1], 
-                        alpha=0.5)
+                    self.vaxlines.axvspan(min(selected_class), max(selected_class), facecolor=color_list[int(class_)-1], 
+                        alpha=0.1, zorder=1)
+            self.raster(neur_dat, color='k')
             self.canvas.draw()
-        else:
-            print('You must select a Neural file to plot frequency.')
 
     def separate_selected(self):
         neur = list()
@@ -183,32 +177,17 @@ class LabelData(wx.Panel):
             current = next_
 
     def init_plot(self):
+        self.vaxlines = self.fig.add_subplot(111)
         self.axes = self.fig.add_subplot(111)
-        self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('Frequency Response', size=10)
-        self.axes.set_xlabel('time (sec)', size=5)
-        self.axes.set_ylabel('frequency (hz)', size=5)
-        
-        plt.setp(self.axes.get_xticklabels(), fontsize=5)
-        plt.setp(self.axes.get_yticklabels(), fontsize=5)
-
-        self.plot_data = self.axes.plot(
-            self.data_arr[self.data_arr.keys()[0]][0, :],
-            linewidth=0.3,
-            color=(0, 0, 0),
-            )[0]
+        self.raster(self.data_arr[self.data_arr.keys()[0]], color='k')
         self.canvas.draw()
 
     def __do_layout(self):
-        sizer_1 = wx.BoxSizer()
         sizer_2 = wx.BoxSizer(wx.VERTICAL)
-        sizer_2.Add(self.listCtrl, 0, wx.ALIGN_LEFT, 5)
-        sizer_2.Add(self.neur_title, 0, wx.ALIGN_LEFT, 1)
-        sizer_2.Add(self.neur_box, 0, wx.ALIGN_LEFT)
-        sizer_1.Add(sizer_2)
-        sizer_1.Add(self.canvas)
-        self.SetSizer(sizer_1)
-        sizer_1.Fit(self)
+        sizer_2.Add(self.listCtrl, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_2.Add(self.canvas, wx.ALIGN_CENTER|wx.EXPAND)
+        self.SetSizer(sizer_2)
+        sizer_2.Fit(self)
         self.Layout()
 
 class Analyze(wx.Panel):
@@ -308,7 +287,7 @@ class Analyze(wx.Panel):
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        wx.Frame.__init__(self, None, title="FreqPy", size=(900, 900))
+        wx.Frame.__init__(self, None, title="FreqPy", size=(500, 800))
 
         self.neurons = list()
         self.conditions = list()
@@ -360,3 +339,4 @@ if __name__ == '__main__':
     app.frame = MainFrame()
     app.frame.Show()
     app.MainLoop()
+    sys.exit()
