@@ -4,6 +4,7 @@ import os
 import pprint
 import random
 import sys
+import itertools
 
 import wx
 
@@ -98,15 +99,25 @@ class LabelData(wx.Panel):
         self.__do_layout()
 
     def load_data(self, filenames):
+        data = list()
         for filename in filenames:
-            data = np.loadtxt(filename)
-            if data.shape[0] > data.shape[1]:
-                data = data.T
+            datum = list(np.loadtxt(filename, skiprows=2))
             self.data_arr.update({filename: data})
             self.neur = filename
         if self.t == 0:
             self.init_plot()
             self.t += 1
+
+    # def load_data(self, filenames):
+    #     for filename in filenames:
+    #         data = np.loadtxt(filename)
+    #         if data.shape[0] > data.shape[1]:
+    #             data = data.T
+    #         self.data_arr.update({filename: data})
+    #         self.neur = filename
+    #     if self.t == 0:
+    #         self.init_plot()
+    #         self.t += 1
 
     def load_conditions(self, filenames):
         for filename in filenames:
@@ -131,10 +142,10 @@ class LabelData(wx.Panel):
         self.axes.set_xlabel('time (sec)', size=5)
         self.axes.set_ylabel('Neuron', size=5)
         for ith, trial in enumerate(event_times_list):
-            self.axes.vlines(trial*event_times_list.shape[1], ith + 0.5, ith + 1.5, color=color, linewidth=0.2)
+            self.axes.vlines(trial, ith + 0.5, ith + 1.5, color=color, linewidth=0.2)
         plt.ylim(0.5, len(event_times_list) + .5)
-        plt.xticks(np.arange(0, event_times_list.shape[1]+1, 1), fontsize="small")
-        plt.yticks(np.arange(0.5, event_times_list.shape[0]+1, 1), fontsize="small")
+        # plt.xticks(np.arange(0, event_times_list.shape[1]+1, 1), fontsize="small")
+        # plt.yticks(np.arange(0.5, event_times_list.shape[0]+1, 1), fontsize="small")
 
     def plot_selected(self, event):
         neur, cond = self.separate_selected()
@@ -204,14 +215,16 @@ class Analyze(wx.Panel):
         self.__do_layout()
 
     def load_data(self, filenames):
-        for filename in filenames:
-            data = np.loadtxt(filename)
-            if data.shape[0] > data.shape[1]:
-                data = data.T
-            pca = PCA(n_components=3)
-            pca.fit(data.T)
-            data = normalize(pca.transform(data.T))
-            self.data_arr.update({filename: data})
+        data = list()
+        for ii, filename in enumerate(filenames):
+            if filenames[ii-1].split('_')[0] == filenames[ii].split('_')[0]:
+                datum = np.loadtxt(filename,skiprows=2)
+                data.append(datum)
+        data = np.array(data)
+        pca = PCA(n_components=3)
+        pca.fit(data)
+        data = normalize(pca.transform(data.T))
+        self.data_arr.update({filename: data})
         if self.t == 0:
             self.init_plot()
             self.t += 1
@@ -317,20 +330,24 @@ class MainFrame(wx.Frame):
         defaultDir=os.getcwd(),
         defaultFile="",
         wildcard=file_choices,
-        style=wx.OPEN)
+        style=wx.OPEN|wx.MULTIPLE)
+        def multipaths(dialog):
+            for d in dialog.GetPaths():
+                yield d
         if dialog.ShowModal() == wx.ID_OK:
-            self.import_files.listCtrl.Append([dialog.GetPath().split('\\')[-1], 
+            for each in multipaths(dialog):
+                self.import_files.listCtrl.Append([each.split('\\')[-1], 
                                                self.import_files.state])
-            self.label_data.listCtrl.Append([dialog.GetPath(), 
+                self.label_data.listCtrl.Append([each, 
                                              self.import_files.state])
-            if self.import_files.state == 'Neural':
-                self.import_files.neurons.append(dialog.GetPath())
-                self.label_data.load_data(self.import_files.neurons)
-                self.analyze.load_data(self.import_files.neurons)
-            elif self.import_files.state == 'Condition':
-                self.import_files.conditions.append(dialog.GetPath())
-                self.analyze.load_conditions(self.import_files.conditions)
-                self.label_data.load_conditions(self.import_files.conditions)
+                if self.import_files.state == 'Neural':
+                    self.import_files.neurons.append(each)
+                    self.label_data.load_data(self.import_files.neurons)
+                    self.analyze.load_data(self.import_files.neurons)
+                elif self.import_files.state == 'Condition':
+                    self.import_files.conditions.append(each)
+                    self.analyze.load_conditions(self.import_files.conditions)
+                    self.label_data.load_conditions(self.import_files.conditions)
 
         dialog.Destroy()
 
