@@ -43,17 +43,14 @@ class MainFrame(wx.Frame):
             for each in multipaths(dialog):
                 self.import_files.listCtrl.Append([each.split('\\')[-1], 
                                                self.import_files.state])
-                self.label_data.listCtrl.Append([each, 
-                                             self.import_files.state])
                 if self.import_files.state == 'Neural':
                     self.import_files.neurons.append(each)
-                    self.label_data.load_data(self.import_files.neurons)
-                    self.analyze.load_data(self.import_files.neurons)
                 elif self.import_files.state == 'Condition':
                     self.import_files.conditions.append(each)
-                    self.analyze.load_conditions(self.import_files.conditions)
-                    self.label_data.load_conditions(self.import_files.conditions)
-
+        self.label_data.load_data(self.import_files.neurons)
+        self.analyze.load_data(self.import_files.neurons)
+        self.analyze.load_conditions(self.import_files.conditions)
+        self.label_data.load_conditions(self.import_files.conditions)
         dialog.Destroy()
 
 if __name__ == '__main__':
