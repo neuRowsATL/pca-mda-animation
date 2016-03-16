@@ -55,6 +55,31 @@ class Analyze(wx.Panel):
             conds = np.loadtxt(filename)
             self.cond_arr.update({filename: conds})
 
+    def plot_selected(self, event):
+        ## TODO: define selected_dat, selected_labels
+        labelled_data = self.class_creation(selected_labels, selected_dat)
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        for class_label in labelled_data.keys():
+            current_class = labelled_data[class_label]
+            pca = PCA(n_components=3)
+            pca.fit(current_class)
+            projected_class = normalize(pca.transform(current_class))
+            projected_class = current_class*projected_class
+            x = projected_class[:, 0]
+            y = projected_class[:, 1]
+            z = projected_class[:, 2]
+
+            self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                marker='.', edgecolor='k')
+            center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+            """ 
+            EllipsoidTool from:
+            https://github.com/minillinim/ellipsoid 
+            """
+            EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                                        cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
+        self.canvas.draw()
+
     def init_plot(self):
         self.axes = self.fig.add_subplot(111, projection='3d')
         self.axes.set_axis_bgcolor('white')
@@ -97,6 +122,13 @@ class Analyze(wx.Panel):
         self.canvas.draw()
 
     def pca_selected(self, event):
+        pca = PCA(n_components=3)
+        pca.fit(current_class)
+        projected_class = normalize(pca.transform(current_class))
+        projected_class = current_class*projected_class
+        x = projected_class[:, 0]
+        y = projected_class[:, 1]
+        z = projected_class[:, 2]
         pass
 
     def mda_selected(self, event):
