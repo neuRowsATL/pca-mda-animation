@@ -37,7 +37,7 @@ class Analyze(wx.Panel):
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.lb) # neur list selection
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
-        self.Bind(wx.EVT_CHOICE, self.cond_selected, self.lb_cond) # cond list selection
+        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.lb_cond) # cond list selection
 
     def to_freq(self, data):
         nr_pts = 1e3
@@ -144,7 +144,7 @@ class Analyze(wx.Panel):
                 EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
                                             cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
             self.canvas.draw()
-        else: print("Select both your frequency data and a condition file to plot with PCA")
+        else: print("Select both the frequency data & condition file to analyze.")
 
     def init_plot(self):
         self.axes = self.fig.add_subplot(111, projection='3d')

@@ -32,9 +32,11 @@ class LabelData(wx.Panel):
         for ii, k in enumerate(self.data_arr.keys()):
             if ii > 0 and self.data_arr.keys()[ii-1].split('_')[0] != self.data_arr.keys()[ii].split('_')[0]:
                 self.lb.InsertItems([self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
+                self.lb.SetSelection(0)
                 self.lb_arr.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]) 
             if ii == 0:
                 self.lb.InsertItems([self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
+                self.lb.SetSelection(0)
                 self.lb_arr.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
 
     def load_conditions(self, filenames):
@@ -44,9 +46,11 @@ class LabelData(wx.Panel):
         for ii, k in enumerate(self.cond_arr.keys()):
             if ii > 0 and self.cond_arr.keys()[ii-1].split('_')[0] != self.cond_arr.keys()[ii].split('_')[0]:
                 self.lb_cond.InsertItems([self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
+                self.lb_cond.SetSelection(0)
                 self.lb_condarr.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]) 
             if ii == 0:
                 self.lb_cond.InsertItems([self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
+                self.lb_cond.SetSelection(0)
                 self.lb_condarr.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
 
     def cond_selected(self, event):
@@ -72,7 +76,7 @@ class LabelData(wx.Panel):
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
         self.Bind(wx.EVT_CHOICE, self.cond_selected, self.lb_cond) # cond list selection
 
-    def raster(self, event_times_list, color='k'):
+    def raster(self, event_times_list, color='k', cond=None):
         """
         https://scimusing.wordpress.com/2013/05/06/making-raster-plots-in-python-with-matplotlib/
         Creates a raster plot
@@ -91,20 +95,32 @@ class LabelData(wx.Panel):
             self.axes.vlines(event_times_list[ith], ith + 0.5, ith + 1.5, color=color, linewidth=0.2)
         self.axes.set_ylim([0.5, len(event_times_list.keys()) + 0.5])
 
-    def get_current(self, keyname):
+    def get_current(self, keyname, t):
         init_arr = dict()
-        for ii, _ in enumerate(self.data_arr.keys()):
-            if self.data_arr.keys()[ii].split('\\')[-1].split('_')[0] == keyname:
-                init_arr = self.data_arr[_]
-                break
+        if t == 'Data':
+            for ii, _ in enumerate(self.data_arr.keys()):
+                if self.data_arr.keys()[ii].split('\\')[-1].split('_')[0] == keyname:
+                    init_arr = self.data_arr[_]
+                    break
+        elif t == 'Cond':
+            for ii, _ in enumerate(self.cond_arr.keys()):
+                if self.cond_arr.keys()[ii].split('\\')[-1] == keyname:
+                    init_arr = self.cond_arr[_]
+                    break
         return init_arr
 
-    def plot_selected(self, event):
-        selected = [self.lb.GetString(self.lb.GetSelection())]
+    def get_selection(self, box, t):
+        selected = [box.GetString(box.GetSelection())]
+        selarr = dict()
         if len(selected) == 1:
             sel = selected[0]
-            selarr = self.get_current(sel)
-        self.raster(selarr, color='k')
+            selarr = self.get_current(sel, t=t)
+        return selarr
+
+    def plot_selected(self, event):
+        plot_data = self.get_selection(self.lb, 'Data')
+        cond_data = self.get_selection(self.lb_cond, 'Cond')
+        self.raster(plot_data, color='k', cond=cond_data)
         self.canvas.draw()
 
     def init_plot(self):

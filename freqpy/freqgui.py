@@ -28,31 +28,30 @@ class MainFrame(wx.Frame):
         self.Layout()
 
     def on_add_file(self, event):
-        file_choices = "TXT (*.txt)|*.txt"
-        dialog = wx.FileDialog(
-        self, 
-        message="Import file...",
-        defaultDir=os.getcwd(),
-        defaultFile="",
-        wildcard=file_choices,
+        dialog = wx.DirDialog(
+        self,
+        message="Import Data Directory",
         style=wx.OPEN|wx.MULTIPLE)
-        def multipaths(dialog):
-            for d in dialog.GetPaths():
-                yield d
         if dialog.ShowModal() == wx.ID_OK:
-            for each in multipaths(dialog):
-                self.import_files.listCtrl.Append([each.split('\\')[-1], 
-                                               self.import_files.state])
-                if self.import_files.state == 'Neural':
-                    self.import_files.neurons.append(each)
-                elif self.import_files.state == 'Condition':
-                    self.import_files.conditions.append(each)
-        if self.import_files.state == 'Neural':
+            files_ = [os.path.abspath(dialog.GetPath()+"\\"+ff) for ff in os.listdir(dialog.GetPath())]
+            files = [f.split("\\")[-1] for f in files_]
+            data_files = [f for f in files if all(fl.isdigit() for fl in f.split('D_')[0]) and f.split('.')[-1]=='txt' \
+                          and 'labels' not in f.lower() and f.split('.')[0][-1].isdigit()]
+            data_files = [df for df in files_ if df.split('\\')[-1] in data_files]
+            label_files = [f for f in files if all(fl.isalpha() for fl in f.split('_')[0]) and f.split('.')[-1]=='txt' \
+                           and 'labels' in f.lower()]
+            label_files = [lf for lf in files_ if lf.split('\\')[-1] in label_files]
+            for each in data_files:
+                self.import_files.listCtrl.Append([each.split('\\')[-1],'Frequency Data'])
+                self.import_files.neurons.append(each)
+            for each in label_files:
+                self.import_files.listCtrl.Append([each.split('\\')[-1],'Labels'])
+                self.import_files.conditions.append(each)
             self.label_data.load_data(self.import_files.neurons)
             self.analyze.load_data(self.import_files.neurons)
-        elif self.import_files.state == 'Condition':
             self.analyze.load_conditions(self.import_files.conditions)
             self.label_data.load_conditions(self.import_files.conditions)
+            self.analyze.init_plot()
         dialog.Destroy()
 
 if __name__ == '__main__':
