@@ -59,6 +59,7 @@ class Analyze(wx.Panel):
             freq = np.divide(freq - np.tile(np.mean(freq), (1, len(freq.T))), 
                              np.tile(np.std(freq), (1, len(freq.T))))
             freq = (1.0 + np.tanh(freq)) / 2.0
+            freq = normalize(freq)
             return freq
 
     def load_data(self, filenames):
@@ -71,10 +72,6 @@ class Analyze(wx.Panel):
                     datum = np.loadtxt(filename,skiprows=2)
                     data.update({ii: datum})
             freq = self.to_freq(data)
-            pca = PCA(n_components=3)
-            pca.fit(freq.T)
-            freq = pca.transform(freq.T)
-            freq = normalize(freq)
             self.data_arr.update({tagname: freq})
             np.savetxt(tagname + "_projected_freq.txt", freq)
             if self.t == 0:
@@ -168,21 +165,7 @@ class Analyze(wx.Panel):
             init_labels = self.cond_arr[self.cond_arr.keys()[0]]
             labelled_data = self.class_creation(init_labels, init_dat)
             color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-            for class_label in labelled_data.keys():
-                current_class = labelled_data[class_label]
-                pca = PCA(n_components=3)
-                pca.fit(current_class)
-                projected_class = normalize(pca.transform(current_class))
-                projected_class = current_class*projected_class
-                x = projected_class[:, 0]
-                y = projected_class[:, 1]
-                z = projected_class[:, 2]
-                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                    marker='.', edgecolor='k')
-                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
-            self.canvas.draw()
+            self.pca_selected(labelled_data, toplot=True)
         except IndexError:
             pass
 
@@ -193,7 +176,8 @@ class Analyze(wx.Panel):
                 pca = PCA(n_components=3)
                 pca.fit(current_class)
                 projected_class = normalize(pca.transform(current_class))
-                projected_class = current_class*projected_class
+                pca2 = PCA(n_components=3)
+                projected_class = projected_class*normalize(pca2.fit_transform(projected_class))
                 x = projected_class[:, 0]
                 y = projected_class[:, 1]
                 z = projected_class[:, 2]
@@ -202,7 +186,7 @@ class Analyze(wx.Panel):
                                       marker='.', edgecolor='k')
                     center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
                     EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-                                                cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
+                                                cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
             self.canvas.draw()
 
     def mda_selected(self, labelled_data):
@@ -217,6 +201,7 @@ class Analyze(wx.Panel):
 
     def class_creation(self, labels, data):
         classes = dict()
+        data = data.T
         for label in range(int(min(labels)), int(max(labels))+1):
             classes[label] = data[labels==label,:]
         return classes

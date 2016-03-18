@@ -28,10 +28,8 @@ class MDA:
     @staticmethod
     def splitData(data):
         trainingData = dict()
-        for k, dat in data.items():
-            trainDat = np.shuffle(dat)[0:int(len(dat)/6)]
-            trainingData[k] = None
-        return trainingData
+        testData = dict()
+        return trainingData, testData
 
     def fit(self):
         weights, means, std = classStats(self.labelled_data)
