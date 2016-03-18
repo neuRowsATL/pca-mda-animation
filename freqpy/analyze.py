@@ -1,4 +1,5 @@
 from extimports import *
+from mda import MDA
 
 class Analyze(wx.Panel):
     def __init__(self, parent):
@@ -34,10 +35,12 @@ class Analyze(wx.Panel):
                 condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
         self.lbtitle = wx.StaticText(self, -1, "Choose Frequency Data:", (80, 10))
         self.lb = wx.Choice(self, -1, (80, 50), wx.DefaultSize, sampleList)
-        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.lb) # neur list selection
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
-        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.lb_cond) # cond list selection
+        self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
+        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "k-Means"])
+        self.alg_choice.SetSelection(0)
+        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
     def to_freq(self, data):
         nr_pts = 1e3
@@ -124,27 +127,31 @@ class Analyze(wx.Panel):
         return selarr
 
     def plot_selected(self, event):
-        if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0:
+        self.axes.cla()
+        self.axes.set_axis_bgcolor('white')
+        self.axes.set_title('Cluster Analysis', size=10)
+        self.axes.set_xlabel('PC1',size=5)
+        self.axes.set_ylabel('PC2',size=5)
+        self.axes.set_zlabel('PC3',size=5)
+        plt.setp(self.axes.get_xticklabels(), fontsize=4)
+        plt.setp(self.axes.get_yticklabels(), fontsize=4)
+        plt.setp(self.axes.get_zticklabels(), fontsize=4)
+        selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
+        if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
+            print("To use MDA or PCA, please select both frequency and labels.")
+            pass
+        if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg in ['PCA', 'MDA']:
             selected_dat = self.get_selection(self.lb, t='Data')
             selected_labels = self.get_selection(self.lb_cond, t='Cond')
             labelled_data = self.class_creation(selected_labels, selected_dat)
-            color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-            for class_label in labelled_data.keys():
-                current_class = labelled_data[class_label]
-                pca = PCA(n_components=3)
-                pca.fit(current_class)
-                projected_class = normalize(pca.transform(current_class))
-                projected_class = current_class*projected_class
-                x = projected_class[:, 0]
-                y = projected_class[:, 1]
-                z = projected_class[:, 2]
-                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                    marker='.', edgecolor='k')
-                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
-            self.canvas.draw()
-        else: print("Select both the frequency data & condition file to analyze.")
+            if selected_alg == 'PCA':
+                self.pca_selected(labelled_data)
+            elif selected_alg == 'MDA':
+                self.mda_selected(labelled_data)
+        elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
+            self.kmeans_selected(selected_dat)
+        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
+            self.kmeans_selected(labelled_data)
 
     def init_plot(self):
         self.axes = self.fig.add_subplot(111, projection='3d')
@@ -179,20 +186,33 @@ class Analyze(wx.Panel):
         except IndexError:
             pass
 
-    def pca_selected(self, event):
-        pca = PCA(n_components=3)
-        pca.fit(current_class)
-        projected_class = normalize(pca.transform(current_class))
-        projected_class = current_class*projected_class
-        x = projected_class[:, 0]
-        y = projected_class[:, 1]
-        z = projected_class[:, 2]
+    def pca_selected(self, labelled_data, toplot=True):
+            color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+            for class_label in labelled_data.keys():
+                current_class = labelled_data[class_label]
+                pca = PCA(n_components=3)
+                pca.fit(current_class)
+                projected_class = normalize(pca.transform(current_class))
+                projected_class = current_class*projected_class
+                x = projected_class[:, 0]
+                y = projected_class[:, 1]
+                z = projected_class[:, 2]
+                if toplot:
+                    self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                                      marker='.', edgecolor='k')
+                    center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                    EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                                                cageColor=color_list[int(class_label)-1], cageAlpha=0.5)
+            self.canvas.draw()
+
+    def mda_selected(self, labelled_data):
+        mda = MDA(labelled_data)
+        print(mda.classStats(labelled_data))
+        self.canvas.draw()
         pass
 
-    def mda_selected(self, event):
-        pass
-
-    def kmeans_selected(self, event):
+    def kmeans_selected(self):
+        self.canvas.draw()
         pass
 
     def class_creation(self, labels, data):
@@ -208,6 +228,8 @@ class Analyze(wx.Panel):
         sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb_cond, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

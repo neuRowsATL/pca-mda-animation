@@ -21,3 +21,4 @@ import pylab as plt
 from ellipsoid import EllipsoidTool
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
+from sklearn.cross_validation import StratifiedShuffleSplit
