@@ -5,7 +5,7 @@ from analyze import Analyze
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        wx.Frame.__init__(self, None, title="FreqPy", size=(500, 800))
+        wx.Frame.__init__(self, None, title="FreqPy", size=(700, 800))
 
         self.neurons = list()
         self.conditions = list()
@@ -47,10 +47,12 @@ class MainFrame(wx.Frame):
                     self.import_files.neurons.append(each)
                 elif self.import_files.state == 'Condition':
                     self.import_files.conditions.append(each)
-        self.label_data.load_data(self.import_files.neurons)
-        self.analyze.load_data(self.import_files.neurons)
-        self.analyze.load_conditions(self.import_files.conditions)
-        self.label_data.load_conditions(self.import_files.conditions)
+        if self.import_files.state == 'Neural':
+            self.label_data.load_data(self.import_files.neurons)
+            self.analyze.load_data(self.import_files.neurons)
+        elif self.import_files.state == 'Condition':
+            self.analyze.load_conditions(self.import_files.conditions)
+            self.label_data.load_conditions(self.import_files.conditions)
         dialog.Destroy()
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ class LabelData(wx.Panel):
         self.data_arr = dict()
         self.cond_arr = dict()
         self.lb_arr = list()
+        self.lb_condarr = list()
         self.t = 0
         self.create_listbox()
         self.__do_layout()
@@ -21,7 +22,10 @@ class LabelData(wx.Panel):
             if filenames[ii-1].split('_')[0] == filenames[ii].split('_')[0]:
                 datum = np.loadtxt(filename,skiprows=2)
                 data.update({ii: datum})
-        self.data_arr.update({tagname: data})
+        try:
+            self.data_arr.update({tagname: data})
+        except UnboundLocalError:
+            pass
         if self.t == 0:
             self.init_plot()
             self.t += 1
@@ -37,16 +41,36 @@ class LabelData(wx.Panel):
         for filename in filenames:
             conds = np.loadtxt(filename)
             self.cond_arr.update({filename: conds})
+        for ii, k in enumerate(self.cond_arr.keys()):
+            if ii > 0 and self.cond_arr.keys()[ii-1].split('_')[0] != self.cond_arr.keys()[ii].split('_')[0]:
+                self.lb_cond.InsertItems([self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
+                self.lb_condarr.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]) 
+            if ii == 0:
+                self.lb_cond.InsertItems([self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
+                self.lb_condarr.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
+
+    def cond_selected(self, event):
+        pass
 
     def create_listbox(self):
         sampleList = list()
+        condList = list()
         for ii, k in enumerate(self.data_arr.keys()):
             if ii > 0 and self.data_arr.keys()[ii-1].split('\\')[-1].split('_')[0] != self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]:
                 sampleList.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
             if ii == 0:
                 sampleList.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
-        self.lb = wx.CheckListBox(self, -1, (80, 50), wx.DefaultSize, sampleList)
-        self.Bind(wx.EVT_CHECKLISTBOX, self.plot_selected, self.lb)
+        for ii, k in enumerate(self.cond_arr.keys()):
+            if ii > 0 and self.cond_arr.keys()[ii-1].split('\\')[-1].split('_')[0] != self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]:
+                condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
+            if ii == 0:
+                condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
+        self.lbtitle = wx.StaticText(self, -1, "Choose Frequency Data:", (80, 10))
+        self.lb = wx.Choice(self, -1, (80, 50), wx.DefaultSize, sampleList)
+        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.lb) # neur list selection
+        self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
+        self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
+        self.Bind(wx.EVT_CHOICE, self.cond_selected, self.lb_cond) # cond list selection
 
     def raster(self, event_times_list, color='k'):
         """
@@ -76,28 +100,29 @@ class LabelData(wx.Panel):
         return init_arr
 
     def plot_selected(self, event):
-        selected = [i for i in range(self.lb.GetCount()) if self.lb.IsChecked(i)]
-        selected = [self.lb_arr[i] for i in selected]
-        selarr = dict()
+        selected = [self.lb.GetString(self.lb.GetSelection())]
         if len(selected) == 1:
             sel = selected[0]
             selarr = self.get_current(sel)
-        elif len(selected) > 1:
-            for ii, sel in selected:
-                selarr[sel] = self.get_current(sel)
         self.raster(selarr, color='k')
         self.canvas.draw()
 
     def init_plot(self):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         self.axes = self.fig.add_subplot(111)
-        self.raster(self.data_arr[self.data_arr.keys()[0]], color='k')
+        try:
+            self.raster(self.data_arr[self.data_arr.keys()[0]], color='k')
+        except IndexError:
+            pass
         self.canvas.draw()
 
     def __do_layout(self):
-        sizer_2 = wx.BoxSizer(wx.VERTICAL)
-        sizer_2.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
-        sizer_2.Add(self.canvas, wx.ALIGN_CENTER|wx.EXPAND)
-        self.SetSizer(sizer_2)
-        sizer_2.Fit(self)
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+        sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.lb_cond, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_1.Add(self.canvas, wx.ALIGN_CENTER)
+        self.SetSizer(sizer_1)
+        sizer_1.Fit(self)
         self.Layout()

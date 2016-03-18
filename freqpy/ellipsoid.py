@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 from __future__ import division
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -9,6 +8,10 @@ from numpy import linalg
 from random import random
 
 class EllipsoidTool:
+    """
+    EllipsoidTool from:
+    https://github.com/minillinim/ellipsoid
+    """
     """Some stuff for playing with ellipsoids"""
     def __init__(self): pass
     

@@ -15,7 +15,7 @@ class ImportFiles(wx.Panel):
         self.listCtrl.InsertColumn(0, "File Name")
         self.listCtrl.InsertColumn(1, "File Data Type")
         self.listCtrl.SetColumnWidth(0, 100)
-        self.listCtrl.SetColumnWidth(1, 100)        
+        self.listCtrl.SetColumnWidth(1, 100)
 
     def create_radios(self):
         self.RadioTitle = wx.StaticText(self, -1, label="Select Data Type:", style=wx.RB_GROUP)
