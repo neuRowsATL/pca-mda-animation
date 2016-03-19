@@ -191,7 +191,7 @@ class Analyze(wx.Panel):
 
     def mda_selected(self, labelled_data):
         mda = MDA(labelled_data)
-        print(mda.classStats(labelled_data))
+        print(mda.fit())
         self.canvas.draw()
         pass
 

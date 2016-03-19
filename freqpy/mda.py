@@ -18,20 +18,39 @@ class MDA:
             return count
         self.nr_repetitions = nr_reps()
 
-    @staticmethod
-    def classStats(data):
+    def classStats(self, data):
         weights = np.array([len(dp) for class_id, dp in data.items()])
-        means = np.array([np.mean(dp, 1) for class_id, dp in data.items()])
+        means = np.array([np.mean(dp) for class_id, dp in data.items()])
         std = np.array([np.std(dp) for class_id, dp in data.items()])
         return weights, means, std
 
-    @staticmethod
-    def splitData(data):
+    def splitData(self, data):
         trainingData = dict()
-        testData = dict()
-        return trainingData, testData
+        for k, its in data.items():
+            trainingData[k] = np.array(random.sample(its, int(len(its)/2)))
+        testData, _ = DataDiff(data, trainingData)
+        self.trainingData = trainingData
+        self.testData = testData
 
     def fit(self):
-        weights, means, std = classStats(self.labelled_data)
+        self.y_train = list()
+        self.y_test = list()
+        self.splitData(self.labelled_data)
+        weights, means, std = self.classStats(self.labelled_data)
         sb_exp = np.multiply(np.multiply(weights, means.T), means)
-        sw_exp = np.cov()
+        trainingMeans = [np.mean(dp, 1) for class_id, dp in self.trainingData.items()]
+        comp = list()
+        for k, dp in self.trainingData.items():
+            comp.append(dp.T - trainingMeans[k-1])
+        sw_exp = list()
+        for ci in comp:
+            sw_exp.append(np.cov(ci))
+        slist = list()
+        for sw, sb in zip(sw_exp, sb_exp):
+            u, s, v = np.linalg.svd(sw*sb)
+            slist.append(s)
+        for s, ss in zip(slist, self.trainingData.values()):
+            self.y_train.append(np.multiply(ss, s))
+        for s, ss in zip(slist, self.testData.values()):
+            self.y_test.append(np.multiply(ss, s))
+        return self.y_train, self.y_test
