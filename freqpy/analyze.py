@@ -170,30 +170,39 @@ class Analyze(wx.Panel):
             pass
 
     def pca_selected(self, labelled_data, toplot=True):
-            color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-            for class_label in labelled_data.keys():
-                current_class = labelled_data[class_label]
-                pca = PCA(n_components=3)
-                pca.fit(current_class)
-                projected_class = normalize(pca.transform(current_class))
-                pca2 = PCA(n_components=3)
-                projected_class = projected_class*normalize(pca2.fit_transform(projected_class))
-                x = projected_class[:, 0]
-                y = projected_class[:, 1]
-                z = projected_class[:, 2]
-                if toplot:
-                    self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                                      marker='.', edgecolor='k')
-                    center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                    EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-                                                cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
-            self.canvas.draw()
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        for class_label in labelled_data.keys():
+            current_class = labelled_data[class_label]
+            pca = PCA(n_components=3)
+            pca.fit(current_class)
+            projected_class = normalize(pca.transform(current_class))
+            pca2 = PCA(n_components=3)
+            projected_class = projected_class*normalize(pca2.fit_transform(projected_class))
+            x = projected_class[:, 0]
+            y = projected_class[:, 1]
+            z = projected_class[:, 2]
+            if toplot:
+                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                                  marker='.', edgecolor='k')
+                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
+        self.canvas.draw()
 
     def mda_selected(self, labelled_data):
         mda = MDA(labelled_data)
-        print(mda.fit())
+        _, y_test = mda.fit_transform()
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        for class_label, yi in enumerate(y_test):
+            x = normalize(yi[:, 0])
+            y = normalize(yi[:, 1])
+            z = normalize(yi[:, 2])
+            self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                      marker='.', edgecolor='k')
+            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(yi[:, 0:3])
+            # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                                # cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
         self.canvas.draw()
-        pass
 
     def kmeans_selected(self):
         self.canvas.draw()

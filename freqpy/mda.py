@@ -53,4 +53,8 @@ class MDA:
             self.y_train.append(np.multiply(ss, s))
         for s, ss in zip(slist, self.testData.values()):
             self.y_test.append(np.multiply(ss, s))
+        return self.y_train
+    
+    def fit_transform(self):
+        self.fit()
         return self.y_train, self.y_test
