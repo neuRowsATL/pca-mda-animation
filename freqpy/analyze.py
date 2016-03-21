@@ -175,9 +175,7 @@ class Analyze(wx.Panel):
             current_class = labelled_data[class_label]
             pca = PCA(n_components=3)
             pca.fit(current_class)
-            projected_class = normalize(pca.transform(current_class))
-            pca2 = PCA(n_components=3)
-            projected_class = projected_class*normalize(pca2.fit_transform(projected_class))
+            projected_class = pca.transform(current_class)
             x = projected_class[:, 0]
             y = projected_class[:, 1]
             z = projected_class[:, 2]
@@ -209,9 +207,8 @@ class Analyze(wx.Panel):
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
-        kmeans.fit(projected)
-        klabels = kmeans.labels_
-        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2], c=klabels.astype(np.float))
+        y_pred = kmeans.fit_predict(projected)
+        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2], c=y_pred)
         self.canvas.draw()
 
     def class_creation(self, labels, data):
