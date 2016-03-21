@@ -8,6 +8,7 @@ from extimports import *
 
 class MDA:
     def __init__(self, labelled_data):
+        # self.labelled_data = dict([[k, normalize(dp)] for k, dp in labelled_data.items()])
         self.labelled_data = labelled_data
         self.nr_classes = len(labelled_data.keys())
         def nr_reps():
@@ -27,7 +28,7 @@ class MDA:
     def splitData(self, data):
         trainingData = dict()
         for k, its in data.items():
-            trainingData[k] = np.array(random.sample(its, int(len(its)/2)))
+            trainingData[k] = np.array(random.sample(its, int(2*len(its)/3)))
         testData, _ = DataDiff(data, trainingData)
         self.trainingData = trainingData
         self.testData = testData
@@ -36,8 +37,8 @@ class MDA:
         self.y_train = list()
         self.y_test = list()
         self.splitData(self.labelled_data)
-        weights, means, std = self.classStats(self.labelled_data)
-        sb_exp = np.multiply(np.multiply(weights, means.T), means)
+        weights, means, std = self.classStats(self.labelled_data) # Weights, means, std of labelled data
+        sb_exp = np.multiply(np.multiply(weights, means.T), means)  # Find sb_exp (weights*means'*means)
         trainingMeans = [np.mean(dp, 1) for class_id, dp in self.trainingData.items()]
         comp = list()
         for k, dp in self.trainingData.items():
