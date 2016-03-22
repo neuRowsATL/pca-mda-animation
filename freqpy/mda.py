@@ -1,7 +1,7 @@
 """ Multiple Discriminant Analysis Script
     Python 3.5.1
     Author: Robert Capps
-    Adapted from work by Dr. Remus Osan (2007) 
+    Adapted from (Osan 2007) 
 """
 
 from extimports import *
