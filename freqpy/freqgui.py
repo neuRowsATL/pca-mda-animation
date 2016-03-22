@@ -33,19 +33,25 @@ class MainFrame(wx.Frame):
         message="Import Data Directory",
         style=wx.OPEN|wx.MULTIPLE)
         if dialog.ShowModal() == wx.ID_OK:
-            files_ = [os.path.abspath(dialog.GetPath()+"/"+ff) for ff in os.listdir(dialog.GetPath())]
-            files = [f.split("/")[-1] for f in files_]
+            win_delim = "\\"
+            dar_delim = "/"
+            if sys.platform[0:3] == "win":
+                delim = win_delim
+            elif sys.platform[0:3] == "dar":
+                delim = dar_delim
+            files_ = [os.path.abspath(dialog.GetPath()+delim+ff) for ff in os.listdir(dialog.GetPath())]
+            files = [f.split(delim)[-1] for f in files_]
             data_files = [f for f in files if all(fl.isdigit() for fl in f.split('D_')[0]) and f.split('.')[-1]=='txt' \
                           and 'labels' not in f.lower() and f.split('.')[0][-1].isdigit()]
-            data_files = [df for df in files_ if df.split('/')[-1] in data_files]
+            data_files = [df for df in files_ if df.split(delim)[-1] in data_files]
             label_files = [f for f in files if all(fl.isalpha() for fl in f.split('_')[0]) and f.split('.')[-1]=='txt' \
                            and 'labels' in f.lower()]
-            label_files = [lf for lf in files_ if lf.split('/')[-1] in label_files]
+            label_files = [lf for lf in files_ if lf.split(delim)[-1] in label_files]
             for each in data_files:
-                self.import_files.listCtrl.Append([each.split('/')[-1],'Frequency Data'])
+                self.import_files.listCtrl.Append([each.split(delim)[-1],'Frequency Data'])
                 self.import_files.neurons.append(os.path.normpath(each))
             for each in label_files:
-                self.import_files.listCtrl.Append([each.split('/')[-1],'Labels'])
+                self.import_files.listCtrl.Append([each.split(delim)[-1],'Labels'])
                 self.import_files.conditions.append(os.path.normpath(each))
             self.label_data.load_data(self.import_files.neurons)
             self.analyze.load_data(self.import_files.neurons)

@@ -8,7 +8,6 @@ from extimports import *
 
 class MDA:
     def __init__(self, labelled_data):
-        # self.labelled_data = dict([[k, normalize(dp)] for k, dp in labelled_data.items()])
         self.labelled_data = labelled_data
         self.nr_classes = len(labelled_data.keys())
         def nr_reps():
@@ -18,6 +17,7 @@ class MDA:
                 count += 1
             return count
         self.nr_repetitions = nr_reps()
+        self.nvar = labelled_data.values()[0].shape[1]
 
     def classStats(self, data):
         weights = np.array([len(dp) for class_id, dp in data.items()])
@@ -28,32 +28,53 @@ class MDA:
     def splitData(self, data):
         trainingData = dict()
         for k, its in data.items():
-            trainingData[k] = np.array(random.sample(its, int(2*len(its)/3)))
+            trainingData[k] = np.array(random.sample(its, int(len(its)*0.9)))
         testData, _ = DataDiff(data, trainingData)
         self.trainingData = trainingData
         self.testData = testData
+
+    def sw(self):
+        weights, means, std = self.classStats(self.trainingData) # Weights, means, std
+        sw_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
+        sw_0 = np.zeros((self.nvar, self.nvar))
+        labels = list()
+        for k, vl in self.trainingData.items():
+            for v in vl:
+                labels.append(k)
+        labels = np.array(labels)
+        vals = np.array([i for i in itertools.chain.from_iterable(self.trainingData.values())])
+        for k in self.trainingData.keys():
+            diff_array = vals[labels == k, :] - means[k-1]
+            sw_exp[:, :, k-1] = np.cov(diff_array.T)
+            sw_0 = sw_0 + sw_exp[:, :, k-1]
+        return sw_0
+
+    def sb(self):
+        weights, means, std = self.classStats(self.trainingData) # Weights, means, std
+        sb_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
+        sb_0 = np.zeros((self.nvar, self.nvar))
+        for k in self.trainingData.keys():
+            sb_exp[:, :, k-1] = np.multiply(np.multiply(weights[k-1], means[k-1].T), means[k-1])
+            sb_0 = sb_0 + sb_exp[:, :, k-1]
+        return sb_0
+
+    def projection_weights(self, sb, sw):
+        eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
+        order = np.flipud(eigval.argsort())
+        disc = eigvect[order]
+        disc = disc[:, 0:self.nr_classes]
+        return disc
 
     def fit(self):
         self.y_train = list()
         self.y_test = list()
         self.splitData(self.labelled_data)
-        weights, means, std = self.classStats(self.labelled_data) # Weights, means, std of labelled data
-        sb_exp = np.multiply(np.multiply(weights, means.T), means)  # Find sb_exp (weights*means'*means)
-        trainingMeans = [np.mean(dp, 1) for class_id, dp in self.trainingData.items()]
-        comp = list()
-        for k, dp in self.trainingData.items():
-            comp.append(dp.T - trainingMeans[k-1])
-        sw_exp = list()
-        for ci in comp:
-            sw_exp.append(np.cov(ci))
-        slist = list()
-        for sw, sb in zip(sw_exp, sb_exp):
-            u, s, v = np.linalg.svd(sw*sb)
-            slist.append(s)
-        for s, ss in zip(slist, self.trainingData.values()):
-            self.y_train.append(np.multiply(ss, s))
-        for s, ss in zip(slist, self.testData.values()):
-            self.y_test.append(np.multiply(ss, s))
+        sb = self.sb()
+        sw = self.sw()
+        disc = self.projection_weights(sb, sw)
+        for k in self.trainingData.keys():
+            self.y_train.append(np.dot(self.trainingData[k], disc))
+            self.y_test.append(np.dot(self.testData[k], disc))
         return self.y_train
     
     def fit_transform(self):

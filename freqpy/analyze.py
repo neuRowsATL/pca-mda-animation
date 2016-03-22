@@ -5,8 +5,8 @@ class Analyze(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.t = 0
-        self.dpi = 200
-        self.fig = Figure((5.0, 3.0), dpi=self.dpi)
+        self.dpi = 150
+        self.fig = Figure((5.5, 3.5), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.data_arr = dict()
         self.cond_arr = dict()
@@ -59,7 +59,6 @@ class Analyze(wx.Panel):
             freq = np.divide(freq - np.tile(np.mean(freq), (1, len(freq.T))), 
                              np.tile(np.std(freq), (1, len(freq.T))))
             freq = (1.0 + np.tanh(freq)) / 2.0
-            freq = normalize(freq)
             return freq
 
     def load_data(self, filenames):
@@ -139,7 +138,7 @@ class Analyze(wx.Panel):
         labelled_data = self.class_creation(selected_labels, selected_dat)
         if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
             print("To use MDA or PCA, please select both frequency and labels.")
-            pass
+            return
         if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg in ['PCA', 'MDA']:
             if selected_alg == 'PCA':
                 self.pca_selected(labelled_data)
@@ -151,7 +150,7 @@ class Analyze(wx.Panel):
             self.kmeans_selected(selected_dat, ldat=labelled_data)
 
     def init_plot(self):
-        self.axes = self.fig.add_subplot(111, projection='3d')
+        self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
         self.axes.set_axis_bgcolor('white')
         self.axes.set_title('Cluster Analysis', size=10)
         self.axes.set_xlabel('PC1',size=5)
@@ -167,7 +166,7 @@ class Analyze(wx.Panel):
             color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
             self.pca_selected(labelled_data, toplot=True)
         except IndexError:
-            pass
+            return
 
     def pca_selected(self, labelled_data, toplot=True):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
@@ -192,14 +191,16 @@ class Analyze(wx.Panel):
         _, y_test = mda.fit_transform()
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         for class_label, yi in enumerate(y_test):
-            x = yi[:, 0]
-            y = yi[:, 1]
-            z = yi[:, 2]
+            u, s, v = np.linalg.svd(yi[:, 0:3])
+            projection = np.dot(yi[:, 0:3], v[0:3, 0:3])
+            x = projection[:, 0]
+            y = projection[:, 1]
+            z = projection[:, 2]
             self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                      marker='o', edgecolor='k', s=25)
-            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(yi[:, 0:3])
+                      marker='o', edgecolor='k', s=50)
+            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projection)
             # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-            #                     cageColor=color_list[int(class_label)-1], cageAlpha=0.7)
+            #                     cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, ldat=None):
