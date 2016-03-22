@@ -134,13 +134,13 @@ class Analyze(wx.Panel):
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
+        selected_dat = self.get_selection(self.lb, t='Data')
+        selected_labels = self.get_selection(self.lb_cond, t='Cond')
+        labelled_data = self.class_creation(selected_labels, selected_dat)
         if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
             print("To use MDA or PCA, please select both frequency and labels.")
             pass
         if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg in ['PCA', 'MDA']:
-            selected_dat = self.get_selection(self.lb, t='Data')
-            selected_labels = self.get_selection(self.lb_cond, t='Cond')
-            labelled_data = self.class_creation(selected_labels, selected_dat)
             if selected_alg == 'PCA':
                 self.pca_selected(labelled_data)
             elif selected_alg == 'MDA':
@@ -148,7 +148,7 @@ class Analyze(wx.Panel):
         elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat)
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
-            self.kmeans_selected(labelled_data)
+            self.kmeans_selected(selected_dat, ldat=labelled_data)
 
     def init_plot(self):
         self.axes = self.fig.add_subplot(111, projection='3d')
@@ -170,34 +170,46 @@ class Analyze(wx.Panel):
             pass
 
     def pca_selected(self, labelled_data, toplot=True):
-            color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-            for class_label in labelled_data.keys():
-                current_class = labelled_data[class_label]
-                pca = PCA(n_components=3)
-                pca.fit(current_class)
-                projected_class = normalize(pca.transform(current_class))
-                pca2 = PCA(n_components=3)
-                projected_class = projected_class*normalize(pca2.fit_transform(projected_class))
-                x = projected_class[:, 0]
-                y = projected_class[:, 1]
-                z = projected_class[:, 2]
-                if toplot:
-                    self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                                      marker='.', edgecolor='k')
-                    center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                    EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-                                                cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
-            self.canvas.draw()
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        for class_label in labelled_data.keys():
+            current_class = labelled_data[class_label]
+            pca = PCA(n_components=3)
+            pca.fit(current_class)
+            projected_class = pca.transform(current_class)
+            x = projected_class[:, 0]
+            y = projected_class[:, 1]
+            z = projected_class[:, 2]
+            if toplot:
+                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                                  marker='.', edgecolor='k')
+                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
+        self.canvas.draw()
 
     def mda_selected(self, labelled_data):
         mda = MDA(labelled_data)
-        print(mda.fit())
+        _, y_test = mda.fit_transform()
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        for class_label, yi in enumerate(y_test):
+            x = yi[:, 0]
+            y = yi[:, 1]
+            z = yi[:, 2]
+            self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                      marker='o', edgecolor='k', s=25)
+            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(yi[:, 0:3])
+            # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+            #                     cageColor=color_list[int(class_label)-1], cageAlpha=0.7)
         self.canvas.draw()
-        pass
 
-    def kmeans_selected(self):
+    def kmeans_selected(self, selected_data, ldat=None):
+        kmeans = KMeans(n_clusters=7)
+        X = selected_data
+        pca = PCA(n_components=3)
+        projected = pca.fit_transform(X)
+        y_pred = kmeans.fit_predict(projected)
+        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2], c=y_pred)
         self.canvas.draw()
-        pass
 
     def class_creation(self, labels, data):
         classes = dict()
