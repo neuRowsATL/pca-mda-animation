@@ -51,10 +51,12 @@ class MDA:
 
     def sb(self):
         weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
+        _, gmeans, __ = self.classStats(self.data, self.labels)
         sb_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sb_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
-            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], means[ii-1,:].T), means[ii-1,:])
+            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans[ii-1,:]).T), 
+                                             np.subtract(means[ii-1,:], gmeans[ii-1,:]))
             sb_0 = sb_0 + sb_exp[:, :, ii-1]
         return sb_0
 

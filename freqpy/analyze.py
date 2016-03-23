@@ -48,17 +48,17 @@ class Analyze(wx.Panel):
         if len(vals) > 0:
             time_space = np.linspace(min(vals), max(vals), nr_pts)
             delta = time_space[1] - time_space[0]
-            np.insert(time_space, 0, time_space[0] - delta)
-            np.insert(time_space, -1, time_space[-1] + delta)
+            time_space = np.insert(time_space, 0, time_space[0] - delta)
+            time_space = np.insert(time_space, -1, time_space[-1] + delta)
             freq = np.zeros((max(data.keys())+1, nr_pts))
             for neuron, datum in data.items():
                 for ii in np.arange(nr_pts):
-                    sum1 = np.sum(datum[datum > time_space[ii - 1]])
-                    sum2 = np.sum(datum[datum < time_space[ii]])
-                    freq[neuron, ii] = np.divide(sum1 + sum2, delta)
+                    sum1 = len(datum[np.where((datum < time_space[ii]) & (datum > time_space[ii - 1]))])
+                    # sum2 = np.sum(datum[datum < time_space[ii]])
+                    freq[neuron, ii] = np.divide(sum1, delta)
             freq = np.divide(freq - np.tile(np.mean(freq), (1, len(freq.T))), 
                              np.tile(np.std(freq), (1, len(freq.T))))
-            freq = (1.0 + np.tanh(freq)) / 2.0
+            # freq = (1.000 + np.tanh(freq)) / 2.000
             return freq
 
     def load_data(self, filenames):
