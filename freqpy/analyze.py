@@ -143,7 +143,7 @@ class Analyze(wx.Panel):
             if selected_alg == 'PCA':
                 self.pca_selected(labelled_data)
             elif selected_alg == 'MDA':
-                self.mda_selected(labelled_data)
+                self.mda_selected(selected_dat, selected_labels)
         elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat)
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
@@ -182,25 +182,28 @@ class Analyze(wx.Panel):
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='.', edgecolor='k')
                 center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
+                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
                                             cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
         self.canvas.draw()
 
-    def mda_selected(self, labelled_data):
-        mda = MDA(labelled_data)
-        _, y_test = mda.fit_transform()
+    def mda_selected(self, data, labels):
+        mda = MDA(data, labels)
+        train_labels, y_train, y_test = mda.fit_transform()
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-        for class_label, yi in enumerate(y_test):
-            u, s, v = np.linalg.svd(yi[:, 0:3])
-            projection = np.dot(yi[:, 0:3], v[0:3, 0:3])
-            x = projection[:, 0]
-            y = projection[:, 1]
-            z = projection[:, 2]
-            self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                      marker='o', edgecolor='k', s=50)
-            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projection)
-            # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=True, 
-            #                     cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
+        for ii in set(labels):
+            out = y_train[train_labels==ii, 0:3]
+            x = out[:, 0]
+            y = out[:, 1]
+            z = out[:, 2]
+            self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
+                      marker='.', edgecolor='k')
+            # u, s, v = np.linalg.svd(out)
+            # v = v[0:3, 0:3]
+            # projected = np.dot(out, v)
+            center, radii, rotation = EllipsoidTool().getMinVolEllipse(out)
+            EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+                                cageColor=color_list[int(ii)-1], cageAlpha=0.2)
+        self.axes.autoscale_view(True, True, True)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, ldat=None):

@@ -5,7 +5,6 @@ import pprint
 import random
 import sys
 import itertools
-from data_diff import DataDiff
 
 import wx
 
