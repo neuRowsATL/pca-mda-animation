@@ -18,6 +18,7 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
 from matplotlib import animation
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 import numpy as np
 import pylab as plt
