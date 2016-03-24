@@ -5,6 +5,7 @@ import pprint
 import random
 import sys
 import itertools
+import pdb
 
 import wx
 

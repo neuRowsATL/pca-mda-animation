@@ -4,6 +4,7 @@ from mda import MDA
 class Analyze(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+        self.did_k = dict()
         self.t = 0
         self.dpi = 150
         self.fig = Figure((5.5, 3.5), dpi=self.dpi)
@@ -16,9 +17,6 @@ class Analyze(wx.Panel):
         self.conditions = list()
         self.create_listbox()
         self.__do_layout()
-
-    def cond_selected(self, event):
-        pass
 
     def create_listbox(self):
         sampleList = list()
@@ -53,12 +51,11 @@ class Analyze(wx.Panel):
             freq = np.zeros((max(data.keys())+1, nr_pts))
             for neuron, datum in data.items():
                 for ii in np.arange(nr_pts):
-                    sum1 = len(datum[np.where((datum < time_space[ii]) & (datum > time_space[ii - 1]))])
-                    # sum2 = np.sum(datum[datum < time_space[ii]])
-                    freq[neuron, ii] = np.divide(sum1, delta)
+                    count = len(datum[np.where((datum < time_space[ii]) & (datum > time_space[ii - 1]))])
+                    freq[neuron, ii] = np.divide(count, delta)
             freq = np.divide(freq - np.tile(np.mean(freq), (1, len(freq.T))), 
                              np.tile(np.std(freq), (1, len(freq.T))))
-            # freq = (1.000 + np.tanh(freq)) / 2.000
+            freq = (1.000 + np.tanh(freq)) / 2.000
             return freq
 
     def load_data(self, filenames):
@@ -72,7 +69,7 @@ class Analyze(wx.Panel):
                     data.update({ii: datum})
             freq = self.to_freq(data)
             self.data_arr.update({tagname: freq})
-            np.savetxt(tagname + "_projected_freq.txt", freq)
+            np.savetxt(tagname + "_normalized_freq.txt", freq)
             if self.t == 0:
                 self.init_plot()
                 self.t += 1
@@ -147,7 +144,7 @@ class Analyze(wx.Panel):
         elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat)
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
-            self.kmeans_selected(selected_dat, ldat=labelled_data)
+            self.kmeans_selected(selected_dat, labels=selected_labels)
 
     def init_plot(self):
         self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
@@ -165,6 +162,7 @@ class Analyze(wx.Panel):
             labelled_data = self.class_creation(init_labels, init_dat)
             color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
             self.pca_selected(labelled_data, toplot=True)
+            self.legend = self.axes.legend(frameon=True, loc='upper left', scatterpoints=1, ncol=2, fontsize=8, bbox_to_anchor=(0, 0))
         except IndexError:
             return
 
@@ -173,46 +171,54 @@ class Analyze(wx.Panel):
         for class_label in labelled_data.keys():
             current_class = labelled_data[class_label]
             pca = PCA(n_components=3)
-            pca.fit(current_class)
-            projected_class = pca.transform(current_class)
+            projected_class = pca.fit_transform(current_class)
             x = projected_class[:, 0]
             y = projected_class[:, 1]
             z = projected_class[:, 2]
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                                  marker='.', edgecolor='k')
+                                  marker='o', edgecolor='k', label=str(int(class_label)))
                 center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
                 EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.2)
+                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.7)
         self.canvas.draw()
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
         train_labels, y_train, y_test = mda.fit_transform()
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        self.axes.set_xlabel('D1',size=5)
+        self.axes.set_ylabel('D2',size=5)
+        self.axes.set_zlabel('D3',size=5)
         for ii in set(labels):
             out = y_train[train_labels==ii, 0:3]
             x = out[:, 0]
             y = out[:, 1]
             z = out[:, 2]
             self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
-                      marker='.', edgecolor='k')
-            # u, s, v = np.linalg.svd(out)
-            # v = v[0:3, 0:3]
-            # projected = np.dot(out, v)
+                      marker='o', edgecolor='k', label=str(ii))
             center, radii, rotation = EllipsoidTool().getMinVolEllipse(out)
             EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                cageColor=color_list[int(ii)-1], cageAlpha=0.2)
+                                cageColor=color_list[int(ii)-1], cageAlpha=0.7)
         self.axes.autoscale_view(True, True, True)
         self.canvas.draw()
 
-    def kmeans_selected(self, selected_data, ldat=None):
-        kmeans = KMeans(n_clusters=7)
+    def kmeans_selected(self, selected_data, labels=None):
         X = selected_data
         pca = PCA(n_components=3)
-        projected = pca.fit_transform(X)
-        y_pred = kmeans.fit_predict(projected)
-        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2], c=y_pred)
+        projected = pca.fit_transform(X.T)
+        kmeans = KMeans(n_clusters=len(set(labels)))
+        kmeans.fit(projected)
+        y_pred = kmeans.labels_
+        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
+                              c=y_pred, marker='o', s=30)
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        for ii in set(labels):
+            curr_proj = projected[labels==ii, :]
+            center, radii, rotation = EllipsoidTool().getMinVolEllipse(curr_proj)
+            EllipsoidTool().plotEllipsoid(center, radii, 
+                                          rotation, ax=self.axes, plotAxes=False, 
+                                          cageColor=color_list[int(ii)-1], cageAlpha=0.7)
         self.canvas.draw()
 
     def class_creation(self, labels, data):
