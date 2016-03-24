@@ -4,7 +4,6 @@ from mda import MDA
 class Analyze(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        self.did_k = dict()
         self.t = 0
         self.dpi = 150
         self.fig = Figure((5.5, 3.5), dpi=self.dpi)

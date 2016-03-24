@@ -2,6 +2,7 @@ from extimports import *
 from importfiles import ImportFiles
 from labeldata import LabelData
 from analyze import Analyze
+from visualize import Visualize
 
 class MainFrame(wx.Frame):
     def __init__(self):
@@ -11,21 +12,31 @@ class MainFrame(wx.Frame):
         self.conditions = list()
 
         p = wx.Panel(self)
-        nb = wx.Notebook(p)
+        self.nb = wx.Notebook(p)
 
-        self.import_files = ImportFiles(nb)
+        self.import_files = ImportFiles(self.nb)
         self.import_files.DataButton.Bind(wx.EVT_BUTTON, self.on_add_file)
-        self.label_data = LabelData(nb)
-        self.analyze = Analyze(nb)
+        self.label_data = LabelData(self.nb)
+        self.analyze = Analyze(self.nb)
+        self.visualize = Visualize(self.nb)
 
-        nb.AddPage(self.import_files, "Import Files")
-        nb.AddPage(self.label_data, "Label Data")
-        nb.AddPage(self.analyze, "Analyze")
+        self.nb.AddPage(self.import_files, "Initialize")
+        self.nb.AddPage(self.label_data, "Categorize")
+        self.nb.AddPage(self.analyze, "Analyze")
+        self.nb.AddPage(self.visualize, "Visualize")
+        self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
 
         sizer = wx.BoxSizer()
-        sizer.Add(nb, 1, wx.EXPAND)
+        sizer.Add(self.nb, 1, wx.EXPAND)
         p.SetSizer(sizer)
         self.Layout()
+
+    def check_page(self, event):
+        if self.nb.GetPageText(self.nb.GetSelection()) == "Visualize":
+            self.visualize.vis_selected = True
+            self.visualize.init_plot()
+        elif self.nb.GetPageText(self.nb.GetSelection()) != "Visualize":
+            self.visualize.vis_selected = False
 
     def on_add_file(self, event):
         dialog = wx.DirDialog(
@@ -54,10 +65,14 @@ class MainFrame(wx.Frame):
                 self.import_files.listCtrl.Append([each.split(delim)[-1],'Labels'])
                 self.import_files.conditions.append(os.path.normpath(each))
             self.label_data.load_data(self.import_files.neurons)
+            self.label_data.load_conditions(self.import_files.conditions)
             self.analyze.load_data(self.import_files.neurons)
             self.analyze.load_conditions(self.import_files.conditions)
-            self.label_data.load_conditions(self.import_files.conditions)
             self.analyze.init_plot()
+            self.visualize.load_data(self.import_files.neurons)
+            self.visualize.load_conditions(self.import_files.conditions)
+            if self.visualize.vis_selected:
+                self.visualize.init_plot()
         dialog.Destroy()
 
 if __name__ == '__main__':

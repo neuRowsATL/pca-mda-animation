@@ -6,6 +6,7 @@ import random
 import sys
 import itertools
 import pdb
+import time
 
 import wx
 
@@ -16,6 +17,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
+from matplotlib import animation
 
 import numpy as np
 import pylab as plt
