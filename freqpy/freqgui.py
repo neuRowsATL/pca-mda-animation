@@ -6,7 +6,7 @@ from visualize import Visualize
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        wx.Frame.__init__(self, None, title="FreqPy", size=(700, 800))
+        wx.Frame.__init__(self, None, title="FreqPy", size=(800, 900))
 
         self.neurons = list()
         self.conditions = list()
