@@ -6,10 +6,6 @@ import random
 import sys
 import itertools
 import time
-import getopt
-import types
-
-from threading import Thread
 
 import wx
 

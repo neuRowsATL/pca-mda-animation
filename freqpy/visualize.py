@@ -221,9 +221,9 @@ class Visualize(wx.Panel):
         self.anim_name = 'PCA Visualization'
         self.fig.canvas.draw()
 
-    # def save_anim(self, event):
+    def save_anim(self, event):
         # if self.save_ready:
-        # self.pts_ani.save('PCA_Animation.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
+        self.pts_ani.save('PCA_Animation.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
 
     def update(self, i):
         self.axes.get_figure().canvas.blit()

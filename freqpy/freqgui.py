@@ -4,59 +4,10 @@ from labeldata import LabelData
 from analyze import Analyze
 from visualize import Visualize
 
-# Button definitions
-ID_START = wx.NewId()
-ID_STOP = wx.NewId()
-
-# Define notification event for thread completion
-EVT_RESULT_ID = wx.NewId()
-
-def EVT_RESULT(win, func):
-    """Define Result Event."""
-    win.Connect(-1, -1, EVT_RESULT_ID, func)
-
-class ResultEvent(wx.PyEvent):
-    """Simple event to carry arbitrary result data."""
-    def __init__(self, data):
-        """Init Result Event."""
-        wx.PyEvent.__init__(self)
-        self.SetEventType(EVT_RESULT_ID)
-        self.data = data
-
-# Thread class that executes processing
-class WorkerThread(Thread):
-    """Worker Thread Class."""
-    def __init__(self, notify_window, func, anim_name):
-        """Init Worker Thread Class."""
-        Thread.__init__(self)
-        self._notify_window = notify_window
-        self._want_abort = 0
-        self.func = func
-        self.anim_name = anim_name
-        # This starts the thread running on creation, but you could
-        # also make the GUI thread responsible for calling this
-        # self.start()
-
-    def run(self):
-        """Run Worker Thread."""
-        self.func.save(self.anim_name + '.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
-        return
-
-    def abort(self):
-        """abort worker thread."""
-        # Method for use by main thread to signal an abort
-        self._want_abort = 1
-
 class MainFrame(wx.Frame):
     def __init__(self):
 
         wx.Frame.__init__(self, None, title="FreqPy", size=(800, 900))
-
-        # Set up event handler for any worker thread results
-        EVT_RESULT(self,self.OnResult)
-
-        # And indicate we don't have a worker thread yet
-        self.worker = None
 
         self.neurons = list()
         self.conditions = list()
@@ -75,31 +26,15 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
         self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
-        self.visualize.save_button.Bind(wx.EVT_BUTTON, self.OnStart)
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
         p.SetSizer(sizer)
         self.Layout()
 
-    def OnStart(self, event):
-        """Start Computation."""
-        if not self.worker:
-            self.worker = WorkerThread(self, self.visualize.anim, self.visualize.anim_name)
-            self.worker.start()
-
-    def OnStop(self, event):
-        """Stop Computation."""
-        # Flag the worker thread to stop if running
-        if self.worker:
-            self.worker.abort()
-
-    def OnResult(self, event):
-        self.worker = None
-
     def save_anim_run(self):
-    	self.visualize.anim.save(self.visualize.anim_name + '.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
-    	
+        self.visualize.anim.save(self.visualize.anim_name + '.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
+        
     def check_page(self, event):
         if self.nb.GetPageText(self.nb.GetSelection()) == "Visualize":
             self.visualize.vis_selected = True
@@ -144,16 +79,9 @@ class MainFrame(wx.Frame):
                 self.visualize.init_plot()
         dialog.Destroy()
 
-class MainApp(wx.App):
-    """Class Main App."""
-    def OnInit(self):
-        """Init Main App."""
-        self.frame = MainFrame()
-        self.frame.Show(True)
-        self.SetTopWindow(self.frame)
-        return True
-
 if __name__ == '__main__':
-    app = MainApp(0)
+    app = wx.App()
+    app.frame = MainFrame()
+    app.frame.Show()
     app.MainLoop()
     sys.exit()
