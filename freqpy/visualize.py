@@ -23,7 +23,7 @@ class Visualize(wx.Panel):
         self.conditions = list()
         self.create_listbox()
         self.save_button = wx.Button(self, -1, "Export Movie")
-        self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
+        # self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
         self.__do_layout()
 
     def create_listbox(self):
@@ -215,13 +215,15 @@ class Visualize(wx.Panel):
         self.create_arrows()
         self.fig.canvas.draw()
         self.last_center = self.pca_centers[0]
-        self.pts_ani = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
-                                          interval=1, repeat=False, blit=False)
+        self.fig.canvas.draw()
+        self.anim = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
+                                  interval=1, repeat=False, blit=False)
+        self.anim_name = 'PCA Visualization'
         self.fig.canvas.draw()
 
-    def save_anim(self, event):
+    # def save_anim(self, event):
         # if self.save_ready:
-        self.pts_ani.save('PCA_Animation.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
+        # self.pts_ani.save('PCA_Animation.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
 
     def update(self, i):
         self.axes.get_figure().canvas.blit()
