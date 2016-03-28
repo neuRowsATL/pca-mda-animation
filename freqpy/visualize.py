@@ -193,14 +193,17 @@ class Visualize(wx.Panel):
         text_label = 'Frame #: %d' % int(0)
         self.frame_no = self.axes.text2D(0.99, 0.01, text_label,
                verticalalignment='bottom', horizontalalignment='right',
-               color='b', fontsize=5, transform=self.axes.transAxes)
+               color='b', fontsize=5, transform=self.axes.transAxes, animated=False)
+        self.frame_no = [t for t in self.axes.get_figure().findobj(Text) if t.get_text() == 'Frame #: 0'][0]
         self.axes.add_artist(self.frame_no)
+        self.axes.view_init()
+        self.canvas.draw()
+        self.axes.draw_artist(self.frame_no)
 
     def pca_selected(self, data, labels):
-        # def blit_func():
-        #     plt.show()
-        #     self.frame_no.set_text('')
-        #     return [iarr.set_alpha(0.0) for iarr in self.init_list] + [self.frame_no]
+        def blit_func():
+            all_updates = self.init_list + [self.frame_no]
+            return all_updates
         self.axes.set_title('PCA', size=10, y=1.0)
         self.labels = labels
         self.last_color = self.color_list[0]
@@ -210,36 +213,37 @@ class Visualize(wx.Panel):
         self.projected = pca.fit_transform(data.T)
         self.init_func()
         self.create_arrows()
+        self.fig.canvas.draw()
         self.last_center = self.pca_centers[0]
         self.pts_ani = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
                                           interval=1, repeat=False, blit=False)
+        self.fig.canvas.draw()
 
     def save_anim(self, event):
         # if self.save_ready:
         self.pts_ani.save('PCA_Animation.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
 
     def update(self, i):
+        self.axes.get_figure().canvas.blit()
         def update_3d_arrows(color, i):
             i = int(i)
-            for o in self.axes.findobj(Arrow3D):
+            for o in self.axes.get_figure().findobj(Arrow3D):
                 if int(o.get_label()) != i and self.last_color != color:
                     current_alpha = o.get_alpha()
                     o.set_alpha(0.8*current_alpha)
                 elif int(o.get_label()) == i:
                     o.set_alpha(1.0)
+        self.axes.view_init(elev=30., azim=i)
         color = self.color_list[int(self.labels[i])-1]
         update_3d_arrows(color, i)
-        self.axes.view_init(elev=30., azim=i)
+        self.frame_no.set_text('Frame #: %d' % int(i))
         self.last_color = color
         if i == self.projected.shape[0]-1:
             self.save_ready = True
-        plt.show()
-        return [arr for arr in self.axes.findobj(Arrow3D)] + \
-               [self.frame_no.set_text('Frame #: %d' % int(i))]
+        # return [arr for arr in self.axes.get_figure().findobj(Arrow3D)] + \
+        #        [self.frame_no]
 
     def create_arrows(self):
-        """ TODO: Update this function to make animated lines
-        """
         for i in np.arange(0, len(self.labels)):
             color = self.color_list[int(self.labels[i])-1]
             center = self.pca_centers[int(self.labels[i])-1]
@@ -248,11 +252,11 @@ class Visualize(wx.Panel):
                                 [self.last_center[1], center[1]],
                                 [self.last_center[2], center[2]],
                                 mutation_scale=25, lw=3, arrowstyle="->",
-                                color=color, alpha=0.0, label=i)
+                                color=color, alpha=0.0, label=i, animated=False)
                 self.axes.add_artist(arrow)
             self.last_center = center
             self.last_color = color
-        self.init_list = [arr for arr in self.axes.findobj(Arrow3D)]
+        self.init_list = [arr for arr in self.axes.get_figure().findobj(Arrow3D)]
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
