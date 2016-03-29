@@ -10,12 +10,11 @@ class Visualize(wx.Panel):
                        'r': (1.0, 0.0, 0.0), 'y': (0.75, 0.75, 0), 'w': (1.0, 1.0, 1.0), 
                        'g': (0.0, 0.5, 0.0), 'c': (0.0, 0.75, 0.75)}
         self.vis_selected = False
-        self.pause = True
         self.t = 0
         self.dpi = 200
         self.fig = Figure((5.0, 5.0), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.play_button = wx.Button(self, -1, "Play Movie")
+        # self.play_button = wx.Button(self, -1, "Play Movie")
         self.data_arr = dict()
         self.cond_arr = dict()
         self.lb_arr = list()
@@ -24,10 +23,10 @@ class Visualize(wx.Panel):
         self.conditions = list()
         self.files = list()
         self.create_listbox()
-        self.save_button = wx.Button(self, -1, "Save Movie")
-        self.save_button.Disable()
-        self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
-        self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
+        self.save_button = wx.Button(self, -1, "Export Visualization as .mp4")
+        # self.save_button.Disable()
+        # self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
+        # self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
         self.__do_layout()
 
     def create_listbox(self):
@@ -227,17 +226,13 @@ class Visualize(wx.Panel):
         self.out_movie = 'PCA_Anim.mpg'
         self.anim = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
                                             interval=1, repeat=False, blit=False)
-        self.save_button.Enable()
 
-    def save_anim(self, event):
-        self.init_func()
-        self.create_arrows()
-        self.fig.canvas.draw()
-        self.fig.canvas.blit()
+    def save_anim(self):
         self.anim.save('PCA_Anim.mp4', fps=30, bitrate=1800, dpi=200)
+        self.init_func()
 
-    def play(self, event):
-        self.fig.canvas.draw
+    # def play(self, event):
+    #     self.fig.canvas.draw
 
     def update(self, i):
         def update_3d_arrows(color, i):
@@ -315,7 +310,7 @@ class Visualize(wx.Panel):
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER|wx.GROW)
-        sizer_1.Add(self.play_button, 0, wx.ALIGN_CENTER)
+        # sizer_1.Add(self.play_button, 0, wx.ALIGN_CENTER)
         sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER)
         sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)

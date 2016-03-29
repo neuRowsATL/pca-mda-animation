@@ -6,7 +6,8 @@ import random
 import sys
 import itertools
 import time
-import threading
+from multiprocessing import Pool
+from threading import Thread
 
 import wx
 

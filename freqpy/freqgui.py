@@ -8,6 +8,7 @@ class MainFrame(wx.Frame):
     def __init__(self):
 
         wx.Frame.__init__(self, None, title="FreqPy", size=(800, 900))
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.neurons = list()
         self.conditions = list()
@@ -20,6 +21,7 @@ class MainFrame(wx.Frame):
         self.label_data = LabelData(self.nb)
         self.analyze = Analyze(self.nb)
         self.visualize = Visualize(self.nb)
+        self.visualize.save_button.Bind(wx.EVT_BUTTON, self.save_anim_run)
 
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
@@ -32,9 +34,19 @@ class MainFrame(wx.Frame):
         p.SetSizer(sizer)
         self.Layout()
 
-    def save_anim_run(self):
-        self.visualize.anim.save(self.visualize.anim_name + '.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
-        
+    def OnClose(self, event):
+        self.Destroy()
+
+    def open_vis_thread(self):
+        self.vis_thread = Thread(target=self.visualize.save_anim())
+        wx.CallAfter(self.vis_thread.start())
+
+    def save_anim_run(self, event):
+        self.save_diag = wx.MessageBox("This might take a few minutes. \n\
+                                        Click OK to begin exporting.",
+                                        'Exporting Video as .mp4')
+        self.open_vis_thread()
+
     def check_page(self, event):
         if self.nb.GetPageText(self.nb.GetSelection()) == "Visualize":
             self.visualize.vis_selected = True
