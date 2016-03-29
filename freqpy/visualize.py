@@ -15,7 +15,7 @@ class Visualize(wx.Panel):
         self.dpi = 200
         self.fig = Figure((5.0, 5.0), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.play_button = wx.Button(self, -1, "Play")
+        self.play_button = wx.Button(self, -1, "Play Movie")
         self.data_arr = dict()
         self.cond_arr = dict()
         self.lb_arr = list()
@@ -24,7 +24,7 @@ class Visualize(wx.Panel):
         self.conditions = list()
         self.files = list()
         self.create_listbox()
-        self.save_button = wx.Button(self, -1, "Export Movie")
+        self.save_button = wx.Button(self, -1, "Save Movie")
         self.save_button.Disable()
         self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
         self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
@@ -175,6 +175,13 @@ class Visualize(wx.Panel):
             return
 
     def init_func(self):
+        self.axes.cla()
+        self.axes.set_xlabel('PC1',size=5)
+        self.axes.set_ylabel('PC2',size=5)
+        self.axes.set_zlabel('PC3',size=5)
+        plt.setp(self.axes.get_xticklabels(), fontsize=4)
+        plt.setp(self.axes.get_yticklabels(), fontsize=4)
+        plt.setp(self.axes.get_zticklabels(), fontsize=4)
         for label in set(self.labels):
             color = self.color_list[int(label)-1]
             ell_array = self.projected[self.labels==label, :]
@@ -214,19 +221,27 @@ class Visualize(wx.Panel):
         self.projected = pca.fit_transform(data.T)
         self.init_func()
         self.create_arrows()
-        self.fig.canvas.draw()
         self.last_center = self.pca_centers[0]
         self.fig.canvas.draw()
         self.fig.canvas.blit()
         self.out_movie = 'PCA_Anim.mpg'
         self.anim = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
-                          interval=0, repeat=False, blit=False)
-
-    def play(self, event):
-        self.fig.canvas.draw()
+                                            interval=1, repeat=False, blit=False)
+        self.save_button.Enable()
 
     def save_anim(self, event):
-        self.anim.save('PCA_Anim.mp4', fps=20)
+        self.init_func()
+        self.create_arrows()
+        self.fig.canvas.draw()
+        self.fig.canvas.blit()
+        self.anim.save('PCA_Anim.mp4', fps=30, bitrate=1800, dpi=100)
+
+    def play(self, event):
+        self.init_func()
+        self.create_arrows()
+        self.fig.canvas.draw()
+        self.fig.canvas.blit()
+        self.canvas.draw()
 
     def update(self, i):
         def update_3d_arrows(color, i):
@@ -234,19 +249,15 @@ class Visualize(wx.Panel):
             for o in self.axes.get_figure().findobj(Arrow3D):
                 if int(o.get_label()) != i and self.last_color != color:
                     current_alpha = o.get_alpha()
-                    o.set_alpha(0.8*current_alpha)
-                    self.axes.draw_artist(o)
+                    o.set_alpha(0.9*current_alpha)
                 elif int(o.get_label()) == i:
                     o.set_alpha(1.0)
-                    self.axes.draw_artist(o)
         self.axes.view_init(elev=30., azim=i)
         color = self.color_list[int(self.labels[i])-1]
         update_3d_arrows(color, i)
         self.frame_no.set_text('Frame #: %d' % int(i))
-        self.axes.draw_artist(self.frame_no)
         self.last_color = color
-        if i == self.projected.shape[0]-1:
-            self.save_button.Enable()
+        return [arr for arr in self.axes.get_figure().findobj(Arrow3D)] + [self.frame_no]
 
     def create_arrows(self):
         for i in np.arange(0, len(self.labels)):
@@ -309,7 +320,7 @@ class Visualize(wx.Panel):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER|wx.GROW)
         sizer_1.Add(self.play_button, 0, wx.ALIGN_CENTER)
-        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER|wx.EXPAND)
+        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER)
         sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
