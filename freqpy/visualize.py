@@ -234,14 +234,10 @@ class Visualize(wx.Panel):
         self.create_arrows()
         self.fig.canvas.draw()
         self.fig.canvas.blit()
-        self.anim.save('PCA_Anim.mp4', fps=30, bitrate=1800, dpi=100)
+        self.anim.save('PCA_Anim.mp4', fps=30, bitrate=1800, dpi=200)
 
     def play(self, event):
-        self.init_func()
-        self.create_arrows()
-        self.fig.canvas.draw()
-        self.fig.canvas.blit()
-        self.canvas.draw()
+        self.fig.canvas.draw
 
     def update(self, i):
         def update_3d_arrows(color, i):
@@ -249,7 +245,7 @@ class Visualize(wx.Panel):
             for o in self.axes.get_figure().findobj(Arrow3D):
                 if int(o.get_label()) != i and self.last_color != color:
                     current_alpha = o.get_alpha()
-                    o.set_alpha(0.9*current_alpha)
+                    o.set_alpha(0.8*current_alpha)
                 elif int(o.get_label()) == i:
                     o.set_alpha(1.0)
         self.axes.view_init(elev=30., azim=i)
@@ -267,7 +263,7 @@ class Visualize(wx.Panel):
                 arrow = Arrow3D([self.last_center[0], center[0]], 
                                 [self.last_center[1], center[1]],
                                 [self.last_center[2], center[2]],
-                                mutation_scale=25, lw=3, arrowstyle="->",
+                                mutation_scale=20, lw=1.5, arrowstyle="->",
                                 color=color, alpha=0.0, label=i, animated=False)
                 self.axes.add_artist(arrow)
             self.last_center = center
