@@ -10,20 +10,24 @@ class Visualize(wx.Panel):
                        'r': (1.0, 0.0, 0.0), 'y': (0.75, 0.75, 0), 'w': (1.0, 1.0, 1.0), 
                        'g': (0.0, 0.5, 0.0), 'c': (0.0, 0.75, 0.75)}
         self.vis_selected = False
-        self.save_ready = False
+        self.pause = True
         self.t = 0
         self.dpi = 200
         self.fig = Figure((5.0, 5.0), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
+        self.play_button = wx.Button(self, -1, "Play")
         self.data_arr = dict()
         self.cond_arr = dict()
         self.lb_arr = list()
         self.lb_condarr = list()
         self.neurons = list()
         self.conditions = list()
+        self.files = list()
         self.create_listbox()
         self.save_button = wx.Button(self, -1, "Export Movie")
-        # self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
+        self.save_button.Disable()
+        self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
+        self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
         self.__do_layout()
 
     def create_listbox(self):
@@ -201,9 +205,6 @@ class Visualize(wx.Panel):
         self.axes.draw_artist(self.frame_no)
 
     def pca_selected(self, data, labels):
-        def blit_func():
-            all_updates = self.init_list + [self.frame_no]
-            return all_updates
         self.axes.set_title('PCA', size=10, y=1.0)
         self.labels = labels
         self.last_color = self.color_list[0]
@@ -216,34 +217,36 @@ class Visualize(wx.Panel):
         self.fig.canvas.draw()
         self.last_center = self.pca_centers[0]
         self.fig.canvas.draw()
+        self.fig.canvas.blit()
+        self.out_movie = 'PCA_Anim.mpg'
         self.anim = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
-                                  interval=1, repeat=False, blit=False)
-        self.anim_name = 'PCA Visualization'
+                          interval=0, repeat=False, blit=False)
+
+    def play(self, event):
         self.fig.canvas.draw()
 
     def save_anim(self, event):
-        # if self.save_ready:
-        self.pts_ani.save('PCA_Animation.mp4', fps=12, bitrate=1800, extra_args=['-vcodec', 'libx264'], dpi=100)
+        self.anim.save('PCA_Anim.mp4', fps=20)
 
     def update(self, i):
-        self.axes.get_figure().canvas.blit()
         def update_3d_arrows(color, i):
             i = int(i)
             for o in self.axes.get_figure().findobj(Arrow3D):
                 if int(o.get_label()) != i and self.last_color != color:
                     current_alpha = o.get_alpha()
                     o.set_alpha(0.8*current_alpha)
+                    self.axes.draw_artist(o)
                 elif int(o.get_label()) == i:
                     o.set_alpha(1.0)
+                    self.axes.draw_artist(o)
         self.axes.view_init(elev=30., azim=i)
         color = self.color_list[int(self.labels[i])-1]
         update_3d_arrows(color, i)
         self.frame_no.set_text('Frame #: %d' % int(i))
+        self.axes.draw_artist(self.frame_no)
         self.last_color = color
         if i == self.projected.shape[0]-1:
-            self.save_ready = True
-        # return [arr for arr in self.axes.get_figure().findobj(Arrow3D)] + \
-        #        [self.frame_no]
+            self.save_button.Enable()
 
     def create_arrows(self):
         for i in np.arange(0, len(self.labels)):
@@ -275,9 +278,6 @@ class Visualize(wx.Panel):
             self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
                       marker='o', edgecolor='k', label=str(ii))
             center, radii, rotation = EllipsoidTool().getMinVolEllipse(out)
-            EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                cageColor=color_list[int(ii)-1], cageAlpha=0.7)
-        self.axes.autoscale_view(True, True, True)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None):
@@ -308,13 +308,14 @@ class Visualize(wx.Panel):
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER|wx.GROW)
+        sizer_1.Add(self.play_button, 0, wx.ALIGN_CENTER)
+        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER|wx.EXPAND)
         sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb_cond, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
-        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER|wx.EXPAND)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

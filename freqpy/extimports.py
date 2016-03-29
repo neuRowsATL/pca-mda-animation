@@ -6,6 +6,7 @@ import random
 import sys
 import itertools
 import time
+import subprocess
 
 import wx
 
