@@ -44,6 +44,11 @@ class Analyze(wx.Panel):
         """ Could try setting this up to create a data array at the beginning.
         """
         vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
+        for neuron, values in data.items():
+            std_thresh = np.std(values) * 2
+            mean_val = np.mean(values)
+            data[neuron] = values[np.where((values <= mean_val + std_thresh) & (values >= mean_val - std_thresh))]
+        vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         if len(vals) > 0:
             time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
             delta = time_space[1] - time_space[0]
@@ -52,12 +57,13 @@ class Analyze(wx.Panel):
             freq = np.zeros((max(data.keys())+1, nr_pts))
             for neuron, datum in data.items():
                 for ii in np.arange(nr_pts):
-                    count = len(datum[np.where((datum < time_space[ii  + 1]) & (datum > time_space[ii]))])
+                    count = len(datum[np.where((datum < time_space[ii + 1]) & (datum > time_space[ii]))])
                     freq[neuron, ii] = np.divide(count, delta)
-            mean_tile = np.tile(np.mean(freq, 1), (freq.shape[1], 1)).T
-            freq1 = np.subtract(freq, mean_tile)
-            std_tile = np.tile(np.std(freq, 1), (freq.shape[1], 1)).T
-            freq = np.divide(freq1, std_tile)
+            # mean_tile = np.tile(np.mean(freq, 1), (freq.shape[1], 1)).T
+            # freq1 = np.subtract(freq, mean_tile)
+            # std_tile = np.tile(np.std(freq, 1), (freq.shape[1], 1)).T
+            # freq = np.divide(freq1, std_tile)
+            freq = zscore(freq, 1)
             freq = (1.000 + np.tanh(freq)) / 2.000
             return freq
 
@@ -141,7 +147,7 @@ class Analyze(wx.Panel):
             return
         if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg in ['PCA', 'MDA']:
             if selected_alg == 'PCA':
-                self.pca_selected(labelled_data)
+                self.pca_selected(selected_dat, selected_labels)
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
         elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
@@ -164,20 +170,20 @@ class Analyze(wx.Panel):
             init_labels = self.cond_arr[self.cond_arr.keys()[0]]
             labelled_data = self.class_creation(init_labels, init_dat)
             color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-            self.pca_selected(labelled_data, toplot=True)
+            self.pca_selected(init_dat, init_labels, toplot=True)
             self.legend = self.axes.legend(frameon=True, loc='upper left', scatterpoints=1, ncol=2, fontsize=8, bbox_to_anchor=(0, 0))
         except IndexError:
             return
 
-    def pca_selected(self, labelled_data, toplot=True):
+    def pca_selected(self, data, labels, toplot=True):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         """ TODO: Correct... the PCA needs to be done before splitting classes.
                   That's why it looks so different from kMeans.
         """
-        for class_label in labelled_data.keys():
-            current_class = labelled_data[class_label]
-            pca = PCA(n_components=3)
-            projected_class = pca.fit_transform(current_class)
+        pca = PCA(n_components=3)
+        projected = pca.fit_transform(data.T)
+        for class_label in set(labels):
+            projected_class = projected[labels==class_label,:]
             x = projected_class[:, 0]
             y = projected_class[:, 1]
             z = projected_class[:, 2]
@@ -186,7 +192,7 @@ class Analyze(wx.Panel):
                                   marker='o', edgecolor='k', label=str(int(class_label)))
                 center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
                 EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.7)
+                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def mda_selected(self, data, labels):
@@ -197,7 +203,13 @@ class Analyze(wx.Panel):
         self.axes.set_ylabel('D2',size=5)
         self.axes.set_zlabel('D3',size=5)
         for ii in set(labels):
+            test_val = y_test[test_labels==ii, 0:3]
+            self.axes.scatter(test_val[:, 0], test_val[:, 1], test_val[:, 2], c=color_list[int(ii-1)], 
+                      marker='o', edgecolor='k', label=str(ii))
             selected_projection = y_train[train_labels==ii, 0:3]
+            # _, _, v = np.linalg.svd(selected_projection)
+            # recentered = np.dot(selected_projection, np.linalg.inv(v))
+            # v = v[0:3, 0:3]
             x = selected_projection[:, 0]
             y = selected_projection[:, 1]
             z = selected_projection[:, 2]
@@ -205,7 +217,7 @@ class Analyze(wx.Panel):
                       marker='o', edgecolor='k', label=str(ii))
             center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
             EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                cageColor=color_list[int(ii)-1], cageAlpha=0.7)
+                                cageColor=color_list[int(ii)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None):
@@ -223,7 +235,7 @@ class Analyze(wx.Panel):
             center, radii, rotation = EllipsoidTool().getMinVolEllipse(curr_proj)
             EllipsoidTool().plotEllipsoid(center, radii, 
                                           rotation, ax=self.axes, plotAxes=False, 
-                                          cageColor=color_list[int(ii)-1], cageAlpha=0.7)
+                                          cageColor=color_list[int(ii)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def class_creation(self, labels, data):

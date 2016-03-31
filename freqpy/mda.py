@@ -62,8 +62,8 @@ class MDA:
         return sb_0
 
     def projection_weights(self, sb, sw):
-        lambda_1 = -0.1
-        lambda_2 = -0.1
+        lambda_1 = -0.2
+        lambda_2 = -0.2
         sw = (1 - lambda_1)*sw + lambda_1*np.eye(sw.shape[1])
         sb = (1 - lambda_2)*sb + lambda_2*np.eye(sb.shape[1])
         eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
