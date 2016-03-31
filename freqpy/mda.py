@@ -20,8 +20,8 @@ class MDA:
         means = np.zeros((self.nr_classes, self.nvar))
         stds = np.zeros((self.nr_classes, self.nvar))
         for ii in classes:
-            means[ii-1, :] = np.mean(data[labels==ii,:], 0)
-            stds[ii-1, :] = np.std(data[labels==ii,:], 0)
+            means[ii-1, :] = np.mean(data[labels==ii,:])
+            stds[ii-1, :] = np.std(data[labels==ii,:])
         return weights, means, stds
 
     def splitData(self, data):
@@ -37,6 +37,7 @@ class MDA:
         trainingData = np.delete(data, chosenVals, 0)
         self.trainingData = trainingData
         self.trainingLabels = np.delete(self.labels, chosenVals, 0)
+        self.testLabels = self.labels[np.array(chosenVals)]
         self.testData = testData
 
     def sw(self):
@@ -51,12 +52,12 @@ class MDA:
 
     def sb(self):
         weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
-        _, gmeans, __ = self.classStats(self.data, self.labels)
+        gmeans = np.mean(self.trainingData, 0)
         sb_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sb_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
-            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans[ii-1,:]).T), 
-                                             np.subtract(means[ii-1,:], gmeans[ii-1,:]))
+            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans).T), 
+                                             np.subtract(means[ii-1,:], gmeans))
             sb_0 = sb_0 + sb_exp[:, :, ii-1]
         return sb_0
 
@@ -78,4 +79,4 @@ class MDA:
     
     def fit_transform(self):
         self.fit()
-        return self.trainingLabels, self.y_train, self.y_test
+        return self.trainingLabels, self.y_train, self.testLabels, self.y_test

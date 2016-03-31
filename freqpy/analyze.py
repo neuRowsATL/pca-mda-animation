@@ -41,19 +41,21 @@ class Analyze(wx.Panel):
 
     def to_freq(self, data):
         nr_pts = 1e3
-        vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float)
+        vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         if len(vals) > 0:
-            time_space = np.linspace(min(vals), max(vals), nr_pts)
+            time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
             delta = time_space[1] - time_space[0]
             time_space = np.insert(time_space, 0, time_space[0] - delta)
             time_space = np.insert(time_space, -1, time_space[-1] + delta)
             freq = np.zeros((max(data.keys())+1, nr_pts))
             for neuron, datum in data.items():
                 for ii in np.arange(nr_pts):
-                    count = len(datum[np.where((datum < time_space[ii]) & (datum > time_space[ii - 1]))])
+                    count = len(datum[np.where((datum < time_space[ii  + 1]) & (datum > time_space[ii]))])
                     freq[neuron, ii] = np.divide(count, delta)
-            freq = np.divide(freq - np.tile(np.mean(freq), (1, len(freq.T))), 
-                             np.tile(np.std(freq), (1, len(freq.T))))
+            mean_tile = np.tile(np.mean(freq, 1), (freq.shape[1], 1)).T
+            freq1 = np.subtract(freq, mean_tile)
+            std_tile = np.tile(np.std(freq, 1), (freq.shape[1], 1)).T
+            freq = np.divide(freq1, std_tile)
             freq = (1.000 + np.tanh(freq)) / 2.000
             return freq
 
@@ -167,6 +169,9 @@ class Analyze(wx.Panel):
 
     def pca_selected(self, labelled_data, toplot=True):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        """ TODO: Correct... the PCA needs to be done before splitting classes.
+                  That's why it looks so different from kMeans.
+        """
         for class_label in labelled_data.keys():
             current_class = labelled_data[class_label]
             pca = PCA(n_components=3)
@@ -184,7 +189,7 @@ class Analyze(wx.Panel):
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
-        train_labels, y_train, y_test = mda.fit_transform()
+        train_labels, y_train, test_labels, y_test = mda.fit_transform()
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         self.axes.set_xlabel('D1',size=5)
         self.axes.set_ylabel('D2',size=5)
