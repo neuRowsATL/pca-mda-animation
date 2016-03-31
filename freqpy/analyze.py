@@ -41,6 +41,8 @@ class Analyze(wx.Panel):
 
     def to_freq(self, data):
         nr_pts = 1e3
+        """ Could try setting this up to create a data array at the beginning.
+        """
         vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         if len(vals) > 0:
             time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
@@ -195,16 +197,15 @@ class Analyze(wx.Panel):
         self.axes.set_ylabel('D2',size=5)
         self.axes.set_zlabel('D3',size=5)
         for ii in set(labels):
-            out = y_train[train_labels==ii, 0:3]
-            x = out[:, 0]
-            y = out[:, 1]
-            z = out[:, 2]
+            selected_projection = y_train[train_labels==ii, 0:3]
+            x = selected_projection[:, 0]
+            y = selected_projection[:, 1]
+            z = selected_projection[:, 2]
             self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
                       marker='o', edgecolor='k', label=str(ii))
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(out)
+            center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
             EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
                                 cageColor=color_list[int(ii)-1], cageAlpha=0.7)
-        self.axes.autoscale_view(True, True, True)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None):
