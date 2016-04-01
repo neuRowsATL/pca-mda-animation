@@ -7,7 +7,7 @@ from visualize import Visualize
 class MainFrame(wx.Frame):
     def __init__(self):
 
-        wx.Frame.__init__(self, None, title="FreqPy", size=(800, 900))
+        wx.Frame.__init__(self, None, title="FreqPy", size=(800, 800))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.neurons = list()
@@ -38,8 +38,9 @@ class MainFrame(wx.Frame):
         self.Destroy()
 
     def open_vis_thread(self):
-        self.vis_thread = Thread(target=self.visualize.save_anim())
-        wx.CallAfter(self.vis_thread.start())
+        # self.vis_thread = Thread(target=self.visualize.save_anim())
+        # wx.CallAfter(self.vis_thread.start())
+        self.visualize.save_anim()
 
     def save_anim_run(self, event):
         self.save_diag = wx.MessageBox("This might take a few minutes. \n\
