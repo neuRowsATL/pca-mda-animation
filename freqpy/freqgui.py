@@ -40,9 +40,9 @@ class MainFrame(wx.Frame):
 
     def open_vis_thread(self):
         self.vis_thread = Thread(target=self.visualize.save_anim())
-        wx.CallAfter(self.vis_thread.start())
+        self.vis_thread.start()
         # self.visualize.save_anim()
-        
+
     def save_anim_run(self, event):
         self.save_diag = wx.MessageBox("This might take a few minutes. \n\
                                         Click OK to begin exporting.",

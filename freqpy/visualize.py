@@ -193,7 +193,7 @@ class Visualize(wx.Panel):
         self.fig.canvas.draw()
 
     def save_anim(self):
-        range_curr = 10
+        range_curr = 5
         centers = list()
         filenames = list()
         classes = list()
@@ -216,12 +216,12 @@ class Visualize(wx.Panel):
             self.frame_no.set_text("Frame #: %d" % int(i))
             self.axes.view_init(elev=30., azim=i)
             curr_projected = self.projected[i-range_curr:i+1, :]
-            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-10:i+1]]
-            x = curr_projected[:, 0]
-            y = curr_projected[:, 1]
-            z = curr_projected[:, 2]
+            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+1]]
+            x = curr_projected[:, 0] / 4
+            y = curr_projected[:, 1] / 4
+            z = curr_projected[:, 2] / 4
             [pp.remove() for pp in self.axes.get_figure().findobj(Path3DCollection) if pp.get_label() not in self.color_list]
-            self.axes.scatter(x, y, z, marker='.', c=curr_label, alpha=1.0, label=i)
+            self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=i)
             color = self.color_list[int(self.labels[i])-1]
             center = centers[int(self.labels[i]-1)]
             for ll in self.axes.get_figure().findobj(Line2D):
@@ -239,7 +239,7 @@ class Visualize(wx.Panel):
             self.fig.canvas.blit(self.axes.bbox)
             filename = '__frame%03d.png' % int(i)
             filenames.append(filename)
-            self.fig.savefig(filename, dpi=150)
+            self.fig.savefig(filename, dpi=100)
         subprocess.call('ffmpeg -framerate 25 -i __frame%03d.png -c:v libx264 ' + self.out_movie, shell=True)
         for fi in filenames:
             os.remove(fi)
