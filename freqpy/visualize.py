@@ -231,7 +231,7 @@ class Visualize(wx.Panel):
              pp.get_label() not in prev_labs]
             for ll in self.axes.get_figure().findobj(Line2D):
                 try:
-                    ll.set_alpha(0.5*ll.get_alpha())
+                    ll.set_alpha(0.2*ll.get_alpha())
                 except TypeError:
                     pass
             self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
@@ -261,10 +261,10 @@ class Visualize(wx.Panel):
             filename = '__frame%03d.png' % int(i)
             filenames.append(filename)
             self.fig.savefig(filename, dpi=100)
-        subprocess.call('ffmpeg -framerate 25 -i __frame%03d.png -c:v libx264 -pix_fmt yuv420p ' + self.out_movie, shell=True)
-        # time.sleep(5)
-        # for fi in filenames:
-        #     os.remove(fi)
+        subprocess.call('ffmpeg -framerate 25 start_number 6 --i __frame%03d.png -c:v libx264 ' + self.out_movie, shell=True)
+        time.sleep(100)
+        for fi in filenames:
+            os.remove(fi)
 
     # def play(self, event):
     #     self.fig.canvas.draw
