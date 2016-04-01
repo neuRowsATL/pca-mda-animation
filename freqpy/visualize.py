@@ -51,24 +51,6 @@ class Visualize(wx.Panel):
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
-    def to_freq(self, data):
-        nr_pts = 1e3
-        vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float)
-        if len(vals) > 0:
-            time_space = np.linspace(min(vals), max(vals), nr_pts)
-            delta = time_space[1] - time_space[0]
-            time_space = np.insert(time_space, 0, time_space[0] - delta)
-            time_space = np.insert(time_space, -1, time_space[-1] + delta)
-            freq = np.zeros((max(data.keys())+1, nr_pts))
-            for neuron, datum in data.items():
-                for ii in np.arange(nr_pts):
-                    count = len(datum[np.where((datum < time_space[ii]) & (datum > time_space[ii - 1]))])
-                    freq[neuron, ii] = np.divide(count, delta)
-            freq = np.divide(freq - np.tile(np.mean(freq), (1, len(freq.T))), 
-                             np.tile(np.std(freq), (1, len(freq.T))))
-            freq = (1.000 + np.tanh(freq)) / 2.000
-            return freq
-
     def load_data(self, filenames):
         data = dict()
         if len(filenames) > 0:
@@ -175,31 +157,14 @@ class Visualize(wx.Panel):
 
     def init_func(self):
         self.axes.cla()
-        self.axes.set_xlabel('PC1',size=5)
-        self.axes.set_ylabel('PC2',size=5)
-        self.axes.set_zlabel('PC3',size=5)
         plt.setp(self.axes.get_xticklabels(), fontsize=4)
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
-        for label in set(self.labels):
-            color = self.color_list[int(label)-1]
-            ell_array = self.projected[self.labels==label, :]
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(ell_array)
-            scatter_center = self.axes.scatter(center[0], center[1], center[2], 
-                                               marker='o', c=color, s=50, label=color)
-            self.axes.add_artist(scatter_center)
-            self.pca_centers.append(center)
-            if len(self.legend_hands) < len(set(self.labels)):
-                self.legend_hands.append(scatter_center)
-        allmin = np.min(np.asarray(self.pca_centers), 0)
-        allmax = np.max(np.asarray(self.pca_centers), 0)
-        self.axes.set_xlim3d([allmin[0]-0.1, allmax[0]+0.1])
-        self.axes.set_ylim3d([allmin[1]-0.1, allmax[1]+0.1])
-        self.axes.set_zlim3d([allmin[2]-0.1, allmax[2]+0.1])
-        self.axes.legend(handles=self.legend_hands,
-             scatterpoints=1, ncol=1, fontsize=8, 
-             labels=self.color_list, frameon=False, 
-             bbox_to_anchor=(1, 1))
+        allmin = np.min(self.projected, 0)
+        allmax = np.max(self.projected, 0)
+        self.axes.set_xlim3d([allmin[0]/2, allmax[0]/2])
+        self.axes.set_ylim3d([allmin[1]/2, allmax[1]/2])
+        self.axes.set_zlim3d([allmin[2]/2, allmax[2]/2])
         text_label = 'Frame #: %d' % int(0)
         self.frame_no = self.axes.text2D(0.99, 0.01, text_label,
                verticalalignment='bottom', horizontalalignment='right',
@@ -207,11 +172,14 @@ class Visualize(wx.Panel):
         self.frame_no = [t for t in self.axes.get_figure().findobj(Text) if t.get_text() == 'Frame #: 0'][0]
         self.axes.add_artist(self.frame_no)
         self.axes.view_init()
-        self.canvas.draw()
+        self.fig.canvas.draw()
         self.axes.draw_artist(self.frame_no)
 
     def pca_selected(self, data, labels):
         self.axes.set_title('PCA', size=10, y=1.0)
+        self.axes.set_xlabel('PC1',size=5)
+        self.axes.set_ylabel('PC2',size=5)
+        self.axes.set_zlabel('PC3',size=5)
         self.labels = labels
         self.last_color = self.color_list[0]
         self.legend_hands = list()
@@ -219,51 +187,96 @@ class Visualize(wx.Panel):
         pca = PCA(n_components=3)
         self.projected = pca.fit_transform(data.T)
         self.init_func()
-        self.create_arrows()
-        self.last_center = self.pca_centers[0]
         self.fig.canvas.draw()
         self.fig.canvas.blit()
-        self.out_movie = 'PCA_Anim.mpg'
-        self.anim = animation.FuncAnimation(self.fig, self.update, self.projected.shape[0],
-                                            interval=1, repeat=False, blit=False)
+        self.out_movie = 'PCA_Anim.mp4'
+        self.fig.canvas.draw()
 
     def save_anim(self):
-        self.anim.save('PCA_Anim.mp4', fps=30, bitrate=1800, dpi=200)
-        self.init_func()
+        range_curr = 5
+        centers = list()
+        filenames = list()
+        classes = list()
+        for label in set(self.labels):
+            class_proj = self.projected[self.labels==label, :]
+            center = np.mean(class_proj, 0)
+            curr_class=self.axes.scatter(center[0], center[1], center[2], 
+                  marker='o', s=50, edgecolor='k', 
+                  c=self.color_list[int(label)-1],
+                  label=self.color_list[int(label)-1])
+            classes.append(curr_class)
+            centers.append(center)
+        self.axes.legend(handles=classes,
+         scatterpoints=1, ncol=1, fontsize=8, 
+         labels=self.color_list, frameon=False, 
+         bbox_to_anchor=(1, 1))
+        self.last_center = centers[0]
+        self.fig.canvas.blit()
+        for i in np.arange(0, len(self.labels)):
+            self.frame_no.set_text("Frame #: %d" % int(i))
+            self.axes.view_init(elev=30., azim=i)
+            curr_projected = self.projected[i-range_curr:i+1, :]
+            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+1]]
+            x = curr_projected[:, 0] / 4
+            y = curr_projected[:, 1] / 4
+            z = curr_projected[:, 2] / 4
+            [pp.remove() for pp in self.axes.get_figure().findobj(Path3DCollection) if pp.get_label() not in self.color_list]
+            self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=i)
+            color = self.color_list[int(self.labels[i])-1]
+            center = centers[int(self.labels[i]-1)]
+            for ll in self.axes.get_figure().findobj(Line2D):
+                try:
+                    if ll.get_label() != color: ll.set_alpha(ll.get_alpha()*0.7)
+                except TypeError:
+                    pass
+            if all(self.last_center != center):
+                line = self.axes.plot([self.last_center[0], center[0]], 
+                                [self.last_center[1], center[1]], 
+                                [self.last_center[2], center[2]],
+                                color=color, lw=1.0, alpha=1.0, label=color)
+            self.last_center = center
+            self.fig.canvas.draw()
+            self.fig.canvas.blit(self.axes.bbox)
+            filename = '__frame%03d.png' % int(i)
+            filenames.append(filename)
+            self.fig.savefig(filename, dpi=100)
+        subprocess.call('ffmpeg -framerate 25 -i __frame%03d.png -c:v libx264 ' + self.out_movie, shell=True)
+        for fi in filenames:
+            os.remove(fi)
 
     # def play(self, event):
     #     self.fig.canvas.draw
 
     def update(self, i):
-        def update_3d_arrows(color, i):
+        def update_3d_arrows(color, i, ty):
             i = int(i)
-            for o in self.axes.get_figure().findobj(Arrow3D):
-                if int(o.get_label()) != i and self.last_color != color:
-                    current_alpha = o.get_alpha()
-                    o.set_alpha(0.8*current_alpha)
-                elif int(o.get_label()) == i:
-                    o.set_alpha(1.0)
+            if ty == Line2D:
+                for o in self.axes.get_figure().findobj(ty):
+                    try:
+                        if int(o.get_label()) != i and self.last_color != color:
+                            current_alpha = o.get_alpha()
+                            o.set_alpha(0.75*current_alpha)
+                        elif int(o.get_label()) == i:
+                            o.set_alpha(1.0)
+                    except ValueError:
+                        pass
+            elif ty == Path3DCollection:
+                for o in self.axes.get_figure().findobj(ty):
+                    try:
+                        if int(o.get_label()) in range(i-10, i+1):
+                            o.set_alpha(1.0)
+                        elif int(o.get_label()) not in range(i-10, i+1):
+                            o.set_alpha(0.0)
+                    except ValueError:
+                        pass
         self.axes.view_init(elev=30., azim=i)
         color = self.color_list[int(self.labels[i])-1]
-        update_3d_arrows(color, i)
+        update_3d_arrows(color, i, Line2D)
+        update_3d_arrows(color, i, Path3DCollection)
         self.frame_no.set_text('Frame #: %d' % int(i))
         self.last_color = color
-        return [arr for arr in self.axes.get_figure().findobj(Arrow3D)] + [self.frame_no]
-
-    def create_arrows(self):
-        for i in np.arange(0, len(self.labels)):
-            color = self.color_list[int(self.labels[i])-1]
-            center = self.pca_centers[int(self.labels[i])-1]
-            if self.last_color != color:
-                arrow = Arrow3D([self.last_center[0], center[0]], 
-                                [self.last_center[1], center[1]],
-                                [self.last_center[2], center[2]],
-                                mutation_scale=20, lw=1.5, arrowstyle="->",
-                                color=color, alpha=0.0, label=i, animated=False)
-                self.axes.add_artist(arrow)
-            self.last_center = center
-            self.last_color = color
-        self.init_list = [arr for arr in self.axes.get_figure().findobj(Arrow3D)]
+        return [arr for arr in self.axes.get_figure().findobj(Line2D)] + [self.frame_no] +\
+        [arr for arr in self.axes.get_figure().findobj(Path3DCollection)]
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)

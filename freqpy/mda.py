@@ -17,8 +17,8 @@ class MDA:
     def classStats(self, data, labels):
         classes = set(labels)
         weights = np.array([list(labels).count(c) for c in classes])
-        means = np.zeros((self.nr_classes, self.nvar))
-        stds = np.zeros((self.nr_classes, self.nvar))
+        means = np.empty((self.nr_classes, self.nvar))
+        stds = np.empty((self.nr_classes, self.nvar))
         for ii in classes:
             means[ii-1, :] = np.mean(data[labels==ii,:], 0)
             stds[ii-1, :] = np.std(data[labels==ii,:], 0)
@@ -37,6 +37,7 @@ class MDA:
         trainingData = np.delete(data, chosenVals, 0)
         self.trainingData = trainingData
         self.trainingLabels = np.delete(self.labels, chosenVals, 0)
+        self.testLabels = self.labels[np.array(chosenVals)]
         self.testData = testData
 
     def sw(self):
@@ -51,16 +52,20 @@ class MDA:
 
     def sb(self):
         weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
-        _, gmeans, __ = self.classStats(self.data, self.labels)
+        gmeans = np.mean(self.trainingData, 0)
         sb_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sb_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
-            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans[ii-1,:]).T), 
-                                             np.subtract(means[ii-1,:], gmeans[ii-1,:]))
+            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans).T), 
+                                             np.subtract(means[ii-1,:], gmeans))
             sb_0 = sb_0 + sb_exp[:, :, ii-1]
         return sb_0
 
     def projection_weights(self, sb, sw):
+        lambda_1 = -0.2
+        lambda_2 = -0.2
+        sw = (1 - lambda_1)*sw + lambda_1*np.eye(sw.shape[1])
+        sb = (1 - lambda_2)*sb + lambda_2*np.eye(sb.shape[1])
         eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
         order = np.flipud(eigval.argsort())
         disc = eigvect[order]
@@ -78,4 +83,4 @@ class MDA:
     
     def fit_transform(self):
         self.fit()
-        return self.trainingLabels, self.y_train, self.y_test
+        return self.trainingLabels, self.y_train, self.testLabels, self.y_test

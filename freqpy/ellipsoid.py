@@ -112,7 +112,7 @@ class EllipsoidTool:
                 ax.plot(X3, Y3, Z3, color=cageColor)
     
         # plot ellipsoid
-        ax.plot_wireframe(x, y, z,  rstride=6, cstride=6, color=cageColor, alpha=cageAlpha)
+        ax.plot_surface(x, y, z,  rstride=6, cstride=6, color=cageColor, alpha=cageAlpha)
         
         if make_ax:
             plt.show()

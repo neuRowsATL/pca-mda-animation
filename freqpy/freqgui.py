@@ -22,6 +22,7 @@ class MainFrame(wx.Frame):
         self.analyze = Analyze(self.nb)
         self.visualize = Visualize(self.nb)
         self.visualize.save_button.Bind(wx.EVT_BUTTON, self.save_anim_run)
+        self.visualize.to_freq = self.analyze.to_freq
 
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
@@ -38,9 +39,9 @@ class MainFrame(wx.Frame):
         self.Destroy()
 
     def open_vis_thread(self):
-        # self.vis_thread = Thread(target=self.visualize.save_anim())
-        # wx.CallAfter(self.vis_thread.start())
-        self.visualize.save_anim()
+        self.vis_thread = Thread(target=self.visualize.save_anim())
+        self.vis_thread.start()
+        # self.visualize.save_anim()
 
     def save_anim_run(self, event):
         self.save_diag = wx.MessageBox("This might take a few minutes. \n\
