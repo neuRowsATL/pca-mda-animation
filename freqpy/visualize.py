@@ -211,55 +211,41 @@ class Visualize(wx.Panel):
          labels=self.color_list, frameon=False, 
          bbox_to_anchor=(1, 1))
         self.last_center = centers[0]
-        self.last_pts = [self.projected[0:1, 0], self.projected[0:1, 1], self.projected[0:1, 2]]
+        self.last_pts = [self.projected[range_curr:range_curr+1, 0], self.projected[range_curr:range_curr+1, 1], self.projected[range_curr:range_curr+1, 2]]
         self.last_labs = [self.color_list[int(cc)-1] + '_' for cc in self.labels[0:1]]
         self.last_color = self.color_list[0]
         self.fig.canvas.blit()
-        for i in np.arange(0, len(self.labels)-range_curr):
+        for i in np.arange(range_curr+1, len(self.labels)-range_curr):
             color = self.color_list[int(self.labels[i])-1]
             center = centers[int(self.labels[i]-1)]
             self.frame_no.set_text("Frame #: %d" % int(i))
             self.axes.view_init(elev=30., azim=i)
-            curr_projected = self.projected[i-1:i+range_curr, :]
-            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-1:i+range_curr]]
-            x = curr_projected[:, 0] / 4
-            y = curr_projected[:, 1] / 4
-            z = curr_projected[:, 2] / 4
+            curr_projected = self.projected[i-range_curr:i+range_curr, :]
+            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
+            x = curr_projected[:, 0] / 3
+            y = curr_projected[:, 1] / 3
+            z = curr_projected[:, 2] / 3
             xyz_labs = [ccc + '_' for ccc in curr_label]
-            prev_labs = [unicode(lli) for lli in range(i-3, i+3)]
+            prev_labs = [unicode(lli) for lli in range(i-range_curr, i+range_curr)]
             [pp.remove() for pp in self.axes.get_figure().findobj(Path3DCollection) if pp.get_label() not in self.color_list and\
              pp.get_label() not in prev_labs]
             for ll in self.axes.get_figure().findobj(Line2D):
                 try:
-                    ll.set_alpha(0.1*ll.get_alpha())
+                    ll.set_alpha(0.5*ll.get_alpha())
                 except TypeError:
                     pass
             self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
-            try:
-                # [lll for il, lll in enumerate(self.last_pts) if self.last_labs[il].replace('_', '') != color]
-                lines = zip([xyz for xyzi, xyz in enumerate([x, y, z]) if xyz_labs[xyzi].replace('_', '') != color], 
-                            [xyz for xyzi, xyz in enumerate([x, y, z]) if xyz_labs[xyzi].replace('_', '') == color])
-                xstart = list()
-                xend = list()
-                ystart = list()
-                yend = list()
-                zstart = list()
-                zend = list()
-                for last, curr in lines:
-                    xstart.append(last[0])
-                    xend.append(curr[0])
-                    ystart.append(last[1])
-                    yend.append(curr[1])
-                    zstart.append(last[2])
-                    zend.append(curr[2])
-                for iii in range(len(xstart)):
-                    self.axes.plot([xstart[iii], xend[iii]], 
-                        [ystart[iii], yend[iii]], 
-                        zs=[zstart[iii], zend[iii]], 
-                        lw=1.0, color=color, label=color, alpha=1.0)
-            except IndexError:
-                pass
-            if all(self.last_center != center) or i == 0:
+            if any(self.last_center != center) or i == 0:
+                try:
+                    last_arr = np.asarray(self.last_pts)
+                    curr_xyz = np.asarray([x, y, z])
+                    for start, end in zip(last_arr.T, curr_xyz.T):
+                        self.axes.plot([start[0], end[0]], 
+                            [start[1], end[1]], 
+                            zs=[start[2], end[2]], 
+                            lw=1.0, color=color, label=color, alpha=1.0)
+                except IndexError as e:
+                    pass
                 for cl in classes:
                     try:
                         if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
@@ -271,13 +257,14 @@ class Visualize(wx.Panel):
             self.last_color = color
             self.last_pts = [x, y, z]
             self.fig.canvas.draw()
-            self.fig.canvas.blit(self.axes.bbox)
+            # self.fig.canvas.blit(self.axes.bbox)
             filename = '__frame%03d.png' % int(i)
             filenames.append(filename)
             self.fig.savefig(filename, dpi=100)
-        subprocess.call('ffmpeg -framerate 15 -i __frame%03d.png -c:v libx264 ' + self.out_movie, shell=True)
-        for fi in filenames:
-            os.remove(fi)
+        subprocess.call('ffmpeg -framerate 25 -i __frame%03d.png -c:v libx264 -pix_fmt yuv420p ' + self.out_movie, shell=True)
+        # time.sleep(5)
+        # for fi in filenames:
+        #     os.remove(fi)
 
     # def play(self, event):
     #     self.fig.canvas.draw
