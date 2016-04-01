@@ -203,7 +203,7 @@ class Visualize(wx.Panel):
             curr_class=self.axes.scatter(center[0], center[1], center[2], 
                   marker='o', s=50, edgecolor='k', 
                   c=self.color_list[int(label)-1],
-                  label=self.color_list[int(label)-1])
+                  label=self.color_list[int(label)-1], alpha=0.2)
             classes.append(curr_class)
             centers.append(center)
         self.axes.legend(handles=classes,
@@ -211,12 +211,13 @@ class Visualize(wx.Panel):
          labels=self.color_list, frameon=False, 
          bbox_to_anchor=(1, 1))
         self.last_center = centers[0]
+        self.last_pts = self.projected[0:6, :]
         self.fig.canvas.blit()
-        for i in np.arange(0, len(self.labels)):
+        for i in np.arange(0, len(self.labels)-6):
             self.frame_no.set_text("Frame #: %d" % int(i))
             self.axes.view_init(elev=30., azim=i)
-            curr_projected = self.projected[i-range_curr:i+1, :]
-            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+1]]
+            curr_projected = self.projected[i-range_curr:i+range_curr, :]
+            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
             x = curr_projected[:, 0] / 4
             y = curr_projected[:, 1] / 4
             z = curr_projected[:, 2] / 4
@@ -229,12 +230,19 @@ class Visualize(wx.Panel):
                     if ll.get_label() != color: ll.set_alpha(ll.get_alpha()*0.7)
                 except TypeError:
                     pass
+            for cl in classes:
+                try:
+                    if cl.get_label() != color: cl.set_alpha(cl.get_alpha()*0.2)
+                    elif cl.get_label() == color: cl.set_alpha(1.0) 
+                except TypeError:
+                    pass
             if all(self.last_center != center):
-                line = self.axes.plot([self.last_center[0], center[0]], 
-                                [self.last_center[1], center[1]], 
-                                [self.last_center[2], center[2]],
+                line = self.axes.plot([self.last_pts[:, 0], curr_projected[:, 0]], 
+                                [self.last_pts[:, 1], curr_projected[:, 1]], 
+                                [self.last_pts[:, 2], curr_projected[:, 2]],
                                 color=color, lw=1.0, alpha=1.0, label=color)
             self.last_center = center
+            self.last_pts = curr_projected
             self.fig.canvas.draw()
             self.fig.canvas.blit(self.axes.bbox)
             filename = '__frame%03d.png' % int(i)
