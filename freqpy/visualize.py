@@ -231,7 +231,7 @@ class Visualize(wx.Panel):
              pp.get_label() not in prev_labs]
             for ll in self.axes.get_figure().findobj(Line2D):
                 try:
-                    ll.set_alpha(0.2*ll.get_alpha())
+                    ll.set_alpha(0.9999*ll.get_alpha())
                 except TypeError:
                     pass
             self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
@@ -258,10 +258,10 @@ class Visualize(wx.Panel):
             self.last_pts = [x, y, z]
             self.fig.canvas.draw()
             # self.fig.canvas.blit(self.axes.bbox)
-            filename = '__frame%03d.png' % int(i)
+            filename = '__frame%03d.png' % int(i-range_curr-1)
             filenames.append(filename)
             self.fig.savefig(filename, dpi=100)
-        subprocess.call('ffmpeg -framerate 25 start_number 6 --i __frame%03d.png -c:v libx264 ' + self.out_movie, shell=True)
+        subprocess.call('ffmpeg -framerate 15 --i __frame%03d.png ' + self.out_movie, shell=True)
         time.sleep(100)
         for fi in filenames:
             os.remove(fi)
