@@ -7,7 +7,8 @@ import sys
 import itertools
 import time
 
-from threading import Thread
+from multiprocessing import Pool
+from multiprocessing import cpu_count
 import subprocess
 
 

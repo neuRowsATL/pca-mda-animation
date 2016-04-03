@@ -156,6 +156,8 @@ class Visualize(wx.Panel):
             return
 
     def init_func(self):
+        centers = list()
+        classes = list()
         self.axes.cla()
         plt.setp(self.axes.get_xticklabels(), fontsize=4)
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
@@ -171,32 +173,8 @@ class Visualize(wx.Panel):
                color='b', fontsize=5, transform=self.axes.transAxes, animated=False)
         self.frame_no = [t for t in self.axes.get_figure().findobj(Text) if t.get_text() == 'Frame #: 0'][0]
         self.axes.add_artist(self.frame_no)
-        self.axes.view_init()
         self.fig.canvas.draw()
         self.axes.draw_artist(self.frame_no)
-
-    def pca_selected(self, data, labels):
-        self.axes.set_title('PCA', size=10, y=1.0)
-        self.axes.set_xlabel('PC1',size=5)
-        self.axes.set_ylabel('PC2',size=5)
-        self.axes.set_zlabel('PC3',size=5)
-        self.labels = labels
-        self.last_color = self.color_list[0]
-        self.legend_hands = list()
-        self.pca_centers = list()
-        pca = PCA(n_components=3)
-        self.projected = pca.fit_transform(data.T)
-        self.init_func()
-        self.fig.canvas.draw()
-        self.fig.canvas.blit()
-        self.out_movie = 'PCA_Anim.mp4'
-        self.fig.canvas.draw()
-
-    def save_anim(self):
-        range_curr = 5
-        centers = list()
-        filenames = list()
-        classes = list()
         for label in set(self.labels):
             class_proj = self.projected[self.labels==label, :]
             center = np.mean(class_proj, 0)
@@ -210,6 +188,30 @@ class Visualize(wx.Panel):
          scatterpoints=1, ncol=1, fontsize=8, 
          labels=self.color_list, frameon=False, 
          bbox_to_anchor=(1, 1))
+        self.axes.set_title(self.title_, size=10, y=1.0)
+        self.axes.set_xlabel(self.ax_labels[0],size=5)
+        self.axes.set_ylabel(self.ax_labels[1],size=5)
+        self.axes.set_zlabel(self.ax_labels[2],size=5)
+
+    def pca_selected(self, data, labels):
+        self.title_ = 'PCA'
+        self.ax_labels = ['PC1', 'PC2', 'PC3']
+        self.labels = labels
+        self.last_color = self.color_list[0]
+        self.legend_hands = list()
+        self.pca_centers = list()
+        pca = PCA(n_components=3)
+        self.projected = pca.fit_transform(data.T)
+        self.init_func()
+        self.fig.canvas.draw()
+        self.fig.canvas.blit()
+        self.out_movie = 'PCA_Anim.mpg'
+        self.fig.canvas.draw()
+
+    def save_anim(self, curr_range):
+        range_curr = 3
+        filenames = list()
+        centers, classes = self.init_func()
         self.last_center = centers[0]
         self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
                         self.projected[range_curr:range_curr+1, 1], 
@@ -217,7 +219,8 @@ class Visualize(wx.Panel):
         self.last_labs = [self.color_list[int(cc)-1] + '_' for cc in self.labels[0:1]]
         self.last_color = self.color_list[0]
         self.fig.canvas.blit()
-        for i in np.arange(range_curr+1, len(self.labels)-range_curr):
+        for i in curr_range:
+            self.init_func()
             color = self.color_list[int(self.labels[i])-1]
             center = centers[int(self.labels[i]-1)]
             self.frame_no.set_text("Frame #: %d" % int(i))
@@ -233,21 +236,18 @@ class Visualize(wx.Panel):
              pp.get_label() not in prev_labs]
             for ll in self.axes.get_figure().findobj(Line2D):
                 try:
-                    ll.set_alpha(0.98*ll.get_alpha())
+                    ll.set_alpha(0.55*ll.get_alpha())
                 except TypeError:
                     pass
             self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
+            last_arr = np.asarray(self.last_pts)
+            curr_xyz = np.asarray([x, y, z])
+            for start, end in zip(last_arr.T, curr_xyz.T):
+                self.axes.plot([start[0], end[0]], 
+                               [start[1], end[1]], 
+                               zs=[start[2], end[2]], 
+                               lw=1.0, color=color, label=color, alpha=1.0)
             if any(self.last_center != center) or i == 0:
-                try:
-                    last_arr = np.asarray(self.last_pts)
-                    curr_xyz = np.asarray([x, y, z])
-                    for start, end in zip(last_arr.T, curr_xyz.T):
-                        self.axes.plot([start[0], end[0]], 
-                            [start[1], end[1]], 
-                            zs=[start[2], end[2]], 
-                            lw=1.0, color=color, label=color, alpha=1.0)
-                except IndexError as e:
-                    pass
                 for cl in classes:
                     try:
                         if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
@@ -259,10 +259,9 @@ class Visualize(wx.Panel):
             self.last_color = color
             self.last_pts = [x, y, z]
             self.fig.canvas.draw()
-            # self.fig.canvas.blit(self.axes.bbox)
             filename = '__frame%03d.png' % int(i-range_curr-1)
-            filenames.append(filename)
             self.fig.savefig(filename, dpi=100)
+            filenames.append(filename)
         subprocess.call('ffmpeg -framerate 15 -i __frame%03d.png ' + self.out_movie, shell=True)
         time.sleep(100)
         for fi in filenames:

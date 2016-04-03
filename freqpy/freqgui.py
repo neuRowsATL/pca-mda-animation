@@ -39,8 +39,14 @@ class MainFrame(wx.Frame):
         self.Destroy()
 
     def open_vis_thread(self):
-        self.vis_thread = Thread(target=self.visualize.save_anim())
-        self.vis_thread.start()
+        range_curr = 3
+        total_range = len(self.visualize.labels)-range_curr
+        pool = Pool(processes=cpu_count()*2)
+        ranges = [np.arange(range_curr + 1, int(total_range / 4)),
+                 np.arange(int(total_range / 4), int(total_range / 2)),
+                 np.arange(int(total_range / 2), int(3*total_range / 4)),
+                 np.arange(int(3*total_range / 4), total_range)]
+        pool.apply_async(self.visualize.save_anim(), ranges)
         # self.visualize.save_anim()
 
     def save_anim_run(self, event):
