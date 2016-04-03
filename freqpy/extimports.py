@@ -7,8 +7,8 @@ import sys
 import itertools
 import time
 
+from threading import Thread, Lock
 from multiprocessing import Pool
-from multiprocessing import cpu_count
 import subprocess
 
 

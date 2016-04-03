@@ -192,6 +192,7 @@ class Visualize(wx.Panel):
         self.axes.set_xlabel(self.ax_labels[0],size=5)
         self.axes.set_ylabel(self.ax_labels[1],size=5)
         self.axes.set_zlabel(self.ax_labels[2],size=5)
+        return centers, classes
 
     def pca_selected(self, data, labels):
         self.title_ = 'PCA'
@@ -247,7 +248,7 @@ class Visualize(wx.Panel):
                                [start[1], end[1]], 
                                zs=[start[2], end[2]], 
                                lw=1.0, color=color, label=color, alpha=1.0)
-            if any(self.last_center != center) or i == 0:
+            if any(self.last_center != center) or i == 4:
                 for cl in classes:
                     try:
                         if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
@@ -262,44 +263,12 @@ class Visualize(wx.Panel):
             filename = '__frame%03d.png' % int(i-range_curr-1)
             self.fig.savefig(filename, dpi=100)
             filenames.append(filename)
-        subprocess.call('ffmpeg -framerate 15 -i __frame%03d.png ' + self.out_movie, shell=True)
+
+    def ffmpeg_anim(self):
+        subprocess.call('ffmpeg -framerate 15 -i __frame%03d.png -r ntsc ' + self.out_movie, shell=True)
         time.sleep(100)
         for fi in filenames:
             os.remove(fi)
-
-    # def play(self, event):
-    #     self.fig.canvas.draw
-
-    def update(self, i):
-        def update_3d_arrows(color, i, ty):
-            i = int(i)
-            if ty == Line2D:
-                for o in self.axes.get_figure().findobj(ty):
-                    try:
-                        if int(o.get_label()) != i and self.last_color != color:
-                            current_alpha = o.get_alpha()
-                            o.set_alpha(0.75*current_alpha)
-                        elif int(o.get_label()) == i:
-                            o.set_alpha(1.0)
-                    except ValueError:
-                        pass
-            elif ty == Path3DCollection:
-                for o in self.axes.get_figure().findobj(ty):
-                    try:
-                        if int(o.get_label()) in range(i-10, i+1):
-                            o.set_alpha(1.0)
-                        elif int(o.get_label()) not in range(i-10, i+1):
-                            o.set_alpha(0.0)
-                    except ValueError:
-                        pass
-        self.axes.view_init(elev=30., azim=i)
-        color = self.color_list[int(self.labels[i])-1]
-        update_3d_arrows(color, i, Line2D)
-        update_3d_arrows(color, i, Path3DCollection)
-        self.frame_no.set_text('Frame #: %d' % int(i))
-        self.last_color = color
-        return [arr for arr in self.axes.get_figure().findobj(Line2D)] + [self.frame_no] +\
-        [arr for arr in self.axes.get_figure().findobj(Path3DCollection)]
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
