@@ -8,7 +8,6 @@ import itertools
 import time
 
 from threading import Thread, Lock
-from multiprocessing import Pool
 import subprocess
 
 

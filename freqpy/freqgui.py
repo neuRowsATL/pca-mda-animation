@@ -40,13 +40,14 @@ class MainFrame(wx.Frame):
 
     def open_vis_thread(self):
         range_curr = 3
-        total_range = len(self.visualize.labels)-range_curr
-        ranges = (np.arange(range_curr + 1, int(total_range / 4)),
-                 np.arange(int(total_range / 4), int(total_range / 2)),
-                 np.arange(int(total_range / 2), int(3*total_range / 4)),
-                 np.arange(int(3*total_range / 4), total_range))
-        for rr in ranges:
-            self.visualize.save_anim(rr)
+        total_range = len(self.visualize.labels)-range_curr-1
+        # ranges = (np.arange(range_curr + 1, int(total_range / 4)),
+        #          np.arange(int(total_range / 4), int(total_range / 2)),
+        #          np.arange(int(total_range / 2), int(3*total_range / 4)),
+        #          np.arange(int(3*total_range / 4), total_range))
+        # for rr in ranges:
+        self.visualize.save_anim(range(total_range))
+        self.visualize.ffmpeg_anim()
 
     def save_anim_run(self, event):
         self.save_diag = wx.MessageBox("This might take a few minutes. \n\

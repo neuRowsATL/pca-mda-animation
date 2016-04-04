@@ -148,6 +148,7 @@ class Visualize(wx.Panel):
         plt.setp(self.axes.get_xticklabels(), fontsize=4)
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
+        plt.ion()
         try:
             selected_dat = self.data_arr[self.data_arr.keys()[0]]
             selected_labels = self.cond_arr[self.cond_arr.keys()[0]]
@@ -192,7 +193,9 @@ class Visualize(wx.Panel):
         self.axes.set_xlabel(self.ax_labels[0],size=5)
         self.axes.set_ylabel(self.ax_labels[1],size=5)
         self.axes.set_zlabel(self.ax_labels[2],size=5)
-        return centers, classes
+        # self.view_init()
+        self.classes = classes
+        self.centers = centers
 
     def pca_selected(self, data, labels):
         self.title_ = 'PCA'
@@ -200,20 +203,18 @@ class Visualize(wx.Panel):
         self.labels = labels
         self.last_color = self.color_list[0]
         self.legend_hands = list()
-        self.pca_centers = list()
         pca = PCA(n_components=3)
         self.projected = pca.fit_transform(data.T)
         self.init_func()
         self.fig.canvas.draw()
         self.fig.canvas.blit()
         self.out_movie = 'PCA_Anim.mpg'
-        self.fig.canvas.draw()
 
     def save_anim(self, curr_range):
         range_curr = 3
-        filenames = list()
-        centers, classes = self.init_func()
-        self.last_center = centers[0]
+        self.filenames = list()
+        self.init_func()
+        self.last_center = self.centers[0]
         self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
                         self.projected[range_curr:range_curr+1, 1], 
                         self.projected[range_curr:range_curr+1, 2]]
@@ -221,16 +222,15 @@ class Visualize(wx.Panel):
         self.last_color = self.color_list[0]
         self.fig.canvas.blit()
         for i in curr_range:
-            self.init_func()
             color = self.color_list[int(self.labels[i])-1]
-            center = centers[int(self.labels[i]-1)]
+            center = self.centers[int(self.labels[i]-1)]
             self.frame_no.set_text("Frame #: %d" % int(i))
             self.axes.view_init(elev=30., azim=i)
             curr_projected = self.projected[i-range_curr:i+range_curr, :]
             curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
-            x = curr_projected[:, 0] / 3
-            y = curr_projected[:, 1] / 3
-            z = curr_projected[:, 2] / 3
+            x = curr_projected[:, 0]
+            y = curr_projected[:, 1]
+            z = curr_projected[:, 2]
             xyz_labs = [ccc + '_' for ccc in curr_label]
             prev_labs = [unicode(lli) for lli in range(i-range_curr, i+range_curr)]
             [pp.remove() for pp in self.axes.get_figure().findobj(Path3DCollection) if pp.get_label() not in self.color_list and\
@@ -248,8 +248,8 @@ class Visualize(wx.Panel):
                                [start[1], end[1]], 
                                zs=[start[2], end[2]], 
                                lw=1.0, color=color, label=color, alpha=1.0)
-            if any(self.last_center != center) or i == 4:
-                for cl in classes:
+            if color != self.color_list[int(self.labels[i])-1 + range_curr]:
+                for cl in self.classes:
                     try:
                         if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
                         elif cl.get_label() == color and cl.get_alpha() != 1.0: cl.set_alpha(1.0)
@@ -262,12 +262,16 @@ class Visualize(wx.Panel):
             self.fig.canvas.draw()
             filename = '__frame%03d.png' % int(i-range_curr-1)
             self.fig.savefig(filename, dpi=100)
-            filenames.append(filename)
+            self.filenames.append(filename)
+
+    def update(self, ii):
+        pass
+
 
     def ffmpeg_anim(self):
-        subprocess.call('ffmpeg -framerate 15 -i __frame%03d.png -r ntsc ' + self.out_movie, shell=True)
-        time.sleep(100)
-        for fi in filenames:
+        subprocess.call('ffmpeg -framerate 20 -i __frame%03d.png -r ntsc ' + self.out_movie, shell=True)
+        # time.sleep(10)
+        for fi in self.filenames:
             os.remove(fi)
 
     def mda_selected(self, data, labels):
