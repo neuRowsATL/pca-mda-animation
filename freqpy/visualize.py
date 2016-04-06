@@ -148,7 +148,6 @@ class Visualize(wx.Panel):
         plt.setp(self.axes.get_xticklabels(), fontsize=4)
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
-        plt.ion()
         try:
             selected_dat = self.data_arr[self.data_arr.keys()[0]]
             selected_labels = self.cond_arr[self.cond_arr.keys()[0]]
@@ -193,45 +192,7 @@ class Visualize(wx.Panel):
         self.axes.set_xlabel(self.ax_labels[0],size=5)
         self.axes.set_ylabel(self.ax_labels[1],size=5)
         self.axes.set_zlabel(self.ax_labels[2],size=5)
-        self.classes = classes
-        self.centers = centers
-        range_curr = 3
-        self.filenames = list()
-        self.init_func()
-        self.last_center = self.centers[0]
-        self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
-                        self.projected[range_curr:range_curr+1, 1], 
-                        self.projected[range_curr:range_curr+1, 2]]
-        self.last_color = self.color_list[0]
-        self.fig.canvas.blit()
-        total_range = np.arange(len(self.labels)-range_curr-1)
-        scats = list()
-        for i in total_range:
-            self.axes.view_init(elev=30., azim=i)
-            color = self.color_list[int(self.labels[i])-1]
-            curr_projected = self.projected[i-range_curr:i+range_curr, :]
-            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
-            x = curr_projected[:, 0]
-            y = curr_projected[:, 1]
-            z = curr_projected[:, 2]
-            scat = self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.0, label=unicode(i))
-            scats.append(scat)
-            self.axes.add_artist(scat)
-            last_arr = np.asarray(self.last_pts)
-            curr_xyz = np.asarray([x, y, z])
-            for start, end in zip(last_arr.T, curr_xyz.T):
-                self.axes.plot([start[0], end[0]], 
-                               [start[1], end[1]], 
-                               zs=[start[2], end[2]], 
-                               lw=1.0, color=color, 
-                               label=unicode(i), alpha=0.0)
-            self.last_pts = [x, y, z]
-        self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
-                self.projected[range_curr:range_curr+1, 1], 
-                self.projected[range_curr:range_curr+1, 2]]
-        self.last_color = self.color_list[0]
-        self.fig.canvas.draw()
-        scats = [self.axes.draw_artist(s) for s in scats]
+        return centers, classes
 
     def pca_selected(self, data, labels):
         self.title_ = 'PCA'
@@ -239,61 +200,107 @@ class Visualize(wx.Panel):
         self.labels = labels
         self.last_color = self.color_list[0]
         self.legend_hands = list()
+        self.pca_centers = list()
         pca = PCA(n_components=3)
         self.projected = pca.fit_transform(data.T)
         self.init_func()
+        self.fig.canvas.draw()
         self.fig.canvas.blit()
         self.out_movie = 'PCA_Anim.mpg'
+        self.fig.canvas.draw()
 
-    def save_anim(self, range_curr=3):
-        total_range = np.arange(len(self.labels)-range_curr-1)
-        for ii in total_range:
-            self.update(ii)
-        self.ffmpeg_anim()
-
-    def update(self, i):
-        self.axes.view_init(elev=30., azim=i)
-        self.init_func()
+    def save_anim(self):
         range_curr = 3
-        color = self.color_list[int(self.labels[i])-1]
-        center = self.centers[int(self.labels[i]-1)]
-        self.frame_no.set_text("Frame #: %d" % int(i))
-        prev_labs = [unicode(lli) for lli in range(i-range_curr, i+range_curr)]
-        curr_projected = self.projected[i-range_curr:i+range_curr, :]
-        curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
-        x = curr_projected[:, 0]
-        y = curr_projected[:, 1]
-        z = curr_projected[:, 2]
-        for ppp in self.axes.get_figure().findobj(Path3DCollection):
-            try:
-                if ppp.get_label() not in self.color_list:
-                    if ppp.get_label() not in prev_labs: ppp.set_alpha(0.0)
-                    elif ppp.get_label() in prev_labs: ppp.set_alpha(1.0)
-            except TypeError:
-                pass
-        for ll in self.axes.get_figure().findobj(Line2D):
-            try:
-                if ll.get_label() not in prev_labs and ll.get_alpha() > 0.0: ll.set_alpha(0.55*ll.get_alpha())
-                if ll.get_label() in prev_labs and ll.get_alpha() < 1.0: ll.set_alpha(1.0)
-            except TypeError:
-                pass
-        if color != self.color_list[int(self.labels[i])-1 + range_curr]:
-            for cl in self.classes:
+        total_range = np.arange(0, len(self.labels)-range_curr-1)
+        filenames = list()
+        centers, classes = self.init_func()
+        self.last_center = centers[0]
+        self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
+                        self.projected[range_curr:range_curr+1, 1], 
+                        self.projected[range_curr:range_curr+1, 2]]
+        self.last_labs = [self.color_list[int(cc)-1] + '_' for cc in self.labels[0:1]]
+        self.last_color = self.color_list[0]
+        self.fig.canvas.blit()
+        for i in total_range:
+            self.init_func()
+            color = self.color_list[int(self.labels[i])-1]
+            center = centers[int(self.labels[i]-1)]
+            self.frame_no.set_text("Frame #: %d" % int(i))
+            self.axes.view_init(elev=30., azim=i)
+            curr_projected = self.projected[i-range_curr:i+range_curr, :]
+            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
+            x = curr_projected[:, 0] / 2.7
+            y = curr_projected[:, 1] / 2.7
+            z = curr_projected[:, 2] / 2.7
+            xyz_labs = [ccc + '_' for ccc in curr_label]
+            prev_labs = [unicode(lli) for lli in range(i-range_curr, i+range_curr)]
+            [pp.remove() for pp in self.axes.get_figure().findobj(Path3DCollection) if pp.get_label() not in self.color_list and\
+             pp.get_label() not in prev_labs]
+            for ll in self.axes.get_figure().findobj(Line2D):
                 try:
-                    if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
-                    elif cl.get_label() == color and cl.get_alpha() != 1.0: cl.set_alpha(1.0)
+                    ll.set_alpha(0.55*ll.get_alpha())
                 except TypeError:
                     pass
-        self.last_pts = [x, y, z]
-        self.fig.canvas.draw()
-        filename = '__frame%03d.png' % int(i)
-        self.fig.savefig(filename)
-        self.filenames.append(filename)
-
-    def ffmpeg_anim(self):
+            self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
+            last_arr = np.asarray(self.last_pts)
+            curr_xyz = np.asarray([x, y, z])
+            for start, end in zip(last_arr.T, curr_xyz.T):
+                self.axes.plot([start[0], end[0]], 
+                               [start[1], end[1]], 
+                               zs=[start[2], end[2]], 
+                               lw=1.0, color=color, label=color, alpha=1.0)
+            if color != self.color_list[int(self.labels[i])-1 + range_curr]:
+                for cl in classes:
+                    try:
+                        if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
+                        elif cl.get_label() == color and cl.get_alpha() != 1.0: cl.set_alpha(1.0)
+                    except TypeError:
+                        pass
+            self.last_labs = xyz_labs
+            self.last_center = center
+            self.last_color = color
+            self.last_pts = [x, y, z]
+            self.fig.canvas.draw()
+            filename = '__frame%03d.png' % int(i)
+            self.fig.savefig(filename, dpi=100)
+            filenames.append(filename)
         subprocess.call('ffmpeg -framerate 20 -i __frame%03d.png -r ntsc ' + self.out_movie, shell=True)
-        for fi in self.filenames:
+        for fi in filenames:
             os.remove(fi)
+
+    # def play(self, event):
+    #     self.fig.canvas.draw
+
+    def update(self, i):
+        def update_3d_arrows(color, i, ty):
+            i = int(i)
+            if ty == Line2D:
+                for o in self.axes.get_figure().findobj(ty):
+                    try:
+                        if int(o.get_label()) != i and self.last_color != color:
+                            current_alpha = o.get_alpha()
+                            o.set_alpha(0.75*current_alpha)
+                        elif int(o.get_label()) == i:
+                            o.set_alpha(1.0)
+                    except ValueError:
+                        pass
+            elif ty == Path3DCollection:
+                for o in self.axes.get_figure().findobj(ty):
+                    try:
+                        if int(o.get_label()) in range(i-10, i+1):
+                            o.set_alpha(1.0)
+                        elif int(o.get_label()) not in range(i-10, i+1):
+                            o.set_alpha(0.0)
+                    except ValueError:
+                        pass
+        self.axes.view_init(elev=30., azim=i)
+        color = self.color_list[int(self.labels[i])-1]
+        update_3d_arrows(color, i, Line2D)
+        update_3d_arrows(color, i, Path3DCollection)
+        self.frame_no.set_text('Frame #: %d' % int(i))
+        self.last_color = color
+        return [arr for arr in self.axes.get_figure().findobj(Line2D)] + [self.frame_no] +\
+        [arr for arr in self.axes.get_figure().findobj(Path3DCollection)]
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
