@@ -181,7 +181,7 @@ class Visualize(wx.Panel):
             curr_class=self.axes.scatter(center[0], center[1], center[2], 
                   marker='o', s=50, edgecolor='k', 
                   c=self.color_list[int(label)-1],
-                  label=self.color_list[int(label)-1], alpha=0.25)
+                  label=unicode(self.color_list[int(label)-1]), alpha=0.25)
             classes.append(curr_class)
             centers.append(center)
         self.axes.legend(handles=classes,
@@ -211,7 +211,7 @@ class Visualize(wx.Panel):
 
     def save_anim(self):
         range_curr = 3
-        total_range = np.arange(0, len(self.labels)-range_curr-1)
+        total_range = np.arange(1, len(self.labels)-range_curr-1)
         filenames = list()
         centers, classes = self.init_func()
         self.last_center = centers[0]
@@ -222,7 +222,7 @@ class Visualize(wx.Panel):
         self.last_color = self.color_list[0]
         self.fig.canvas.blit()
         for i in total_range:
-            self.init_func()
+            # self.init_func()
             color = self.color_list[int(self.labels[i])-1]
             center = centers[int(self.labels[i]-1)]
             self.frame_no.set_text("Frame #: %d" % int(i))
@@ -249,12 +249,16 @@ class Visualize(wx.Panel):
                                [start[1], end[1]], 
                                zs=[start[2], end[2]], 
                                lw=1.0, color=color, label=color, alpha=1.0)
-            if color != self.color_list[int(self.labels[i])-1 + range_curr]:
+            try:
+                lastcol = self.color_list[int(self.labels[i])-1+range_curr]
+            except:
+                lastcol = self.last_color
+            if color != lastcol or i < range_curr:
                 for cl in classes:
                     try:
-                        if cl.get_label() != color and cl.get_alpha() > 0.25: cl.set_alpha(0.25)
-                        elif cl.get_label() == color and cl.get_alpha() != 1.0: cl.set_alpha(1.0)
-                    except TypeError:
+                        if cl.get_label() != unicode(color): cl.set_alpha(0.25)
+                        elif cl.get_label() == unicode(color): cl.set_alpha(1.0)
+                    except TypeError as e:
                         pass
             self.last_labs = xyz_labs
             self.last_center = center
