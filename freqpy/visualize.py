@@ -139,6 +139,7 @@ class Visualize(wx.Panel):
             self.kmeans_selected(selected_dat, labels=selected_labels)
 
     def init_plot(self):
+        plt.ion()
         self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
         self.axes.set_axis_bgcolor('white')
         self.axes.set_title('Cluster Analysis', size=10)
@@ -173,15 +174,20 @@ class Visualize(wx.Panel):
                color='b', fontsize=5, transform=self.axes.transAxes, animated=False)
         self.frame_no = [t for t in self.axes.get_figure().findobj(Text) if t.get_text() == 'Frame #: 0'][0]
         self.axes.add_artist(self.frame_no)
-        self.fig.canvas.draw()
-        self.axes.draw_artist(self.frame_no)
         for label in set(self.labels):
             class_proj = self.projected[self.labels==label, :]
             center = np.mean(class_proj, 0)
+            try:
+                if self.color == self.color_list[int(label)-1]:
+                    aa = 1.0
+                else:
+                    aa = 0.25
+            except:
+                aa = 0.25
             curr_class=self.axes.scatter(center[0], center[1], center[2], 
                   marker='o', s=50, edgecolor='k', 
                   c=self.color_list[int(label)-1],
-                  label=unicode(self.color_list[int(label)-1]), alpha=0.25)
+                  label=self.color_list[int(label)-1], alpha=aa)
             classes.append(curr_class)
             centers.append(center)
         self.axes.legend(handles=classes,
@@ -214,16 +220,15 @@ class Visualize(wx.Panel):
         total_range = np.arange(1, len(self.labels)-range_curr-1)
         filenames = list()
         centers, classes = self.init_func()
-        self.last_center = centers[0]
         self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
                         self.projected[range_curr:range_curr+1, 1], 
                         self.projected[range_curr:range_curr+1, 2]]
         self.last_labs = [self.color_list[int(cc)-1] + '_' for cc in self.labels[0:1]]
         self.last_color = self.color_list[0]
-        self.fig.canvas.blit()
         for i in total_range:
-            # self.init_func()
             color = self.color_list[int(self.labels[i])-1]
+            self.color = color
+            centers, classes = self.init_func()
             center = centers[int(self.labels[i]-1)]
             self.frame_no.set_text("Frame #: %d" % int(i))
             self.axes.view_init(elev=30., azim=i)
@@ -232,15 +237,6 @@ class Visualize(wx.Panel):
             x = curr_projected[:, 0] / 2.7
             y = curr_projected[:, 1] / 2.7
             z = curr_projected[:, 2] / 2.7
-            xyz_labs = [ccc + '_' for ccc in curr_label]
-            prev_labs = [unicode(lli) for lli in range(i-range_curr, i+range_curr)]
-            [pp.remove() for pp in self.axes.get_figure().findobj(Path3DCollection) if pp.get_label() not in self.color_list and\
-             pp.get_label() not in prev_labs]
-            for ll in self.axes.get_figure().findobj(Line2D):
-                try:
-                    ll.set_alpha(0.55*ll.get_alpha())
-                except TypeError:
-                    pass
             self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
             last_arr = np.asarray(self.last_pts)
             curr_xyz = np.asarray([x, y, z])
@@ -249,19 +245,6 @@ class Visualize(wx.Panel):
                                [start[1], end[1]], 
                                zs=[start[2], end[2]], 
                                lw=1.0, color=color, label=color, alpha=1.0)
-            try:
-                lastcol = self.color_list[int(self.labels[i])-1+range_curr]
-            except:
-                lastcol = self.last_color
-            if color != lastcol or i < range_curr:
-                for cl in classes:
-                    try:
-                        if cl.get_label() != unicode(color): cl.set_alpha(0.25)
-                        elif cl.get_label() == unicode(color): cl.set_alpha(1.0)
-                    except TypeError as e:
-                        pass
-            self.last_labs = xyz_labs
-            self.last_center = center
             self.last_color = color
             self.last_pts = [x, y, z]
             self.fig.canvas.draw()
@@ -271,40 +254,6 @@ class Visualize(wx.Panel):
         subprocess.call('ffmpeg -framerate 20 -i __frame%03d.png -r ntsc ' + self.out_movie, shell=True)
         for fi in filenames:
             os.remove(fi)
-
-    # def play(self, event):
-    #     self.fig.canvas.draw
-
-    def update(self, i):
-        def update_3d_arrows(color, i, ty):
-            i = int(i)
-            if ty == Line2D:
-                for o in self.axes.get_figure().findobj(ty):
-                    try:
-                        if int(o.get_label()) != i and self.last_color != color:
-                            current_alpha = o.get_alpha()
-                            o.set_alpha(0.75*current_alpha)
-                        elif int(o.get_label()) == i:
-                            o.set_alpha(1.0)
-                    except ValueError:
-                        pass
-            elif ty == Path3DCollection:
-                for o in self.axes.get_figure().findobj(ty):
-                    try:
-                        if int(o.get_label()) in range(i-10, i+1):
-                            o.set_alpha(1.0)
-                        elif int(o.get_label()) not in range(i-10, i+1):
-                            o.set_alpha(0.0)
-                    except ValueError:
-                        pass
-        self.axes.view_init(elev=30., azim=i)
-        color = self.color_list[int(self.labels[i])-1]
-        update_3d_arrows(color, i, Line2D)
-        update_3d_arrows(color, i, Path3DCollection)
-        self.frame_no.set_text('Frame #: %d' % int(i))
-        self.last_color = color
-        return [arr for arr in self.axes.get_figure().findobj(Line2D)] + [self.frame_no] +\
-        [arr for arr in self.axes.get_figure().findobj(Path3DCollection)]
 
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
