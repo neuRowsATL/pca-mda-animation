@@ -1,5 +1,4 @@
 from extimports import *
-from arrow3d import Arrow3D
 from mda import MDA
 
 class Visualize(wx.Panel):
@@ -62,7 +61,6 @@ class Visualize(wx.Panel):
                     data.update({ii: datum})
             freq = self.to_freq(data)
             self.data_arr.update({tagname: freq})
-            np.savetxt(tagname + "_normalized_freq.txt", freq)
             if self.t == 0:
                 self.init_plot()
                 self.t += 1
@@ -205,8 +203,6 @@ class Visualize(wx.Panel):
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
         self.last_color = self.color_list[0]
-        self.legend_hands = list()
-        self.pca_centers = list()
         pca = PCA(n_components=3)
         self.projected = pca.fit_transform(data.T)
         self.init_func()

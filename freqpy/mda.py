@@ -28,11 +28,13 @@ class MDA:
         testData = list()
         trainingData = list()
         chosenVals = list()
+        rstate = np.random.RandomState(1112)
         for current_class in set(self.labels):
             possible_data = data[self.labels==current_class, :]
-            chosen_val = random.randint(0, len(possible_data)-1)
+            chosen_val = rstate.randint(0, len(possible_data)-1)
             chosenVals.append(chosen_val)
             testData.append(possible_data[chosen_val, :])
+        print(chosenVals)
         testData = np.array(testData)
         trainingData = np.delete(data, chosenVals, 0)
         self.trainingData = trainingData
@@ -62,12 +64,13 @@ class MDA:
         return sb_0
 
     def projection_weights(self, sb, sw):
-        lambda_1 = -0.2
-        lambda_2 = -0.2
+        lambda_1 = 0 # -0.2
+        lambda_2 = 0 # -0.2
         sw = (1 - lambda_1)*sw + lambda_1*np.eye(sw.shape[1])
         sb = (1 - lambda_2)*sb + lambda_2*np.eye(sb.shape[1])
         eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
         order = np.flipud(eigval.argsort())
+        # print(eigval[eigval.argsort()])
         disc = eigvect[order]
         disc = disc[:, 0:self.nr_classes]
         return disc

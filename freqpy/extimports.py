@@ -6,9 +6,10 @@ import random
 import sys
 import itertools
 import time
+from tempfile import mkdtemp, mktemp, gettempdir, TemporaryFile
 
-from threading import Thread, Lock
-from multiprocessing import Pool
+
+from multiprocessing import Pool, cpu_count
 import subprocess
 
 
@@ -23,11 +24,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
-from matplotlib import animation
 
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from mpl_toolkits.mplot3d.art3d import Path3DCollection
-from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.text import Text
 from matplotlib.lines import Line2D

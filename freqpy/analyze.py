@@ -59,10 +59,6 @@ class Analyze(wx.Panel):
                 for ii in np.arange(nr_pts):
                     count = len(datum[np.where((datum < time_space[ii + 1]) & (datum > time_space[ii]))])
                     freq[neuron, ii] = np.divide(count, delta)
-            # mean_tile = np.tile(np.mean(freq, 1), (freq.shape[1], 1)).T
-            # freq1 = np.subtract(freq, mean_tile)
-            # std_tile = np.tile(np.std(freq, 1), (freq.shape[1], 1)).T
-            # freq = np.divide(freq1, std_tile)
             freq = zscore(freq, 1)
             freq = (1.000 + np.tanh(freq)) / 2.000
             return freq
