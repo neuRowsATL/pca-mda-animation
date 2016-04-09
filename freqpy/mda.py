@@ -13,6 +13,7 @@ class MDA:
         self.nr_classes = max(set(labels))
         self.nr_repetitions = self.data.shape[0]
         self.nvar = self.data.shape[1]
+        print('here2')
 
     def classStats(self, data, labels):
         classes = set(labels)
