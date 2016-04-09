@@ -34,6 +34,6 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pylab as plt
 from ellipsoid import EllipsoidTool
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans

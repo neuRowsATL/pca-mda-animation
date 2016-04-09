@@ -53,8 +53,11 @@ def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, col
 def opener(names):
     df = dict()
     for name in names:
-        with open(name, 'r') as nf:
-            df[name] = [line for line in nf]
+        if name == '_tmp.txt':
+            with open(name, 'r') as nf:
+                df[name] = [line for line in nf]
+        elif name == 'pdat_labels.txt':
+            df[name] = np.loadtxt(name)
     of = dict()
     for k, it in df.items():
         if k == '_tmp.txt':
@@ -62,28 +65,35 @@ def opener(names):
             of['axes_labels'] = eval(it[1].split(':')[1].replace('\n', ''))
             of['out_name'] = it[2].split(':')[1].replace('\n', '')
         elif 'labels' in k:
-            of['labels'] = np.loadtxt(name)
+            print(k)
+            of['labels'] = it
     os.chdir('Data')
     of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
     os.chdir('..')
     if of['title'] == 'PCA':
-        pca = PCA(n_components=3)
+        # pca = PCA(n_components=3)
+        pca = FastICA(n_components=3)
         of['projected'] = pca.fit_transform(of['data'].T)
+    os.remove('_tmp.txt')
     return of
 
 def save_anim():
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     input_dict = opener(['_tmp.txt', 'pdat_labels.txt'])
+    print('ok0')
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
     labels = input_dict['labels']
+    print('thisone')
     plt.ion()
     fig = plt.figure()
     axes = fig.add_axes((0, 0, 1, 1), projection='3d')
     plot_args = (fig, axes,
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'])
+    print('ok1')
     centers, classes, frame_no = init_func(*plot_args)
+    print('ok')
     range_curr = 3
     total_range = np.arange(1, len(labels)-range_curr-1)
     filenames = list()
@@ -99,9 +109,9 @@ def save_anim():
         axes.view_init(elev=30., azim=i)
         curr_projected = projected[i-range_curr:i+range_curr, :]
         curr_label = [color_list[int(cc)-1] for cc in labels[i-range_curr:i+range_curr]]
-        x = curr_projected[:, 0] / 2.7
-        y = curr_projected[:, 1] / 2.7
-        z = curr_projected[:, 2] / 2.7
+        x = curr_projected[:, 0] #/ 2.7
+        y = curr_projected[:, 1] #/ 2.7
+        z = curr_projected[:, 2] #/ 2.7
         axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
         last_arr = np.asarray(last_pts)
         curr_xyz = np.asarray([x, y, z])
@@ -168,7 +178,6 @@ class MainFrame(wx.Frame):
         pool = Pool(processes=cpu_count()*2)
         pool.apply_async(save_anim)
         pool.close()
-        os.remove('_tmp.txt')
 
     def check_page(self, event):
         if self.nb.GetPageText(self.nb.GetSelection()) == "Visualize":

@@ -211,46 +211,6 @@ class Visualize(wx.Panel):
         self.out_movie = 'PCA_Anim.mpg'
         self.fig.canvas.draw()
 
-    def save_anim(self):
-        range_curr = 3
-        total_range = np.arange(1, len(self.labels)-range_curr-1)
-        filenames = list()
-        centers, classes = self.init_func()
-        self.last_pts = [self.projected[range_curr:range_curr+1, 0], 
-                        self.projected[range_curr:range_curr+1, 1], 
-                        self.projected[range_curr:range_curr+1, 2]]
-        self.last_labs = [self.color_list[int(cc)-1] + '_' for cc in self.labels[0:1]]
-        self.last_color = self.color_list[0]
-        for i in total_range:
-            color = self.color_list[int(self.labels[i])-1]
-            self.color = color
-            centers, classes = self.init_func()
-            center = centers[int(self.labels[i]-1)]
-            self.frame_no.set_text("Frame #: %d" % int(i))
-            self.axes.view_init(elev=30., azim=i)
-            curr_projected = self.projected[i-range_curr:i+range_curr, :]
-            curr_label = [self.color_list[int(cc)-1] for cc in self.labels[i-range_curr:i+range_curr]]
-            x = curr_projected[:, 0] / 2.7
-            y = curr_projected[:, 1] / 2.7
-            z = curr_projected[:, 2] / 2.7
-            self.axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
-            last_arr = np.asarray(self.last_pts)
-            curr_xyz = np.asarray([x, y, z])
-            for start, end in zip(last_arr.T, curr_xyz.T):
-                self.axes.plot([start[0], end[0]], 
-                               [start[1], end[1]], 
-                               zs=[start[2], end[2]], 
-                               lw=1.0, color=color, label=color, alpha=1.0)
-            self.last_color = color
-            self.last_pts = [x, y, z]
-            self.fig.canvas.draw()
-            filename = '__frame%03d.png' % int(i)
-            self.fig.savefig(filename, dpi=100)
-            filenames.append(filename)
-        subprocess.call('ffmpeg -framerate 20 -i __frame%03d.png -r ntsc ' + self.out_movie, shell=True)
-        for fi in filenames:
-            os.remove(fi)
-
     def mda_selected(self, data, labels):
         mda = MDA(data, labels)
         train_labels, y_train, y_test = mda.fit_transform()
