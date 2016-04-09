@@ -71,8 +71,8 @@ def opener(names):
     of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
     os.chdir('..')
     if of['title'] == 'PCA':
-        pca = PCA(n_components=3)
-        # pca = FastICA(n_components=3)
+        # pca = PCA(n_components=3)
+        pca = FastICA(n_components=3)
         of['projected'] = pca.fit_transform(of['data'].T)
     os.remove('_tmp.txt')
     return of
@@ -90,7 +90,7 @@ def save_anim():
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'])
     centers, classes, frame_no = init_func(*plot_args)
-    range_curr = 3
+    range_curr = 10
     total_range = np.arange(1, len(labels)-range_curr-1)
     filenames = list()
     last_pts = [projected[range_curr:range_curr+1, 0], 
