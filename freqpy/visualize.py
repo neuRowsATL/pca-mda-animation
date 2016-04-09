@@ -10,9 +10,9 @@ class Visualize(wx.Panel):
                        'g': (0.0, 0.5, 0.0), 'c': (0.0, 0.75, 0.75)}
         self.vis_selected = False
         self.t = 0
-        self.dpi = 200
-        self.fig = Figure((5.0, 5.0), dpi=self.dpi)
-        self.canvas = FigCanvas(self, -1, self.fig)
+        # self.dpi = 200
+        # self.fig = Figure((5.0, 5.0), dpi=self.dpi)
+        # self.canvas = FigCanvas(self, -1, self.fig)
         # self.play_button = wx.Button(self, -1, "Play Movie")
         self.data_arr = dict()
         self.cond_arr = dict()
@@ -22,7 +22,7 @@ class Visualize(wx.Panel):
         self.conditions = list()
         self.files = list()
         self.create_listbox()
-        self.save_button = wx.Button(self, -1, "Export Visualization as .mp4")
+        self.save_button = wx.Button(self, -1, "Export as MPEG.", size=(800, 100))
         # self.save_button.Disable()
         # self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
         # self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
@@ -62,7 +62,7 @@ class Visualize(wx.Panel):
             freq = self.to_freq(data)
             self.data_arr.update({tagname: freq})
             if self.t == 0:
-                self.init_plot()
+                # self.init_plot()
                 self.t += 1
             for ii, k in enumerate(self.data_arr.keys()):
                 if ii > 0 and self.data_arr.keys()[ii-1].split('_')[0] != self.data_arr.keys()[ii].split('_')[0]:
@@ -111,15 +111,6 @@ class Visualize(wx.Panel):
         return selarr
 
     def plot_selected(self, event):
-        self.axes.cla()
-        self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('Cluster Analysis', size=10)
-        self.axes.set_xlabel('PC1',size=5)
-        self.axes.set_ylabel('PC2',size=5)
-        self.axes.set_zlabel('PC3',size=5)
-        plt.setp(self.axes.get_xticklabels(), fontsize=4)
-        plt.setp(self.axes.get_yticklabels(), fontsize=4)
-        plt.setp(self.axes.get_zticklabels(), fontsize=4)
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')
@@ -136,97 +127,17 @@ class Visualize(wx.Panel):
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat, labels=selected_labels)
 
-    def init_plot(self):
-        plt.ion()
-        self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
-        self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('Cluster Analysis', size=10)
-        self.axes.set_xlabel('PC1',size=5)
-        self.axes.set_ylabel('PC2',size=5)
-        self.axes.set_zlabel('PC3',size=5)
-        plt.setp(self.axes.get_xticklabels(), fontsize=4)
-        plt.setp(self.axes.get_yticklabels(), fontsize=4)
-        plt.setp(self.axes.get_zticklabels(), fontsize=4)
-        try:
-            selected_dat = self.data_arr[self.data_arr.keys()[0]]
-            selected_labels = self.cond_arr[self.cond_arr.keys()[0]]
-            self.pca_selected(selected_dat, selected_labels)
-        except IndexError:
-            return
-
-    def init_func(self):
-        centers = list()
-        classes = list()
-        self.axes.cla()
-        plt.setp(self.axes.get_xticklabels(), fontsize=4)
-        plt.setp(self.axes.get_yticklabels(), fontsize=4)
-        plt.setp(self.axes.get_zticklabels(), fontsize=4)
-        allmin = np.min(self.projected, 0)
-        allmax = np.max(self.projected, 0)
-        self.axes.set_xlim3d([allmin[0]/2, allmax[0]/2])
-        self.axes.set_ylim3d([allmin[1]/2, allmax[1]/2])
-        self.axes.set_zlim3d([allmin[2]/2, allmax[2]/2])
-        text_label = 'Frame #: %d' % int(0)
-        self.frame_no = self.axes.text2D(0.99, 0.01, text_label,
-               verticalalignment='bottom', horizontalalignment='right',
-               color='b', fontsize=5, transform=self.axes.transAxes, animated=False)
-        self.frame_no = [t for t in self.axes.get_figure().findobj(Text) if t.get_text() == 'Frame #: 0'][0]
-        self.axes.add_artist(self.frame_no)
-        for label in set(self.labels):
-            class_proj = self.projected[self.labels==label, :]
-            center = np.mean(class_proj, 0)
-            try:
-                if self.color == self.color_list[int(label)-1]:
-                    aa = 1.0
-                else:
-                    aa = 0.25
-            except:
-                aa = 0.25
-            curr_class=self.axes.scatter(center[0], center[1], center[2], 
-                  marker='o', s=50, edgecolor='k', 
-                  c=self.color_list[int(label)-1],
-                  label=self.color_list[int(label)-1], alpha=aa)
-            classes.append(curr_class)
-            centers.append(center)
-        self.axes.legend(handles=classes,
-         scatterpoints=1, ncol=1, fontsize=8, 
-         labels=self.color_list, frameon=False, 
-         bbox_to_anchor=(1, 1))
-        self.axes.set_title(self.title_, size=10, y=1.0)
-        self.axes.set_xlabel(self.ax_labels[0],size=5)
-        self.axes.set_ylabel(self.ax_labels[1],size=5)
-        self.axes.set_zlabel(self.ax_labels[2],size=5)
-        return centers, classes
-
     def pca_selected(self, data, labels):
         self.title_ = 'PCA'
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
-        self.last_color = self.color_list[0]
-        pca = PCA(n_components=3)
-        self.projected = pca.fit_transform(data.T)
-        self.init_func()
-        self.fig.canvas.draw()
-        self.fig.canvas.blit()
         self.out_movie = 'PCA_Anim.mpg'
-        self.fig.canvas.draw()
 
     def mda_selected(self, data, labels):
-        mda = MDA(data, labels)
-        train_labels, y_train, y_test = mda.fit_transform()
-        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-        self.axes.set_xlabel('D1',size=5)
-        self.axes.set_ylabel('D2',size=5)
-        self.axes.set_zlabel('D3',size=5)
-        for ii in set(labels):
-            out = y_train[train_labels==ii, 0:3]
-            x = out[:, 0]
-            y = out[:, 1]
-            z = out[:, 2]
-            self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
-                      marker='o', edgecolor='k', label=str(ii))
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(out)
-        self.canvas.draw()
+        self.title_ = 'MDA'
+        self.ax_labels = ['D1', 'D2', 'D3']
+        self.labels = labels
+        self.out_movie = 'MDA_Anim.mpg'
 
     def kmeans_selected(self, selected_data, labels=None):
         X = selected_data
@@ -255,15 +166,15 @@ class Visualize(wx.Panel):
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
-        sizer_1.Add(self.canvas, wx.ALIGN_CENTER|wx.GROW)
+        # sizer_1.Add(self.canvas, wx.ALIGN_CENTER|wx.GROW)
         # sizer_1.Add(self.play_button, 0, wx.ALIGN_CENTER)
-        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER)
         sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb_cond, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

@@ -65,15 +65,22 @@ def opener(names):
             of['axes_labels'] = eval(it[1].split(':')[1].replace('\n', ''))
             of['out_name'] = it[2].split(':')[1].replace('\n', '')
         elif 'labels' in k:
-            print(k)
             of['labels'] = it
     os.chdir('Data')
     of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
     os.chdir('..')
     if of['title'] == 'PCA':
-        # pca = PCA(n_components=3)
-        pca = FastICA(n_components=3)
+        pca = PCA(n_components=3)
         of['projected'] = pca.fit_transform(of['data'].T)
+    elif of['title'] == 'ICA':
+        ica = FastICA(n_components=3)
+        of['projected'] = ica.fit_transform(of['data'].T)
+    elif of['title'] == 'MDA':
+        mda = MDA(of['data'], of['labels'])
+        print('here')
+        train_labels, y_train, y_test = mda.fit_transform()
+        of['projected'] = y_train
+        of['labels'] = train_labels
     os.remove('_tmp.txt')
     return of
 
@@ -90,7 +97,8 @@ def save_anim():
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'])
     centers, classes, frame_no = init_func(*plot_args)
-    range_curr = 10
+    range_curr = 4
+    scale_fact = 2.7
     total_range = np.arange(1, len(labels)-range_curr-1)
     filenames = list()
     last_pts = [projected[range_curr:range_curr+1, 0], 
@@ -105,9 +113,9 @@ def save_anim():
         axes.view_init(elev=30., azim=i)
         curr_projected = projected[i-range_curr:i+range_curr, :]
         curr_label = [color_list[int(cc)-1] for cc in labels[i-range_curr:i+range_curr]]
-        x = curr_projected[:, 0] #/ 2.7
-        y = curr_projected[:, 1] #/ 2.7
-        z = curr_projected[:, 2] #/ 2.7
+        x = curr_projected[:, 0] / scale_fact
+        y = curr_projected[:, 1] / scale_fact
+        z = curr_projected[:, 2] / scale_fact
         axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
         last_arr = np.asarray(last_pts)
         curr_xyz = np.asarray([x, y, z])
@@ -150,7 +158,7 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
-        self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
+        # self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
@@ -163,7 +171,6 @@ class MainFrame(wx.Frame):
     def open_vis_thread(self, event):
         title_ = self.visualize.title_
         ax_labels = self.visualize.ax_labels
-        projected = self.visualize.projected
         labels = self.visualize.labels
         out_movie = self.visualize.out_movie
         plot_args = (title_, ax_labels, out_movie)
