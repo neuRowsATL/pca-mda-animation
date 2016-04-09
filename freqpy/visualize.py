@@ -28,6 +28,12 @@ class Visualize(wx.Panel):
         # self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
         self.__do_layout()
 
+    def init_viz(self):
+        init_dat = self.data_arr[self.data_arr.keys()[0]]
+        init_labels = self.cond_arr[self.cond_arr.keys()[0]]
+        labelled_data = self.class_creation(init_labels, init_dat)
+        self.pca_selected(labelled_data, init_labels)
+
     def create_listbox(self):
         sampleList = list()
         condList = list()
@@ -138,24 +144,28 @@ class Visualize(wx.Panel):
         self.ax_labels = ['D1', 'D2', 'D3']
         self.labels = labels
         self.out_movie = 'MDA_Anim.mpg'
+        mda = MDA(data, labels)
+        train_labels, y_train, test_labels, y_test = mda.fit_transform()
+        os.chdir('Data')
+        np.savetxt('_mda_labels.txt', np.hstack((train_labels, test_labels)))
+        np.savetxt('_mda_projected.txt', np.vstack((y_train[:, 0:3], y_test[:, 0:3])))
+        os.chdir('..')
 
     def kmeans_selected(self, selected_data, labels=None):
+        self.title_ = 'K-Means (PCA)'
+        self.ax_labels = ['PC1', 'PC2', 'PC3']
+        self.labels = labels
+        self.out_movie = 'Kmeans_Anim.mpg'
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X.T)
         kmeans = KMeans(n_clusters=len(set(labels)))
         kmeans.fit(projected)
         y_pred = kmeans.labels_
-        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
-                              c=y_pred, marker='o', s=30)
-        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-        for ii in set(labels):
-            curr_proj = projected[labels==ii, :]
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(curr_proj)
-            EllipsoidTool().plotEllipsoid(center, radii, 
-                                          rotation, ax=self.axes, plotAxes=False, 
-                                          cageColor=color_list[int(ii)-1], cageAlpha=0.7)
-        self.canvas.draw()
+        os.chdir('Data')
+        np.savetxt('_kmeans_labels.txt', y_pred)
+        np.savetxt('_kmeans_projected.txt', projected)
+        os.chdir('..')
 
     def class_creation(self, labels, data):
         classes = dict()

@@ -8,12 +8,13 @@ from extimports import *
 
 class MDA:
     def __init__(self, data, labels):
-        self.data = data.T
+        if data.shape[1] > data.shape[0]:
+            data = data.T
+        self.data = data
         self.labels = labels
         self.nr_classes = max(set(labels))
         self.nr_repetitions = self.data.shape[0]
         self.nvar = self.data.shape[1]
-        print('here2')
 
     def classStats(self, data, labels):
         classes = set(labels)

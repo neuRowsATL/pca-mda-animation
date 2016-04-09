@@ -12,11 +12,13 @@ def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, col
     plt.setp(axes.get_xticklabels(), fontsize=4)
     plt.setp(axes.get_yticklabels(), fontsize=4)
     plt.setp(axes.get_zticklabels(), fontsize=4)
-    allmin = np.min(projected, 0)
-    allmax = np.max(projected, 0)
-    axes.set_xlim3d([allmin[0]/2, allmax[0]/2])
-    axes.set_ylim3d([allmin[1]/2, allmax[1]/2])
-    axes.set_zlim3d([allmin[2]/2, allmax[2]/2])
+    if title_ == 'PCA': div_scale = 2
+    elif title_ == 'MDA': div_scale = 1.2
+    allmin = np.min(projected, 0) / div_scale
+    allmax = np.max(projected, 0) / div_scale
+    axes.set_xlim3d([allmin[0], allmax[0]])
+    axes.set_ylim3d([allmin[1], allmax[1]])
+    axes.set_zlim3d([allmin[2], allmax[2]])
     text_label = "Frame #: %d" % int(0)
     frame_no = axes.text2D(0.99, 0.01, text_label,
            verticalalignment='bottom', horizontalalignment='right',
@@ -66,21 +68,28 @@ def opener(names):
             of['out_name'] = it[2].split(':')[1].replace('\n', '')
         elif 'labels' in k:
             of['labels'] = it
-    os.chdir('Data')
-    of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
-    os.chdir('..')
     if of['title'] == 'PCA':
+        os.chdir('Data')
+        of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
+        os.chdir('..')
         pca = PCA(n_components=3)
         of['projected'] = pca.fit_transform(of['data'].T)
     elif of['title'] == 'ICA':
+        os.chdir('Data')
+        of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
+        os.chdir('..')
         ica = FastICA(n_components=3)
         of['projected'] = ica.fit_transform(of['data'].T)
     elif of['title'] == 'MDA':
-        mda = MDA(of['data'], of['labels'])
-        print('here')
-        train_labels, y_train, y_test = mda.fit_transform()
-        of['projected'] = y_train
-        of['labels'] = train_labels
+        os.chdir('Data')
+        of['projected'] = np.loadtxt('_mda_projected.txt')
+        of['labels'] = np.loadtxt('_mda_labels.txt')
+        os.chdir('..')
+    elif of['title'] == 'K-Means (PCA)':
+        os.chdir('Data')
+        of['projected'] = np.loadtxt('_kmeans_projected.txt')
+        of['labels'] = np.loadtxt('_kmeans_labels.txt')
+        os.chdir('..')
     os.remove('_tmp.txt')
     return of
 
@@ -98,7 +107,10 @@ def save_anim():
                  input_dict['projected'], input_dict['labels'])
     centers, classes, frame_no = init_func(*plot_args)
     range_curr = 4
-    scale_fact = 2.7
+    if plot_args[2] == 'PCA':
+        scale_fact = 2.7
+    elif plot_args[2] == 'MDA':
+        scale_fact = 1.1
     total_range = np.arange(1, len(labels)-range_curr-1)
     filenames = list()
     last_pts = [projected[range_curr:range_curr+1, 0], 
@@ -158,7 +170,7 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
-        # self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
+        self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
@@ -185,7 +197,7 @@ class MainFrame(wx.Frame):
     def check_page(self, event):
         if self.nb.GetPageText(self.nb.GetSelection()) == "Visualize":
             self.visualize.vis_selected = True
-            self.visualize.init_plot()
+            self.visualize.init_viz()
         elif self.nb.GetPageText(self.nb.GetSelection()) != "Visualize":
             self.visualize.vis_selected = False
 

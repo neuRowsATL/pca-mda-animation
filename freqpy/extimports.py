@@ -6,9 +6,10 @@ import random
 import sys
 import itertools
 import time
-from tempfile import mkdtemp, mktemp, gettempdir, TemporaryFile
 
-
+# import logging, multiprocessing
+# multiprocessing = multiprocessing.log_to_stderr()
+# multiprocessing.setLevel(logging.DEBUG)
 from multiprocessing import Pool, cpu_count
 import subprocess
 
