@@ -26,7 +26,7 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected, labels, all_ret=Tr
     plt.setp(axes.get_zticklabels(), fontsize=4)
     if title_ == 'PCA': div_scale = 2
     elif title_ == 'MDA': div_scale = 1.2
-    elif title_ == 'k-Means': div_scale = 2
+    elif title_ == 'K-Means (PCA)': div_scale = 1
     elif title_ == 'ICA': div_scale = 2 
     allmin = np.min(projected, 0) / div_scale
     allmax = np.max(projected, 0) / div_scale
@@ -61,10 +61,11 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected, labels, all_ret=Tr
                       color=color_list[int(label)-1])
         classes.append(curr_class)
         centers.append(center)
-    axes.legend(handles=classes,
-     scatterpoints=1, ncol=1, fontsize=8, 
-     labels=wave_labels, frameon=False, 
-     bbox_to_anchor=(1, 1))
+    if 'K-Means (PCA)' != title_:
+        axes.legend(handles=classes,
+         scatterpoints=1, ncol=1, fontsize=8, 
+         labels=wave_labels, frameon=False, 
+         bbox_to_anchor=(1, 1))
     axes.set_title(title_, size=10, y=1.0)
     axes.set_xlabel(ax_labels[0],size=5)
     axes.set_ylabel(ax_labels[1],size=5)
@@ -147,10 +148,10 @@ def save_anim():
         scale_fact = 2.7
     elif plot_args[3] == 'MDA':
         scale_fact = 1.1
-    if plot_args[3] == 'k-Means':
-        scale_fact = 2.7
+    if plot_args[3] == 'K-Means (PCA)':
+        scale_fact = 1.0
     elif plot_args[3] == 'ICA':
-        scale_fact = 2.7
+        scale_fact = 2.5
     total_range = np.arange(1, len(labels)-range_curr-1)
     filenames = list()
     last_pts = [projected[range_curr:range_curr+1, 0], 
@@ -158,6 +159,7 @@ def save_anim():
                     projected[range_curr:range_curr+1, 2]]
     last_color = color_list[0]
     os.chdir('./tmp')
+    fig.canvas.blit()
     for i in total_range:
         print(i)
         color = color_list[int(labels[i])-1]
