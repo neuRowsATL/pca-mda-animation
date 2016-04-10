@@ -51,6 +51,8 @@ class Analyze(wx.Panel):
         vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         if len(vals) > 0:
             time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
+            # wave_space = np.zeros((time_space.shape))
+            # np.savetxt('Data/wave_space.txt', wave_space)
             delta = time_space[1] - time_space[0]
             time_space = np.insert(time_space, 0, time_space[0] - delta)
             time_space = np.insert(time_space, -1, time_space[-1] + delta)

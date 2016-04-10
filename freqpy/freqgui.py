@@ -4,7 +4,19 @@ from labeldata import LabelData
 from analyze import Analyze
 from visualize import Visualize
 
+def waveforms():
+    waveform_names = {
+                  5: 'inf_sine',
+                  2: 'CL',
+                  3: 'low_sine',
+                  1: 'no_sim',
+                  4: 'top_sine',
+                  6: 'tugs_ol',
+                  7: 'other'}
+    return list(waveform_names.values())
+
 def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, color=None, i=None):
+    wave_labels = waveforms()
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     centers = list()
     classes = list()
@@ -42,7 +54,7 @@ def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, col
         centers.append(center)
     axes.legend(handles=classes,
      scatterpoints=1, ncol=1, fontsize=8, 
-     labels=color_list, frameon=False, 
+     labels=wave_labels, frameon=False, 
      bbox_to_anchor=(1, 1))
     axes.set_title(title_, size=10, y=1.0)
     axes.set_xlabel(ax_labels[0],size=5)
@@ -84,16 +96,21 @@ def opener(names):
         os.chdir('Data')
         of['projected'] = np.loadtxt('_mda_projected.txt')
         of['labels'] = np.loadtxt('_mda_labels.txt')
+        os.remove('_mda_labels.txt')
+        os.remove('_mda_projected.txt')
         os.chdir('..')
     elif of['title'] == 'K-Means (PCA)':
         os.chdir('Data')
         of['projected'] = np.loadtxt('_kmeans_projected.txt')
         of['labels'] = np.loadtxt('_kmeans_labels.txt')
+        os.remove('_kmeans_labels.txt')
+        os.remove('_kmeans_projected.txt')
         os.chdir('..')
     os.remove('_tmp.txt')
     return of
 
 def save_anim():
+    waveform_list = waveforms()
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     input_dict = opener(['_tmp.txt', 'pdat_labels.txt'])
     out_movie = input_dict['out_name']
@@ -101,7 +118,13 @@ def save_anim():
     labels = input_dict['labels']
     plt.ion()
     fig = plt.figure()
-    axes = fig.add_axes((0, 0, 1, 1), projection='3d')
+    gs = gridspec.GridSpec(2, 1, height_ratios=[7, 1])
+    axes = plt.subplot(gs[0], projection='3d', frame_on=False)
+    axes2 = plt.subplot(gs[1], frame_on=False) # waveform
+    axes2.set_xlim([0, len(labels)])
+    axes2.set_ylim([0, 1.05])
+    axes2.cla()
+    axes2.axvline(0, color='k')
     plot_args = (fig, axes,
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'])
@@ -119,6 +142,8 @@ def save_anim():
     last_color = color_list[0]
     for i in total_range:
         print(i)
+        axes2.cla()
+        axes2.axvline(i, color='k')
         color = color_list[int(labels[i])-1]
         centers, classes = init_func(*plot_args, all_ret=False, color=color, i=i)
         center = centers[int(labels[i]-1)]

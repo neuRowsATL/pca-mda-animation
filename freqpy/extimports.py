@@ -26,6 +26,8 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
 
+import matplotlib.gridspec as gridspec
+
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from mpl_toolkits.mplot3d.art3d import Path3DCollection
 from mpl_toolkits.mplot3d import proj3d
