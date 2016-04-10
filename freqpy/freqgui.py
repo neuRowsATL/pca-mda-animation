@@ -15,7 +15,7 @@ def waveforms():
                   7: 'other'}
     return list(waveform_names.values())
 
-def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, color=None, i=None):
+def init_func(fig, axes, axes2, title_, ax_labels, projected, labels, all_ret=True, color=None, i=None):
     wave_labels = waveforms()
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     centers = list()
@@ -26,6 +26,8 @@ def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, col
     plt.setp(axes.get_zticklabels(), fontsize=4)
     if title_ == 'PCA': div_scale = 2
     elif title_ == 'MDA': div_scale = 1.2
+    elif title_ == 'k-Means': div_scale = 2
+    elif title_ == 'ICA': div_scale = 2 
     allmin = np.min(projected, 0) / div_scale
     allmax = np.max(projected, 0) / div_scale
     axes.set_xlim3d([allmin[0], allmax[0]])
@@ -35,7 +37,11 @@ def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, col
     frame_no = axes.text2D(0.99, 0.01, text_label,
            verticalalignment='bottom', horizontalalignment='right',
            color='b', fontsize=5, transform=axes.transAxes, animated=False)
+    axes2.cla()
+    plt.setp(axes2.get_xticklabels(), fontsize=4)
+    plt.setp(axes2.get_yticklabels(), fontsize=4)
     if i != None:
+        axes2.axvline(i, color='k')
         frame_no.set_text("Frame #: %d" % int(i))
     for label in set(labels):
         class_proj = projected[labels==label, :]
@@ -50,6 +56,9 @@ def init_func(fig, axes, title_, ax_labels, projected, labels, all_ret=True, col
               marker='o', s=50, edgecolor='k', 
               c=color_list[int(label)-1],
               label=color_list[int(label)-1], alpha=aa)
+        idx_where = np.where(labels == label)[0]
+        axes2.scatter(idx_where, [label]*len(idx_where),
+                      color=color_list[int(label)-1])
         classes.append(curr_class)
         centers.append(center)
     axes.legend(handles=classes,
@@ -110,6 +119,10 @@ def opener(names):
     return of
 
 def save_anim():
+    try:
+        os.mkdir('./tmp')
+    except Exception:
+        pass
     waveform_list = waveforms()
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     input_dict = opener(['_tmp.txt', 'pdat_labels.txt'])
@@ -125,32 +138,38 @@ def save_anim():
     axes2.set_ylim([0, 1.05])
     axes2.cla()
     axes2.axvline(0, color='k')
-    plot_args = (fig, axes,
+    plot_args = (fig, axes, axes2,
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'])
     centers, classes, frame_no = init_func(*plot_args)
     range_curr = 4
-    if plot_args[2] == 'PCA':
+    if plot_args[3] == 'PCA':
         scale_fact = 2.7
-    elif plot_args[2] == 'MDA':
+    elif plot_args[3] == 'MDA':
         scale_fact = 1.1
+    if plot_args[3] == 'k-Means':
+        scale_fact = 2.7
+    elif plot_args[3] == 'ICA':
+        scale_fact = 2.7
     total_range = np.arange(1, len(labels)-range_curr-1)
     filenames = list()
     last_pts = [projected[range_curr:range_curr+1, 0], 
                     projected[range_curr:range_curr+1, 1], 
                     projected[range_curr:range_curr+1, 2]]
     last_color = color_list[0]
+    os.chdir('./tmp')
     for i in total_range:
         print(i)
-        axes2.cla()
-        axes2.axvline(i, color='k')
         color = color_list[int(labels[i])-1]
         centers, classes = init_func(*plot_args, all_ret=False, color=color, i=i)
         center = centers[int(labels[i]-1)]
         axes.view_init(elev=30., azim=i)
         curr_projected = projected[i-range_curr:i+range_curr, :]
         curr_label = [color_list[int(cc)-1] for cc in labels[i-range_curr:i+range_curr]]
-        x = curr_projected[:, 0] / scale_fact
+        try:
+            x = curr_projected[:, 0] / scale_fact
+        except Exception as E:
+            print(E)
         y = curr_projected[:, 1] / scale_fact
         z = curr_projected[:, 2] / scale_fact
         axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
@@ -170,6 +189,7 @@ def save_anim():
     subprocess.call('ffmpeg -framerate 20 -i __frame%03d.png -r ntsc ' + out_movie, shell=True)
     for fi in filenames:
         os.remove(fi)
+    os.chdir('..')
 
 class MainFrame(wx.Frame):
     def __init__(self):

@@ -52,7 +52,7 @@ class Visualize(wx.Panel):
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
-        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "k-Means"])
+        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means"])
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
@@ -120,17 +120,22 @@ class Visualize(wx.Panel):
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')
-        if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
-            print("To use MDA or PCA, please select both frequency and labels.")
+        if len(self.cond_arr.keys()) < 1 and selected_alg in ['ICA', 'PCA', 'MDA']:
+            print("Please select both frequency and labels.")
             return
-        if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg in ['PCA', 'MDA']:
+        if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and \
+        selected_alg in ['ICA', 'PCA', 'MDA']:
             if selected_alg == 'PCA':
                 self.pca_selected(selected_dat, selected_labels)
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
-        elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
+            if selected_alg == 'ICA':
+                self.ica_selected(selected_dat, selected_labels)
+        elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and \
+         selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat)
-        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
+        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and \
+         selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat, labels=selected_labels)
 
     def pca_selected(self, data, labels):
@@ -138,6 +143,12 @@ class Visualize(wx.Panel):
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
         self.out_movie = 'PCA_Anim.mpg'
+
+    def ica_selected(self, data, labels):
+        self.title_ = 'ICA'
+        self.ax_labels = ['IC1', 'IC2', 'IC3']
+        self.labels = labels
+        self.out_movie = 'ICA_Anim.mpg'
 
     def mda_selected(self, data, labels):
         self.title_ = 'MDA'
