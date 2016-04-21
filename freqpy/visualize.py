@@ -4,16 +4,13 @@ from mda import MDA
 class Visualize(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+        self.dpi = 100
         self.color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         self.colors = {'k': (0.0, 0.0, 0.0), 'b': (0.0, 0.0, 1.0), 'm': (0.75, 0, 0.75), 
                        'r': (1.0, 0.0, 0.0), 'y': (0.75, 0.75, 0), 'w': (1.0, 1.0, 1.0), 
                        'g': (0.0, 0.5, 0.0), 'c': (0.0, 0.75, 0.75)}
         self.vis_selected = False
-        self.t = 0
-        # self.dpi = 200
-        # self.fig = Figure((5.0, 5.0), dpi=self.dpi)
-        # self.canvas = FigCanvas(self, -1, self.fig)
-        # self.play_button = wx.Button(self, -1, "Play Movie")
+        self.waveform = None
         self.data_arr = dict()
         self.cond_arr = dict()
         self.lb_arr = list()
@@ -21,40 +18,58 @@ class Visualize(wx.Panel):
         self.neurons = list()
         self.conditions = list()
         self.files = list()
-        self.create_listbox()
+        self.create_choices()
         self.save_button = wx.Button(self, -1, "Export as MPEG.", size=(800, 100))
-        # self.save_button.Disable()
-        # self.Bind(wx.EVT_BUTTON, self.save_anim, self.save_button)
-        # self.Bind(wx.EVT_BUTTON, self.play, self.play_button)
         self.__do_layout()
 
     def init_viz(self):
-        init_dat = self.data_arr[self.data_arr.keys()[0]]
-        init_labels = self.cond_arr[self.cond_arr.keys()[0]]
-        labelled_data = self.class_creation(init_labels, init_dat)
-        self.pca_selected(labelled_data, init_labels)
+        try:
+            init_dat = self.data_arr[self.data_arr.keys()[0]]
+            init_labels = self.cond_arr[self.cond_arr.keys()[0]]
+            labelled_data = self.class_creation(init_labels, init_dat)
+            self.pca_selected(labelled_data, init_labels)
+        except IndexError:
+            pass
 
-    def create_listbox(self):
+    def create_choices(self):
         sampleList = list()
         condList = list()
         for ii, k in enumerate(self.data_arr.keys()):
-            if ii > 0 and self.data_arr.keys()[ii-1].split('\\')[-1].split('_')[0] != self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]:
-                sampleList.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
+            prev_dat = self.data_arr.keys()[ii-1].split('\\')[-1].split('_')[0]
+            curr_dat = self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]
+            if ii > 0 and prev_dat != curr_dat:
+                sampleList.append(curr_dat)
             if ii == 0:
-                sampleList.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
+                sampleList.append(curr_dat)
         for ii, k in enumerate(self.cond_arr.keys()):
-            if ii > 0 and self.cond_arr.keys()[ii-1].split('\\')[-1].split('_')[0] != self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]:
-                condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
+            prev_cond = self.cond_arr.keys()[ii-1].split('\\')[-1].split('_')[0]
+            curr_cond = self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]
+            if ii > 0 and prev_cond != curr_cond:
+                condList.append(curr_cond)
             if ii == 0:
-                condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
+                condList.append(curr_cond)
+
+        # Choose files
         self.lbtitle = wx.StaticText(self, -1, "Choose Frequency Data:", (80, 10))
         self.lb = wx.Choice(self, -1, (80, 50), wx.DefaultSize, sampleList)
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
+
+         # Algorithm selection
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
         self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means"])
         self.alg_choice.SetSelection(0)
-        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
+        self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice)
+
+        # Choose DPI
+        self.dpi_title = wx.StaticText(self, -1, "Select Video Quality:", (80, 10))
+        self.dpi_choice = wx.Choice(self, -1, (80, 30), wx.DefaultSize, ["Low (10 dpi)", "Medium (300 dpi)", "High (700 dpi)"])
+        self.dpi_choice.SetSelection(0)
+        self.Bind(wx.EVT_CHOICE, self.set_dpi, self.dpi_choice)
+
+    def set_dpi(self, event):
+        dpis = [10, 300, 700]
+        self.dpi = dpis[self.alg_choice.GetSelection()]
 
     def load_data(self, filenames):
         data = dict()
@@ -67,11 +82,10 @@ class Visualize(wx.Panel):
                     data.update({ii: datum})
             freq = self.to_freq(data)
             self.data_arr.update({tagname: freq})
-            if self.t == 0:
-                # self.init_plot()
-                self.t += 1
             for ii, k in enumerate(self.data_arr.keys()):
-                if ii > 0 and self.data_arr.keys()[ii-1].split('_')[0] != self.data_arr.keys()[ii].split('_')[0]:
+                prev_dat = self.data_arr.keys()[ii-1].split('_')[0]
+                curr_dat = self.data_arr.keys()[ii].split('_')[0]
+                if ii > 0 and prev_dat != curr_dat:
                     self.lb.InsertItems([self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
                     self.lb.SetSelection(0)
                     self.lb_arr.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]) 
@@ -142,7 +156,7 @@ class Visualize(wx.Panel):
         self.title_ = 'PCA'
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
-        self.out_movie = 'PCA_Anim.mpg'
+        self.out_movie = 'PCA_Anim.mp4'
 
     def ica_selected(self, data, labels):
         self.title_ = 'ICA'
@@ -154,7 +168,7 @@ class Visualize(wx.Panel):
         self.title_ = 'MDA'
         self.ax_labels = ['D1', 'D2', 'D3']
         self.labels = labels
-        self.out_movie = 'MDA_Anim.mpg'
+        self.out_movie = 'MDA_Anim.mp4'
         mda = MDA(data, labels)
         train_labels, y_train, test_labels, y_test = mda.fit_transform()
         os.chdir('Data')
@@ -166,7 +180,7 @@ class Visualize(wx.Panel):
         self.title_ = 'K-Means (PCA)'
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
-        self.out_movie = 'Kmeans_Anim.mpg'
+        self.out_movie = 'Kmeans_Anim.mp4'
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X.T)
@@ -187,15 +201,16 @@ class Visualize(wx.Panel):
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
-        # sizer_1.Add(self.canvas, wx.ALIGN_CENTER|wx.GROW)
-        # sizer_1.Add(self.play_button, 0, wx.ALIGN_CENTER)
         sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.lb_cond, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
-        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER)
+        sizer_1.Add(self.dpi_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.dpi_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_1.AddSpacer(5)
+        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER, 10)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()
