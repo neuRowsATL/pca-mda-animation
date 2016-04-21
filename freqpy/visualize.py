@@ -63,12 +63,12 @@ class Visualize(wx.Panel):
 
         # Choose DPI
         self.dpi_title = wx.StaticText(self, -1, "Select Video Quality:", (80, 10))
-        self.dpi_choice = wx.Choice(self, -1, (80, 30), wx.DefaultSize, ["Low (10 dpi)", "Medium (300 dpi)", "High (700 dpi)"])
+        self.dpi_choice = wx.Choice(self, -1, (80, 30), wx.DefaultSize, ["Low (50 dpi)", "Medium (300 dpi)", "High (700 dpi)"])
         self.dpi_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.set_dpi, self.dpi_choice)
 
     def set_dpi(self, event):
-        dpis = [10, 300, 700]
+        dpis = [50, 300, 700]
         self.dpi = dpis[self.alg_choice.GetSelection()]
 
     def load_data(self, filenames):

@@ -4,7 +4,8 @@ from labeldata import LabelData
 from analyze import Analyze
 from visualize import Visualize
 # from waveform_convert import iter_loadtxt, gen_from_iter
-from scipy.interpolate import SmoothBivariateSpline
+# from scipy.interpolate import SmoothBivariateSpline
+from bezier import bezier
 
 def opener(names):
     df = dict()
@@ -113,9 +114,6 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
               c=color_list[int(label)-1],
               label=color_list[int(label)-1], alpha=aa)
         idx_where = np.where(labels == label)[0]
-        # axes2.scatter(idx_where, [label]*len(idx_where),
-        #               color=color_list[int(label)-1])
-        # axes2.axvspan(min(idx_where), max(idx_where), color=color_list[int(label)-1], alpha=0.1)
         classes.append(curr_class)
         centers.append(center)
     if 'K-Means (PCA)' != title_:
@@ -140,29 +138,21 @@ def save_anim():
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     input_dict = opener(['_tmp.txt', 'pdat_labels.txt', 'waveform.txt'])
     out_movie = input_dict['out_name']
+
     projected = input_dict['projected']
-    # # interpolate
-    # min_x, max_x = np.amin(projected[:,0]), np.amax(projected[:,0])
-    # min_y, max_y = np.amin(projected[:,1]), np.amax(projected[:,1])
-    # x_res = 100
-    # y_res = int( ( (max_y-min_y) / (max_x-min_x) )*x_res )
-    # grid_x, grid_y = np.mgrid[min_x:max_x:x_res*1j, min_y:max_y:y_res*1j]
-    # sbsp = SmoothBivariateSpline(projected[:, 0], projected[:, 1], projected[:, 2])
-    # ix = 0
-    # for px, py in zip(projected[:, 0], projected[:, 1]):
-    #     interp_val = sbsp.ev(grid_x[px, py], grid_y[px, py])
-    #     projected[ix, 2] = interp_val**2
-    #     ix += 1
+
+    # interpolation (bezier)
+    projected = bezier(projected)
+
     labels = input_dict['labels']
     waveform = np.loadtxt('.\Data\waveform.txt')
     dpi = int(input_dict['dpi'])
-    # plt.ion()
-    fig = plt.figure(dpi=dpi)
+
+    fig = plt.figure(figsize=(8, 6), dpi=dpi)
     gs = gridspec.GridSpec(2, 1, height_ratios=[7, 1])
     axes = plt.subplot(gs[0], projection='3d', frame_on=False)
     axes2 = plt.subplot(gs[1], frame_on=False) # waveform
-    # axes2.set_xlim([0, len(waveform)])
-    # axes2.set_ylim([min(waveform)-1, max(waveform)+1])
+
     axes2.cla()
     axes2.set_xticks(np.arange(0, len(labels), 100))
     axes2.set_xticks(np.arange(0, len(labels), 10), minor=True)
@@ -173,25 +163,20 @@ def save_anim():
                  input_dict['projected'], input_dict['labels'],
                  waveform)
     centers, classes, frame_no = init_func(*plot_args)
+
     range_curr = 4
-    if plot_args[3] == 'PCA':
-        scale_fact = 2.7
-    elif plot_args[3] == 'MDA':
-        scale_fact = 1.1
-    if plot_args[3] == 'K-Means (PCA)':
-        scale_fact = 1.0
-    elif plot_args[3] == 'ICA':
-        scale_fact = 2.5
     total_range = np.arange(1, len(labels)-range_curr-1)
-    filenames = list()
+
     last_pts = [projected[range_curr:range_curr+1, 0], 
                     projected[range_curr:range_curr+1, 1], 
                     projected[range_curr:range_curr+1, 2]]
     last_color = color_list[0]
+
     os.chdir('./tmp')
+    filenames = list()
+    
     fig.canvas.blit()
     for i in total_range:
-        # print(i)
         color = color_list[int(labels[i])-1]
         centers, classes = init_func(*plot_args, all_ret=False, color=color, i=i)
         center = centers[int(labels[i]-1)]
@@ -199,19 +184,19 @@ def save_anim():
         curr_projected = projected[i-range_curr:i+range_curr, :]
         curr_label = [color_list[int(cc)-1] for cc in labels[i-range_curr:i+range_curr]]
         try:
-            x = curr_projected[:, 0] / scale_fact
+            x = curr_projected[:, 0]
         except Exception as E:
             print(E)
-        y = curr_projected[:, 1] / scale_fact
-        z = curr_projected[:, 2] / scale_fact
+        y = curr_projected[:, 1]
+        z = curr_projected[:, 2]
         axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
         last_arr = np.asarray(last_pts)
         curr_xyz = np.asarray([x, y, z])
         for start, end in zip(last_arr.T, curr_xyz.T):
             axes.plot([start[0], end[0]], 
-                           [start[1], end[1]], 
-                           zs=[start[2], end[2]], 
-                           lw=1.0, color=color, label=color, alpha=1.0)
+                      [start[1], end[1]], 
+                      zs=[start[2], end[2]], 
+                      lw=1.0, color=color, label=color, alpha=1.0)
         last_color = color
         last_pts = [x, y, z]
         fig.canvas.draw()
