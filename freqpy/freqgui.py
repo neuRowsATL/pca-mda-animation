@@ -74,29 +74,29 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     centers = list()
     classes = list()
+
     axes.cla()
     plt.setp(axes.get_xticklabels(), fontsize=4)
     plt.setp(axes.get_yticklabels(), fontsize=4)
     plt.setp(axes.get_zticklabels(), fontsize=4)
-    if title_ == 'PCA': div_scale = 2
-    elif title_ == 'MDA': div_scale = 1.2
-    elif title_ == 'K-Means (PCA)': div_scale = 1
-    elif title_ == 'ICA': div_scale = 2 
-    allmin = np.min(projected, 0) / div_scale
-    allmax = np.max(projected, 0) / div_scale
+    allmin = np.min(projected, 0)
+    allmax = np.max(projected, 0)
     axes.set_xlim3d([allmin[0], allmax[0]])
     axes.set_ylim3d([allmin[1], allmax[1]])
     axes.set_zlim3d([allmin[2], allmax[2]])
+
     text_label = "Frame #: %d" % int(0)
-    frame_no = axes.text2D(0.99, 0.01, text_label,
-           verticalalignment='bottom', horizontalalignment='right',
+    frame_no = axes.text2D(0., -0.3, text_label,
+           verticalalignment='bottom', horizontalalignment='left',
            color='b', fontsize=5, transform=axes.transAxes, animated=False)
+
     axes2.cla()
     plt.setp(axes2.get_xticklabels(), fontsize=4)
     plt.setp(axes2.get_yticklabels(), fontsize=4)
     axes2.set_xticks(np.arange(0, len(labels), 100))
     axes2.set_xticks(np.arange(0, len(labels), 10), minor=True)
-    axes2.plot(waveform, color='k')
+    axes2.plot(waveform, color='k', lw=0.5)
+
     if i != None:
         axes2.axvline(i, color='r')
         frame_no.set_text("Frame #: %d" % int(i))
@@ -116,15 +116,24 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
         idx_where = np.where(labels == label)[0]
         classes.append(curr_class)
         centers.append(center)
+    
     if 'K-Means (PCA)' != title_:
-        axes.legend(handles=classes,
-         scatterpoints=1, ncol=1, fontsize=8, 
+        axes.legend(handles=classes, loc=8,
+         scatterpoints=1, ncol=len(set(labels)), fontsize=4.5, 
          labels=wave_labels, frameon=False, 
-         bbox_to_anchor=(1, 1))
+         bbox_to_anchor=(0., -0.46, 1.0, 0.09), mode='expand',
+         borderaxespad=0., borderpad=0., labelspacing=5,
+         columnspacing=5, handletextpad=0.
+         )
+    
     axes.set_title(title_, size=10, y=1.0)
     axes.set_xlabel(ax_labels[0],size=5)
     axes.set_ylabel(ax_labels[1],size=5)
     axes.set_zlabel(ax_labels[2],size=5)
+    axes.labelpad = 0
+    axes.OFFSETTEXTPAD = 0
+
+    axes2.set_title('Waveform', size=5)
     if all_ret:
         return centers, classes, frame_no
     return centers, classes
@@ -148,10 +157,11 @@ def save_anim():
     waveform = np.loadtxt('.\Data\waveform.txt')
     dpi = int(input_dict['dpi'])
 
-    fig = plt.figure(figsize=(8, 6), dpi=dpi)
+    fig = plt.figure(figsize=(6, 6), dpi=dpi)
     gs = gridspec.GridSpec(2, 1, height_ratios=[7, 1])
-    axes = plt.subplot(gs[0], projection='3d', frame_on=False)
-    axes2 = plt.subplot(gs[1], frame_on=False) # waveform
+    gs.update(hspace=1)
+    axes = plt.subplot(gs[0], projection='3d', frame_on=True)
+    axes2 = plt.subplot(gs[1], frame_on=True) # waveform
 
     axes2.cla()
     axes2.set_xticks(np.arange(0, len(labels), 100))
@@ -164,7 +174,7 @@ def save_anim():
                  waveform)
     centers, classes, frame_no = init_func(*plot_args)
 
-    range_curr = 4
+    range_curr = 10
     total_range = np.arange(1, len(labels)-range_curr-1)
 
     last_pts = [projected[range_curr:range_curr+1, 0], 
@@ -185,33 +195,48 @@ def save_anim():
         curr_label = [color_list[int(cc)-1] for cc in labels[i-range_curr:i+range_curr]]
         try:
             x = curr_projected[:, 0]
+            y = curr_projected[:, 1]
+            z = curr_projected[:, 2]
         except Exception as E:
             print(E)
-        y = curr_projected[:, 1]
-        z = curr_projected[:, 2]
-        axes.scatter(x, y, z, marker='o', s=10, c=curr_label, alpha=0.8, label=unicode(i))
+
         last_arr = np.asarray(last_pts)
         curr_xyz = np.asarray([x, y, z])
+        acoef = 0.1
+        scoef = 0.5
         for start, end in zip(last_arr.T, curr_xyz.T):
             axes.plot([start[0], end[0]], 
                       [start[1], end[1]], 
                       zs=[start[2], end[2]], 
-                      lw=1.0, color=color, label=color, alpha=1.0)
+                      lw=1.0, color=color, label=color, alpha=acoef,
+                      markersize=scoef,
+                      marker='o')
+            scoef += 0.15
+            acoef += 0.1
+
         last_color = color
         last_pts = [x, y, z]
         fig.canvas.draw()
         filename = '__frame%03d.png' % int(i)
-        fig.savefig(filename, dpi=input_dict['dpi'])
+        fig.savefig(filename, dpi='figure')
         filenames.append(filename)
+
     crf = 30
-    if dpi == 300: crf = 25
-    elif dpi == 700: crf = 20
-    # subprocess.call('ffmpeg -framerate 20 -i __frame%03d.png -r ntsc ' + out_movie, shell=True)
-    command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v 1280x720 -c:v libx264 ' +\
+    reso = '1280x720'
+    if dpi == 150: 
+        crf = 25
+        reso = '2560x1440'
+    elif dpi == 200:
+        crf = 20
+        reso = '5120x2880'
+
+    command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 ' +\
               '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + out_movie
     subprocess.call(command, shell=True)
+
     dial = wx.MessageDialog(None, 'Exported Video: %s' % './tmp/' + out_movie, 'Done!', wx.OK)
     dial.ShowModal()
+
     for fi in filenames:
         os.remove(fi)
     os.chdir('..')
