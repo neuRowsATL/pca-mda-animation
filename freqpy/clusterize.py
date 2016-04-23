@@ -32,6 +32,17 @@ class Clusterize(wx.Panel):
             return np.asarray(freq_changes).T
         return None
 
+    def waveforms(self):
+        waveform_names = {
+                          5: 'inf_sine',
+                          2: 'CL',
+                          3: 'low_sine',
+                          1: 'no_sim',
+                          4: 'top_sine',
+                          6: 'tugs_ol',
+                          7: 'other'}
+        return list(waveform_names.values())
+
     def plotting(self):
         fchanges = self.clustering()
         if fchanges is not None:
@@ -40,7 +51,7 @@ class Clusterize(wx.Panel):
             p = ax.pcolormesh(fchanges)
             ax.set_xticks(np.arange(fchanges.shape[1])+0.5, minor=False)
             ax.set_yticks(np.arange(fchanges.shape[0])+0.5, minor=False)
-            ax.set_xticklabels(set([l for l in labels if l > 1.0]), minor=False)
+            ax.set_xticklabels(self.waveforms()[1:], minor=False)
             ax.set_yticklabels(range(fchanges.shape[0]), minor=False)
             plt.setp(ax.get_xticklabels(), fontsize=4)
             plt.setp(ax.get_yticklabels(), fontsize=4)
