@@ -43,8 +43,14 @@ class Clusterize(wx.Panel):
                           7: 'other'}
         return list(waveform_names.values())
 
+    def sort_cluster(self, freqs):
+        thresh = 0.25
+        fmap = freqs > thresh
+        alist = np.sum(fmap, 1)
+        return np.flipud(freqs[alist.argsort(), :])
+
     def plotting(self):
-        fchanges = self.clustering()
+        fchanges = self.sort_cluster(self.clustering())
         if fchanges is not None:
             labels = np.loadtxt(self.labels[0])
             ax = self.fig.add_subplot(111)
