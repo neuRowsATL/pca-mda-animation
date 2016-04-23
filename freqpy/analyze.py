@@ -219,21 +219,30 @@ class Analyze(wx.Panel):
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None):
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X.T)
-        kmeans = KMeans(n_clusters=len(set(labels)))
+        kmeans = KMeans(n_clusters=len(set(labels)), random_state=0)
         kmeans.fit(projected)
         y_pred = kmeans.labels_
+
+        # match_dict = cluster_match(labels, projected, y_pred, kmeans.cluster_centers_)
+        # y_pred = update_klabels(y_pred, match_dict)
+        
+        # KMeans plot
+        # for ki in set(y_pred):
+        #     kclass = projected[y_pred==ki,:]
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                               c=y_pred, marker='o', s=30)
-        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-        for ii in set(labels):
-            curr_proj = projected[labels==ii, :]
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(curr_proj)
-            EllipsoidTool().plotEllipsoid(center, radii, 
-                                          rotation, ax=self.axes, plotAxes=False, 
-                                          cageColor=color_list[int(ii)-1], cageAlpha=0.1)
+        
+        
+        # for ii in set(labels):
+        #     curr_proj = projected[labels==ii, :]
+        #     center, radii, rotation = EllipsoidTool().getMinVolEllipse(curr_proj)
+        #     EllipsoidTool().plotEllipsoid(center, radii, 
+        #                                   rotation, ax=self.axes, plotAxes=False, 
+        #                                   cageColor=color_list[int(ii)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def class_creation(self, labels, data):

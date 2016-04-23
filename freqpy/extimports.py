@@ -40,3 +40,5 @@ from ellipsoid import EllipsoidTool
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
+
+from cluster_match import cluster_match, update_klabels

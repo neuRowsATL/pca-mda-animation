@@ -3,9 +3,9 @@ from importfiles import ImportFiles
 from labeldata import LabelData
 from analyze import Analyze
 from visualize import Visualize
-# from waveform_convert import iter_loadtxt, gen_from_iter
-# from scipy.interpolate import SmoothBivariateSpline
-from bezier import bezier
+from clusterize import Clusterize
+
+from smoothing import bezier
 
 def opener(names):
     df = dict()
@@ -255,17 +255,23 @@ class MainFrame(wx.Frame):
 
         self.import_files = ImportFiles(self.nb)
         self.import_files.DataButton.Bind(wx.EVT_BUTTON, self.on_add_file)
+
         self.label_data = LabelData(self.nb)
+
         self.analyze = Analyze(self.nb)
+
         self.visualize = Visualize(self.nb)
         self.visualize.save_button.Bind(wx.EVT_BUTTON, self.open_vis_thread)
         self.visualize.to_freq = self.analyze.to_freq
+
+        self.clusterize = Clusterize(self.nb)
 
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
         self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
+        self.nb.AddPage(self.clusterize, "Clusterize")
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
@@ -326,12 +332,14 @@ class MainFrame(wx.Frame):
             for each in label_files:
                 self.import_files.listCtrl.Append([each.split(delim)[-1],'Labels'])
                 self.import_files.conditions.append(os.path.normpath(each))
+                self.clusterize.labels.append(os.path.normpath(each))
             # if len(wave_files) > 0: self.visualize.waveform = wave_files[0]
             self.label_data.load_data(self.import_files.neurons)
             self.label_data.load_conditions(self.import_files.conditions)
             self.analyze.load_data(self.import_files.neurons)
             self.analyze.load_conditions(self.import_files.conditions)
             self.analyze.init_plot()
+            self.clusterize.plotting()
             self.visualize.load_data(self.import_files.neurons)
             self.visualize.load_conditions(self.import_files.conditions)
             if self.visualize.vis_selected:

@@ -184,7 +184,7 @@ class Visualize(wx.Panel):
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X.T)
-        kmeans = KMeans(n_clusters=len(set(labels)))
+        kmeans = KMeans(n_clusters=len(set(labels)), random_state=0)
         kmeans.fit(projected)
         y_pred = kmeans.labels_
         os.chdir('Data')
