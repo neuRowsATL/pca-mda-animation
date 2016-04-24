@@ -4,8 +4,7 @@ from labeldata import LabelData
 from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
-
-from smoothing import bezier
+from compareize import Compareize
 
 def opener(names):
     df = dict()
@@ -15,8 +14,6 @@ def opener(names):
                 df[name] = [line for line in nf]
         elif 'labels' in name:
             df[name] = np.loadtxt(name)
-        # elif 'waveform' in name:
-        #     df[name] = iter_loadtxt(name, skiprows=0)
     of = dict()
     for k, it in df.items():
         if k == '_tmp.txt':
@@ -26,8 +23,6 @@ def opener(names):
             of['dpi'] = int(it[3].split(':')[1].replace('\n', ''))
         elif 'labels' in k:
             of['labels'] = it
-        # elif 'waveform' in k:
-        #     of['waveform'] = it
     if of['title'] == 'PCA':
         os.chdir('Data')
         of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
@@ -147,7 +142,6 @@ def save_anim():
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     input_dict = opener(['_tmp.txt', 'pdat_labels.txt', 'waveform.txt'])
     out_movie = input_dict['out_name']
-
     projected = input_dict['projected']
 
     # interpolation (bezier)
@@ -266,12 +260,15 @@ class MainFrame(wx.Frame):
 
         self.clusterize = Clusterize(self.nb)
 
+        self.compareize = Compareize(self.nb)
+
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
         self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
         self.nb.AddPage(self.clusterize, "Clusterize")
+        self.nb.AddPage(self.compareize, "Compare-ize")
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
@@ -333,6 +330,7 @@ class MainFrame(wx.Frame):
                 self.import_files.listCtrl.Append([each.split(delim)[-1],'Labels'])
                 self.import_files.conditions.append(os.path.normpath(each))
                 self.clusterize.labels.append(os.path.normpath(each))
+                self.compareize.labels.append(os.path.normpath(each))
             # if len(wave_files) > 0: self.visualize.waveform = wave_files[0]
             self.label_data.load_data(self.import_files.neurons)
             self.label_data.load_conditions(self.import_files.conditions)
@@ -340,6 +338,7 @@ class MainFrame(wx.Frame):
             self.analyze.load_conditions(self.import_files.conditions)
             self.analyze.init_plot()
             self.clusterize.plotting()
+            self.compareize.plotting()
             self.visualize.load_data(self.import_files.neurons)
             self.visualize.load_conditions(self.import_files.conditions)
             if self.visualize.vis_selected:

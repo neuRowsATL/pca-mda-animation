@@ -1,6 +1,6 @@
 from extimports import *
 
-class Clusterize(wx.Panel):
+class Compareize(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.fig = Figure((5.5, 3.5), dpi=150)
@@ -17,21 +17,6 @@ class Clusterize(wx.Panel):
             return data
         return None
 
-    def clustering(self):
-        data = self.get_data()
-        labels = np.loadtxt(self.labels[0])
-        if data is not None:
-            freq_changes = list()
-            # Assuming label 1 is no_sim
-            f0 = np.mean(data[labels==1, :], 0)
-            g0 = np.mean(data[labels==1, :])
-            for i in set([ll for ll in labels if ll > 1.0]):
-                fi = np.mean(data[labels==i, :], 0)
-                Ri = abs(fi - f0) / (g0 + f0)
-                freq_changes.append(Ri)
-            return np.asarray(freq_changes).T
-        return None
-
     def waveforms(self):
         waveform_names = {
                           5: 'inf_sine',
@@ -43,31 +28,48 @@ class Clusterize(wx.Panel):
                           7: 'other'}
         return list(waveform_names.values())
 
-    def sort_cluster(self, freqs):
-        thresh = 0.16
-        # fmap = freqs > thresh
-        alist = np.sum(freqs, 1)
-        # alist = np.lexsort([freqs[:, i] for i in range(freqs.shape[1])])
-        return np.flipud(freqs[alist.argsort(), :])
+    def compare(self):
+        labels = np.loadtxt(self.labels[0])
+        data = self.get_data()
+        pclasses = list()
+        def do_comp(chosen, pclasses):
+            comps = list()
+            for i in set(labels):
+                curr = pclasses[int(i)-1]
+                # spca = np.linalg.norm(np.inner(chosen, pclasses[int(i)-1]))
+                # spca = np.sum(np.dot(np.dot(chosen.T, chosen), np.dot(curr.T, curr))) / (np.linalg.norm(chosen) * np.linalg.norm(curr))
+                comps.append(spca)
+            return comps
+        if data is not None:
+            norms = list()
+            for li in set(labels):
+                cnorm = np.linalg.norm(data[labels==li, :])
+                norms.append(cnorm)
+            comps = list()
+            for ix in range(len(norms)):
+                comps.append([(np.tanh(np.exp(-abs(norms[ix]-cn)))+1.0)/2.0 for cn in norms])
+            return np.asarray(comps)
+        return None
 
     def plotting(self):
-        fchanges = self.sort_cluster(self.clustering())
-        if fchanges is not None:
+        comparison = self.compare()
+        # print(len(comparison))
+        if comparison is not None:
             labels = np.loadtxt(self.labels[0])
             ax = self.fig.add_subplot(111)
-            ax.set_title('Average Change in Frequency')
-            p = ax.pcolormesh(fchanges)
-            ax.set_xticks(np.arange(fchanges.shape[1])+0.5, minor=False)
-            ax.set_yticks(np.arange(fchanges.shape[0])+0.5, minor=False)
-            ax.set_xticklabels(self.waveforms()[1:], minor=False)
+            ax.set_title('Class Similarity')
+            p = ax.pcolormesh(comparison)
+            ax.set_xticks(np.arange(comparison.shape[1])+0.5, minor=False)
+            ax.set_yticks(np.arange(comparison.shape[0])+0.5, minor=False)
+            ax.set_xticklabels(self.waveforms(), minor=False)
+            ax.set_yticklabels(self.waveforms(), minor=False)
             # ax.set_yticklabels(range(fchanges.shape[0]), minor=False)
             # ax.set_yticklabels(visible=False)
             plt.setp(ax.get_xticklabels(), fontsize=4)
             plt.setp(ax.get_yticklabels(), fontsize=4)
-            # ax.get_yaxis().set_visible(False)
-            ax.get_yaxis().set_ticks([])
-            ax.set_xlabel('Class')
-            ax.set_ylabel('Neuron')
+            # ax.get_yaxis().set_ticks([])
+            ax.set_xlabel('Class 1')
+            ax.set_ylabel('Class 2')
             self.fig.colorbar(p)
             self.canvas.draw()
 

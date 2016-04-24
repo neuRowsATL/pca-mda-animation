@@ -56,9 +56,10 @@ class Analyze(wx.Panel):
             delta = time_space[1] - time_space[0]
             time_space = np.insert(time_space, 0, time_space[0] - delta)
             time_space = np.insert(time_space, -1, time_space[-1] + delta)
-            freq = np.zeros((max(data.keys())+1, nr_pts))
+            freq = np.zeros((int(max(data.keys())+1), int(nr_pts)))
             for neuron, datum in data.items():
                 for ii in np.arange(nr_pts):
+                    ii = int(ii)
                     count = len(datum[np.where((datum < time_space[ii + 1]) & (datum > time_space[ii]))])
                     freq[neuron, ii] = np.divide(count, delta)
             freq = zscore(freq, 1)
