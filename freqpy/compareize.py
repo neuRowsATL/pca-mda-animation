@@ -7,7 +7,7 @@ class Compareize(wx.Panel):
         self.canvas = FigCanvas(self, -1, self.fig)
         self.labels = list()
         self.data_dir = ''
-        self.algList = ['jaccard', 'dbi', 'spca', 'cos']
+        self.algList = ['jaccard', 'dbi', 'spca', 'cos', 'kl_div']
         self.alg = 'jaccard'
         self.min_class = 5
         self.algtitle = wx.StaticText(self, -1, "Choose Similarity Metric:", (80, 10))
@@ -87,12 +87,21 @@ class Compareize(wx.Panel):
         elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
         return np.trace(np.dot(A.T, B)) / (np.linalg.norm(A)*np.linalg.norm(B))
 
+    def kl_div(self, A, B):
+        # http://scipy.github.io/devdocs/generated/scipy.stats.entropy.html
+        if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+        elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+
+        D = np.exp(-np.sum(entropy(A, B)))
+        return (np.tanh(D) + 1.0) / 2.0
+
     def compare(self):
         comp_algs = {
                 'jaccard': self.jaccard_index,
                 'spca': self.spca,
                 'cos': self.cosine_sim,
-                'dbi': self.davies_bouldin_index
+                'dbi': self.davies_bouldin_index,
+                'kl_div': self.kl_div
                 }
         labels = np.loadtxt(self.labels[0])
         data = self.get_data()
@@ -118,7 +127,8 @@ class Compareize(wx.Panel):
                 'jaccard': 'Jaccard Index',
                 'spca': 'PCA Cosine Similarity',
                 'cos': 'Cosine Similarity',
-                'dbi': 'Davies Bouldin Index'
+                'dbi': 'Davies Bouldin Index',
+                'kl_div': 'Kullback-Leibler Divergence'
             }
             labels = np.loadtxt(self.labels[0])
             self.fig.clf()

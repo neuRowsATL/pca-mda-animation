@@ -16,7 +16,7 @@ import subprocess
 
 import wx
 
-# from scipy.stats.mstats import zscore
+from scipy.stats import entropy
 
 import matplotlib
 matplotlib.use('WXAgg')
