@@ -6,6 +6,8 @@ class Clusterize(wx.Panel):
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.labels = list()
+        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))
+        self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
         self.__do_layout()
 
     def get_data(self):
@@ -71,11 +73,16 @@ class Clusterize(wx.Panel):
             self.fig.colorbar(p)
             self.canvas.draw()
 
+    def save_fig(self, event):
+        self.fig.savefig('Avg_FreqResp.png')
+
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER)
 
         sizer_1.AddSpacer(5)
+        
+        sizer_1.Add(self.save_button, wx.ALIGN_CENTER)
 
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
