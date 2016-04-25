@@ -62,7 +62,11 @@ class Analyze(wx.Panel):
                     ii = int(ii)
                     count = len(datum[np.where((datum < time_space[ii + 1]) & (datum > time_space[ii]))])
                     freq[neuron, ii] = np.divide(count, delta)
-            freq = zscore(freq, 1)
+            # freq = zscore(freq, 1)
+            fmean = np.mean(freq, 1)
+            fstd = np.std(freq, 1)
+            freq = np.array((freq - np.expand_dims(fmean, axis=1)) /
+                   np.expand_dims(fstd,axis=1))
             freq = (1.000 + np.tanh(freq)) / 2.000
             return freq
 

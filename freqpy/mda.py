@@ -12,7 +12,7 @@ class MDA:
             data = data.T
         self.data = data
         self.labels = labels
-        self.nr_classes = max(set(labels))
+        self.nr_classes = int(max(set(labels)))
         self.nr_repetitions = self.data.shape[0]
         self.nvar = self.data.shape[1]
 
@@ -48,6 +48,7 @@ class MDA:
         sw_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sw_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
+            ii = int(ii)
             diff_array = self.trainingData[self.trainingLabels==ii, :] - means[ii-1,:]
             sw_exp[:, :, ii-1] = np.cov(diff_array.T)
             sw_0 = sw_0 + sw_exp[:, :, ii-1]
@@ -59,6 +60,7 @@ class MDA:
         sb_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sb_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
+            ii = int(ii)
             sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans).T), 
                                              np.subtract(means[ii-1,:], gmeans))
             sb_0 = sb_0 + sb_exp[:, :, ii-1]

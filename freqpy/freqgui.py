@@ -133,7 +133,7 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
         return centers, classes, frame_no
     return centers, classes
 
-def save_anim():
+def save_anim(data_dir):
     try:
         os.mkdir('./tmp')
     except Exception:
@@ -148,7 +148,7 @@ def save_anim():
     projected = bezier(projected)
 
     labels = input_dict['labels']
-    waveform = np.loadtxt('.\Data\waveform.txt')
+    waveform = np.loadtxt(data_dir+'waveform.txt')
     dpi = int(input_dict['dpi'])
 
     fig = plt.figure(figsize=(6, 6), dpi=dpi)
@@ -243,6 +243,7 @@ class MainFrame(wx.Frame):
 
         self.neurons = list()
         self.conditions = list()
+        self.data_dir = ''
 
         p = wx.Panel(self)
         self.nb = wx.Notebook(p)
@@ -290,8 +291,9 @@ class MainFrame(wx.Frame):
             tf.write('ax_labels:' + str(ax_labels) +'\n') 
             tf.write('outmoviename:' + out_movie + '\n')
             tf.write('DPI:' + str(dpi) + '\n')
-        pool = Pool(processes=cpu_count()*2)
-        pool.apply_async(save_anim)
+        # pool = Pool(processes=cpu_count()*2)
+        # pool.apply_async(save_anim)
+        save_anim()
         pool.close()
 
     def check_page(self, event):
@@ -313,6 +315,7 @@ class MainFrame(wx.Frame):
                 delim = win_delim
             elif sys.platform[0:3] == "dar":
                 delim = dar_delim
+            data_dir = dialog.GetPath() + delim
             files_ = [os.path.abspath(dialog.GetPath()+delim+ff) for ff in os.listdir(dialog.GetPath())]
             files = [f.split(delim)[-1] for f in files_]
             data_files = [f for f in files if all(fl.isdigit() for fl in f.split('D_')[0]) and f.split('.')[-1]=='txt' \
@@ -321,8 +324,6 @@ class MainFrame(wx.Frame):
             label_files = [f for f in files if all(fl.isalpha() for fl in f.split('_')[0]) and f.split('.')[-1]=='txt' \
                            and 'labels' in f.lower()]
             label_files = [lf for lf in files_ if lf.split(delim)[-1] in label_files]
-            # wave_files = [f for f in files if f.split('.')[-1]=='txt' and 'waveform' in f.lower()]
-            # wave_files = [wf for wf in files_ if wf.split(delim)[-1] in wave_files]
             for each in data_files:
                 self.import_files.listCtrl.Append([each.split(delim)[-1],'Frequency Data'])
                 self.import_files.neurons.append(os.path.normpath(each))
@@ -331,7 +332,10 @@ class MainFrame(wx.Frame):
                 self.import_files.conditions.append(os.path.normpath(each))
                 self.clusterize.labels.append(os.path.normpath(each))
                 self.compareize.labels.append(os.path.normpath(each))
-            # if len(wave_files) > 0: self.visualize.waveform = wave_files[0]
+            self.visualize.data_dir = data_dir
+            self.clusterize.data_dir = data_dir
+            self.compareize.data_dir = data_dir
+            self.data_dir = data_dir
             self.label_data.load_data(self.import_files.neurons)
             self.label_data.load_conditions(self.import_files.conditions)
             self.analyze.load_data(self.import_files.neurons)
@@ -347,7 +351,7 @@ class MainFrame(wx.Frame):
         dialog.Destroy()
 
 if __name__ == '__main__':
-    app = wx.App()
+    app = wx.App(False)
     app.frame = MainFrame()
     app.frame.Show()
     app.MainLoop()

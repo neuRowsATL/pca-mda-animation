@@ -6,6 +6,7 @@ class Compareize(wx.Panel):
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.labels = list()
+        self.data_dir = ''
         self.algList = ['jaccard', 'dbi', 'spca', 'cos']
         self.alg = 'jaccard'
         self.min_class = 5
@@ -19,9 +20,9 @@ class Compareize(wx.Panel):
 
     def get_data(self):
         fname = '_normalized_freq.txt'
-        dname = [f for f in os.listdir('./Data/') if fname in f]
+        dname = [f for f in os.listdir(self.data_dir) if fname in f]
         if len(dname) > 0:
-            data = np.loadtxt('./Data/'+dname[0])
+            data = np.loadtxt(self.data_dir+dname[0])
             if data.shape[0] < data.shape[1]: data = data.T
             return data
         return None
@@ -140,7 +141,7 @@ class Compareize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig('Class_sim_'+self.alg+'.png', dpi=200)
+        self.fig.savefig(self.data_dir.replace('Data','tmp')+'Class_sim_'+self.alg+'.png', dpi=200)
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)

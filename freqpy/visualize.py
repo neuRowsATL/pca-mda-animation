@@ -9,6 +9,7 @@ class Visualize(wx.Panel):
         self.colors = {'k': (0.0, 0.0, 0.0), 'b': (0.0, 0.0, 1.0), 'm': (0.75, 0, 0.75), 
                        'r': (1.0, 0.0, 0.0), 'y': (0.75, 0.75, 0), 'w': (1.0, 1.0, 1.0), 
                        'g': (0.0, 0.5, 0.0), 'c': (0.0, 0.75, 0.75)}
+        self.data_dir = ''
         self.vis_selected = False
         self.waveform = None
         self.data_arr = dict()
@@ -171,7 +172,7 @@ class Visualize(wx.Panel):
         self.out_movie = 'MDA_Anim.mp4'
         mda = MDA(data, labels)
         train_labels, y_train, test_labels, y_test = mda.fit_transform()
-        os.chdir('Data')
+        os.chdir(self.data_dir)
         np.savetxt('_mda_labels.txt', np.hstack((train_labels, test_labels)))
         np.savetxt('_mda_projected.txt', np.vstack((y_train[:, 0:3], y_test[:, 0:3])))
         os.chdir('..')
@@ -187,7 +188,7 @@ class Visualize(wx.Panel):
         kmeans = KMeans(n_clusters=len(set(labels)), random_state=0)
         kmeans.fit(projected)
         y_pred = kmeans.labels_
-        os.chdir('Data')
+        os.chdir(self.data_dir)
         np.savetxt('_kmeans_labels.txt', y_pred)
         np.savetxt('_kmeans_projected.txt', projected)
         os.chdir('..')

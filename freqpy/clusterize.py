@@ -5,6 +5,7 @@ class Clusterize(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
+        self.data_dir = ''
         self.labels = list()
         self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
@@ -12,9 +13,9 @@ class Clusterize(wx.Panel):
 
     def get_data(self):
         fname = '_normalized_freq.txt'
-        dname = [f for f in os.listdir('./Data/') if fname in f]
+        dname = [f for f in os.listdir(self.data_dir) if fname in f]
         if len(dname) > 0:
-            data = np.loadtxt('./Data/'+dname[0])
+            data = np.loadtxt(self.data_dir+dname[0])
             if data.shape[0] < data.shape[1]: data = data.T
             return data
         return None
@@ -74,7 +75,7 @@ class Clusterize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig('Avg_FreqResp.png')
+        self.fig.savefig(self.data_dir.replace('Data','tmp')+'Avg_FreqResp.png')
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
