@@ -61,7 +61,7 @@ class Compareize(wx.Panel):
         B_c = np.mean(B, 0)
         S_B = (1.0 / T_B) *  np.linalg.norm(B_c - B, p)
 
-        M_AB = np.linalg.norm(A - B, p)
+        M_AB = np.linalg.norm(A_c - B_c, p)
         if M_AB == 0.0: M_AB = 1e-6
         R_AB = float(S_A + S_B) / M_AB
 
@@ -73,8 +73,8 @@ class Compareize(wx.Panel):
         # 2001.
         
         min_class = self.min_class
-        pcaA = PCA(n_components=min_class)
-        pcaB = PCA(n_components=min_class)
+        pcaA = PCA(n_components=10)
+        pcaB = PCA(n_components=10)
         
         A_p = pcaA.fit_transform(A)
         B_p = pcaB.fit_transform(B)
