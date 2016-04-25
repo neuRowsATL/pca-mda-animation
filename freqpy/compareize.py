@@ -49,8 +49,8 @@ class Compareize(wx.Panel):
         # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
         p = 2
 
-        if A.size < B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
-        elif A.size > B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+        if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+        elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
         
         T_A = A.shape[0]
         A_c = np.mean(A, 0)
@@ -61,7 +61,7 @@ class Compareize(wx.Panel):
         S_B = (1.0 / T_B) *  np.linalg.norm(B_c - B, p)
 
         M_AB = np.linalg.norm(A - B, p)
-
+        if M_AB == 0.0: M_AB = 1e-6
         R_AB = float(S_A + S_B) / M_AB
 
         return (np.tanh(R_AB) + 1.0) / 2.0
@@ -70,10 +70,8 @@ class Compareize(wx.Panel):
         # A. Sinhal, D. Seborg.
         # Matching patterns from historical data using pca and distance similarity factors,
         # 2001.
+        
         min_class = self.min_class
-        if A.size < B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
-        elif A.size > B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
-
         pcaA = PCA(n_components=min_class)
         pcaB = PCA(n_components=min_class)
         
@@ -84,8 +82,8 @@ class Compareize(wx.Panel):
 
     def cosine_sim(self, A, B):
         # https://en.wikipedia.org/wiki/Cosine_similarity
-        if A.size < B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
-        elif A.size > B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+        if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+        elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
         return np.trace(np.dot(A.T, B)) / (np.linalg.norm(A)*np.linalg.norm(B))
 
     def compare(self):
@@ -142,7 +140,7 @@ class Compareize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig('Class_sim_'+self.alg+'.png')
+        self.fig.savefig('Class_sim_'+self.alg+'.png', dpi=200)
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
