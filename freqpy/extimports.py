@@ -32,6 +32,7 @@ from mpl_toolkits.mplot3d.art3d import Path3DCollection
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.text import Text
 from matplotlib.lines import Line2D
+from matplotlib import cm as CM
 
 import numpy as np
 import pylab as plt
