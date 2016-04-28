@@ -6,10 +6,8 @@ import random
 import sys
 import itertools
 import time
+from operator import itemgetter
 
-# import logging, multiprocessing
-# multiprocessing = multiprocessing.log_to_stderr()
-# multiprocessing.setLevel(logging.DEBUG)
 from multiprocessing import Pool, cpu_count
 import subprocess
 
@@ -17,6 +15,7 @@ import subprocess
 import wx
 
 from scipy.stats import entropy
+
 
 import matplotlib
 matplotlib.use('WXAgg')
@@ -40,6 +39,8 @@ from ellipsoid import EllipsoidTool
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_samples, silhouette_score
+from sklearn.mixture import GMM
 
-# from cluster_match import cluster_match, update_klabels
+
 from smoothing import bezier

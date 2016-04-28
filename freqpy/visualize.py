@@ -58,7 +58,7 @@ class Visualize(wx.Panel):
 
          # Algorithm selection
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
-        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means"])
+        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means", "GMM"])
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice)
 
@@ -135,6 +135,7 @@ class Visualize(wx.Panel):
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')
+        if selected_dat.shape[0] < selected_dat.shape[1]: selected_dat = selected_dat.T
         if len(self.cond_arr.keys()) < 1 and selected_alg in ['ICA', 'PCA', 'MDA']:
             print("Please select both frequency and labels.")
             return
@@ -146,12 +147,11 @@ class Visualize(wx.Panel):
                 self.mda_selected(selected_dat, selected_labels)
             if selected_alg == 'ICA':
                 self.ica_selected(selected_dat, selected_labels)
-        elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and \
-         selected_alg == 'k-Means':
-            self.kmeans_selected(selected_dat)
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and \
          selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat, labels=selected_labels)
+        elif selected_alg == 'GMM':
+            self.gmm_selected(selected_dat, labels=selected_labels)
 
     def pca_selected(self, data, labels):
         self.title_ = 'PCA'
@@ -184,13 +184,28 @@ class Visualize(wx.Panel):
         self.out_movie = 'Kmeans_Anim.mp4'
         X = selected_data
         pca = PCA(n_components=3)
-        projected = pca.fit_transform(X.T)
+        projected = pca.fit_transform(X)
         kmeans = KMeans(n_clusters=len(set(labels)), random_state=0)
         kmeans.fit(projected)
         y_pred = kmeans.labels_
         os.chdir(self.data_dir)
         np.savetxt('_kmeans_labels.txt', y_pred)
         np.savetxt('_kmeans_projected.txt', projected)
+        os.chdir('..')
+
+    def gmm_selected(self, selected_data, labels=None):
+        self.title_ = 'GMM (PCA)'
+        self.ax_labels = ['PC1', 'PC2', 'PC3']
+        self.labels = labels
+        self.out_movie = 'GMM_Anim.mp4'
+        X = selected_data
+        pca = PCA(n_components=3)
+        projected = pca.fit_transform(X)
+        gmm = GMM(n_components=len(set(labels)), random_state=0)
+        y_pred = gmm.fit_predict(projected)
+        os.chdir(self.data_dir)
+        np.savetxt('_gmm_labels.txt', y_pred)
+        np.savetxt('_gmm_projected.txt', projected)
         os.chdir('..')
 
     def class_creation(self, labels, data):

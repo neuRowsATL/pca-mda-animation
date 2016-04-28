@@ -26,12 +26,14 @@ def opener(names):
     if of['title'] == 'PCA':
         os.chdir('Data')
         of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
+        if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
         os.chdir('..')
         pca = PCA(n_components=3)
-        of['projected'] = pca.fit_transform(of['data'].T)
+        of['projected'] = pca.fit_transform(of['data'])
     elif of['title'] == 'ICA':
         os.chdir('Data')
         of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
+        if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
         os.chdir('..')
         ica = FastICA(n_components=3)
         of['projected'] = ica.fit_transform(of['data'].T)

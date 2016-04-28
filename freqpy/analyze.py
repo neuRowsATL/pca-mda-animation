@@ -35,7 +35,7 @@ class Analyze(wx.Panel):
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
-        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "k-Means"])
+        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "k-Means", "GMM"])
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
@@ -144,7 +144,8 @@ class Analyze(wx.Panel):
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')
-        labelled_data = self.class_creation(selected_labels, selected_dat)
+        # labelled_data = self.class_creation(selected_labels, selected_dat)
+        if selected_dat.shape[0] < selected_dat.shape[1]: selected_dat = selected_dat.T
         if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
             print("To use MDA or PCA, please select both frequency and labels.")
             return
@@ -153,10 +154,10 @@ class Analyze(wx.Panel):
                 self.pca_selected(selected_dat, selected_labels)
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
-        elif len(self.data_arr.keys()) > 0 and len(self.cond_arr.keys()) < 1 and selected_alg == 'k-Means':
-            self.kmeans_selected(selected_dat)
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
             self.kmeans_selected(selected_dat, labels=selected_labels)
+        elif selected_alg == 'GMM':
+            self.gmm_selected(selected_dat, labels=selected_labels)
 
     def init_plot(self):
         self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
@@ -180,11 +181,9 @@ class Analyze(wx.Panel):
 
     def pca_selected(self, data, labels, toplot=True):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-        """ TODO: Correct... the PCA needs to be done before splitting classes.
-                  That's why it looks so different from kMeans.
-        """
+        if data.shape[0] < data.shape[1]: data = data.T
         pca = PCA(n_components=3)
-        projected = pca.fit_transform(data.T)
+        projected = pca.fit_transform(data)
         for class_label in set(labels):
             projected_class = projected[labels==class_label,:]
             x = projected_class[:, 0]
@@ -227,27 +226,34 @@ class Analyze(wx.Panel):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         X = selected_data
         pca = PCA(n_components=3)
-        projected = pca.fit_transform(X.T)
-        kmeans = KMeans(n_clusters=len(set(labels)), random_state=0)
-        kmeans.fit(projected)
-        y_pred = kmeans.labels_
-
-        # match_dict = cluster_match(labels, projected, y_pred, kmeans.cluster_centers_)
-        # y_pred = update_klabels(y_pred, match_dict)
-        
+        projected = pca.fit_transform(X)
+        range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
+        avgs = list()
+        for k in range_n_clusters:
+            kmeans = KMeans(n_clusters=k, random_state=0)
+            cluster_labels = kmeans.fit_predict(X)
+            sil_avg = silhouette_score(X, cluster_labels)
+            avgs.append((k, sil_avg))
+        best_k = max(avgs, key=itemgetter(1))
+        km = KMeans(n_clusters=best_k[0], random_state=0)
+        y_pred = km.fit_predict(projected, labels)
         # KMeans plot
-        # for ki in set(y_pred):
-        #     kclass = projected[y_pred==ki,:]
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                               c=y_pred, marker='o', s=30)
-        
-        
-        # for ii in set(labels):
-        #     curr_proj = projected[labels==ii, :]
-        #     center, radii, rotation = EllipsoidTool().getMinVolEllipse(curr_proj)
-        #     EllipsoidTool().plotEllipsoid(center, radii, 
-        #                                   rotation, ax=self.axes, plotAxes=False, 
-        #                                   cageColor=color_list[int(ii)-1], cageAlpha=0.1)
+        self.canvas.draw()
+
+    def gmm_selected(self, selected_data, labels=None):
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        X = selected_data
+        pca = PCA(n_components=3)
+        projected = pca.fit_transform(X)
+
+        gmm = GMM(n_components=7, random_state=0, covariance_type='diag')
+        y_pred = gmm.fit_predict(projected, labels)
+        # GMM plot
+        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
+                              c=y_pred, marker='o', s=30)
+    
         self.canvas.draw()
 
     def class_creation(self, labels, data):
