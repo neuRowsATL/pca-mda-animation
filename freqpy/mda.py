@@ -22,6 +22,7 @@ class MDA:
         means = np.empty((self.nr_classes, self.nvar))
         stds = np.empty((self.nr_classes, self.nvar))
         for ii in classes:
+            ii = int(ii)
             means[ii-1, :] = np.mean(data[labels==ii,:], 0)
             stds[ii-1, :] = np.std(data[labels==ii,:], 0)
         return weights, means, stds

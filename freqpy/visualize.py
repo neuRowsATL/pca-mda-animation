@@ -14,6 +14,7 @@ class Visualize(wx.Panel):
         self.waveform = None
         self.data_arr = dict()
         self.cond_arr = dict()
+        self.in_args = tuple()
         self.lb_arr = list()
         self.lb_condarr = list()
         self.neurons = list()
@@ -23,12 +24,15 @@ class Visualize(wx.Panel):
         self.save_button = wx.Button(self, -1, "Export as MPEG.", size=(800, 100))
         self.__do_layout()
 
+    def set_inargs(self, intup):
+        self.in_args = intup
+
     def init_viz(self):
         try:
             init_dat = self.data_arr[self.data_arr.keys()[0]]
-            init_labels = self.cond_arr[self.cond_arr.keys()[0]]
-            labelled_data = self.class_creation(init_labels, init_dat)
-            self.pca_selected(labelled_data, init_labels)
+            init_labels = self.cond_arr[self.cond_arr.keys()[0]][self.in_args]
+            # labelled_data = self.class_creation(init_labels, init_dat)
+            self.pca_selected(labels=init_labels)
         except IndexError:
             pass
 
@@ -119,7 +123,8 @@ class Visualize(wx.Panel):
         elif t == 'Cond':
             for ii, _ in enumerate(self.cond_arr.keys()):
                 if self.cond_arr.keys()[ii].split('\\')[-1] == keyname:
-                    init_arr = self.cond_arr[_]
+                    init_arr = self.cond_arr[_][self.in_args]
+                    np.savetxt(self.data_dir+'inlier_labels.txt', init_arr)
                     break
         return init_arr
 
@@ -153,7 +158,7 @@ class Visualize(wx.Panel):
         elif selected_alg == 'GMM':
             self.gmm_selected(selected_dat, labels=selected_labels)
 
-    def pca_selected(self, data, labels):
+    def pca_selected(self, labels, data=None):
         self.title_ = 'PCA'
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels

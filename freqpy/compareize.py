@@ -6,6 +6,7 @@ class Compareize(wx.Panel):
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.labels = list()
+        self.in_args = tuple()
         self.data_dir = ''
         self.algList = ['Chung-Capps Index', 'dbi', 'spca', 'cos']
         self.alg = 'Chung-Capps Index'
@@ -17,6 +18,10 @@ class Compareize(wx.Panel):
         self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
         self.__do_layout()
+
+    def set_inargs(self, intup):
+        self.in_args = intup
+        # print('compareize', self.in_args)
 
     def get_data(self):
         fname = '_normalized_freq.txt'
@@ -68,10 +73,9 @@ class Compareize(wx.Panel):
         
         # compute cosine similarity
         cs = self.cosine_sim(A, B)
-        
-        diff = np.linalg.norm(A - B)
 
         with np.errstate(divide='ignore'):
+            diff = np.linalg.norm(A - B)
             step2 =  np.sum(np.std(A) + np.std(B)) / diff
             if np.isinf(step2): step2 = 1.0
 
@@ -105,7 +109,7 @@ class Compareize(wx.Panel):
                 'dbi': self.davies_bouldin_index,
                 'Chung-Capps Index': self.chung_capps_index
                 }
-        labels = np.loadtxt(self.labels[0])
+        labels = np.loadtxt(self.labels[0])[self.in_args]
         data = self.get_data()
         if data is not None:
             self.min_class = min([list(labels).count(i) for i in range(1, 1+len(set(labels)))])
@@ -134,13 +138,15 @@ class Compareize(wx.Panel):
             labels = np.loadtxt(self.labels[0])
             self.fig.clf()
             ax = self.fig.add_subplot(111)
+
             ax.set_title('Metric:\n' + titles[self.alg], size=7)
+
             mask = np.tri(comparison.shape[0], k=-1)
-            comparison = np.ma.array(comparison, mask=mask)
+            comparison_masked = np.ma.array(comparison.copy(), mask=mask)
             cmap = CM.get_cmap('jet', 10)
             cmap.set_bad('#eeefff')
-            print(comparison)
-            p = ax.pcolormesh(comparison, vmin=np.min(comparison), vmax=np.max(comparison))
+            p = ax.pcolormesh(comparison_masked, vmin=np.min(comparison), vmax=np.max(comparison))
+
             ax.set_xticks(np.arange(comparison.shape[1])+0.5, minor=False)
             ax.set_yticks(np.arange(comparison.shape[0])+0.5, minor=False)
             ax.set_xticklabels(self.waveforms(), minor=False)
@@ -151,8 +157,26 @@ class Compareize(wx.Panel):
 
             ax.set_xlabel('Class 1', size=6)
             ax.set_ylabel('Class 2', size=6)
+
+            for xmaj in ax.xaxis.get_majorticklocs():
+              ax.axvline(x=xmaj-0.5,ls='-',c='k')
+            for xmin in ax.xaxis.get_minorticklocs():
+              ax.axvline(x=xmin-0.5,ls='--',c='k')
+
+            for ymaj in ax.yaxis.get_majorticklocs():
+              ax.axhline(y=ymaj-0.5,ls='-',c='k')
+            for ymin in ax.yaxis.get_minorticklocs():
+              ax.axhline(y=ymin-0.5,ls='--',c='k')
+
+            # np.ma.set_fill_value(comparison_masked, np.nan)
+            for cx in range(comparison_masked.shape[0]):
+                for cy in range(comparison_masked.shape[0]):
+                    if cx >= cy:
+                        ax.annotate('%.3f' % round(comparison_masked[cy, cx], 3), xy=(cx, cy), xytext=(cx+0.25, cy+0.25), fontsize=5, color='w')
+            
             cbar = self.fig.colorbar(p)
             cbar.ax.tick_params(labelsize=5)
+
             self.fig.tight_layout()
             self.canvas.draw()
 

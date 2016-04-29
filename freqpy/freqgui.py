@@ -12,7 +12,7 @@ def opener(names):
         if name == '_tmp.txt':
             with open(name, 'r') as nf:
                 df[name] = [line for line in nf]
-        elif 'labels' in name:
+        elif 'labels' in name and 'inlier' in name:
             df[name] = np.loadtxt(name)
     of = dict()
     for k, it in df.items():
@@ -246,6 +246,7 @@ class MainFrame(wx.Frame):
         self.neurons = list()
         self.conditions = list()
         self.data_dir = ''
+        self.in_args = tuple()
 
         p = wx.Panel(self)
         self.nb = wx.Notebook(p)
@@ -343,6 +344,11 @@ class MainFrame(wx.Frame):
             self.analyze.load_data(self.import_files.neurons)
             self.analyze.load_conditions(self.import_files.conditions)
             self.analyze.init_plot()
+            the_inargs = self.analyze.in_args
+            self.in_args = the_inargs
+            self.visualize.set_inargs(the_inargs)
+            self.clusterize.set_inargs(the_inargs)
+            self.compareize.set_inargs(the_inargs)
             self.clusterize.plotting()
             self.compareize.plotting()
             self.visualize.load_data(self.import_files.neurons)

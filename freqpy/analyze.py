@@ -14,6 +14,7 @@ class Analyze(wx.Panel):
         self.lb_condarr = list()
         self.neurons = list()
         self.conditions = list()
+        self.in_args = tuple()
         self.create_listbox()
         self.__do_layout()
 
@@ -35,7 +36,7 @@ class Analyze(wx.Panel):
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
-        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "k-Means", "GMM"])
+        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means (PCA)", "GMM (PCA)"])
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
@@ -51,8 +52,6 @@ class Analyze(wx.Panel):
         vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         if len(vals) > 0:
             time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
-            # wave_space = np.zeros((time_space.shape))
-            # np.savetxt('Data/wave_space.txt', wave_space)
             delta = time_space[1] - time_space[0]
             time_space = np.insert(time_space, 0, time_space[0] - delta)
             time_space = np.insert(time_space, -1, time_space[-1] + delta)
@@ -62,12 +61,30 @@ class Analyze(wx.Panel):
                     ii = int(ii)
                     count = len(datum[np.where((datum < time_space[ii + 1]) & (datum > time_space[ii]))])
                     freq[neuron, ii] = np.divide(count, delta)
-            # freq = zscore(freq, 1)
             fmean = np.mean(freq, 1)
             fstd = np.std(freq, 1)
             freq = np.array((freq - np.expand_dims(fmean, axis=1)) /
                    np.expand_dims(fstd,axis=1))
             freq = (1.000 + np.tanh(freq)) / 2.000
+            freq = freq.T
+            np.random.seed(0)
+            train_ix = np.random.random_integers(0, len(freq)-1, int(0.4*len(freq)))
+            test_ix = np.in1d(np.asarray(list(range(0, len(freq)))), train_ix, invert=True)
+            X_train = freq[train_ix,:]
+            X_test = freq[test_ix,:]
+            # svm = OneClassSVM(random_state=0, kernel='rbf', nu=0.01)
+            # svm.fit(X_train)
+            # y_pred_train = svm.predict(X_train)
+            # y_pred_test = svm.predict(X_test)
+            # y_pred = svm.predict(freq)
+
+            # n_error_train = y_pred_train[y_pred_train == -1].shape[0] / float(X_train.shape[0])
+            # n_error_test = y_pred_test[y_pred_test == -1].shape[0] / float(X_test.shape[0])
+            # print(n_error_train, n_error_test)
+
+            # self.in_args = np.where(y_pred_test == 1)
+            # print(len(y_pred_test == 1))
+            # return X_test[self.in_args]
             return freq
 
     def load_data(self, filenames):
@@ -81,7 +98,8 @@ class Analyze(wx.Panel):
                     data.update({ii: datum})
             freq = self.to_freq(data)
             self.data_arr.update({tagname: freq})
-            np.savetxt(tagname + "_normalized_freq.txt", freq)
+            save_name = tagname + "_normalized_freq.txt"
+            np.savetxt(save_name, freq)
             if self.t == 0:
                 self.init_plot()
                 self.t += 1
@@ -115,20 +133,19 @@ class Analyze(wx.Panel):
             for ii, _ in enumerate(self.data_arr.keys()):
                 if self.data_arr.keys()[ii].split('\\')[-1].split('_')[0] == keyname:
                     init_arr = self.data_arr[_]
-                    break
+                    return init_arr
         elif t == 'Cond':
             for ii, _ in enumerate(self.cond_arr.keys()):
                 if self.cond_arr.keys()[ii].split('\\')[-1] == keyname:
                     init_arr = self.cond_arr[_]
-                    break
-        return init_arr
+                    return init_arr[self.in_args]
 
     def get_selection(self, box, t):
         selected = [box.GetString(box.GetSelection())]
         selarr = dict()
-        if len(selected) == 1:
-            sel = selected[0]
-            selarr = self.get_current(sel, t=t)
+        # if len(selected) == 1:
+        sel = selected[0]
+        selarr = self.get_current(sel, t=t)
         return selarr
 
     def plot_selected(self, event):
@@ -144,7 +161,7 @@ class Analyze(wx.Panel):
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')
-        # labelled_data = self.class_creation(selected_labels, selected_dat)
+        # selected_labels = selected_labels[self.in_args]
         if selected_dat.shape[0] < selected_dat.shape[1]: selected_dat = selected_dat.T
         if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
             print("To use MDA or PCA, please select both frequency and labels.")
@@ -154,10 +171,12 @@ class Analyze(wx.Panel):
                 self.pca_selected(selected_dat, selected_labels)
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
-        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means':
+        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (PCA)':
             self.kmeans_selected(selected_dat, labels=selected_labels)
-        elif selected_alg == 'GMM':
+        elif selected_alg == 'GMM (PCA)':
             self.gmm_selected(selected_dat, labels=selected_labels)
+        elif selected_alg == 'ICA':
+            self.ica_selected(selected_dat, selected_labels)
 
     def init_plot(self):
         self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
@@ -171,8 +190,8 @@ class Analyze(wx.Panel):
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
         init_dat = self.data_arr[self.data_arr.keys()[0]]
         try:
-            init_labels = self.cond_arr[self.cond_arr.keys()[0]]
-            labelled_data = self.class_creation(init_labels, init_dat)
+            init_labels = self.cond_arr[self.cond_arr.keys()[0]][self.in_args]
+            # labelled_data = self.class_creation(init_labels, init_dat)
             color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
             self.pca_selected(init_dat, init_labels, toplot=True)
             self.legend = self.axes.legend(frameon=True, loc='upper left', scatterpoints=1, ncol=2, fontsize=8, bbox_to_anchor=(0, 0))
@@ -184,6 +203,24 @@ class Analyze(wx.Panel):
         if data.shape[0] < data.shape[1]: data = data.T
         pca = PCA(n_components=3)
         projected = pca.fit_transform(data)
+        for class_label in set(labels):
+            projected_class = projected[labels==class_label,:]
+            x = projected_class[:, 0]
+            y = projected_class[:, 1]
+            z = projected_class[:, 2]
+            if toplot:
+                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                                  marker='o', edgecolor='k', label=str(int(class_label)))
+                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
+        self.canvas.draw()
+
+    def ica_selected(self, data, labels, toplot=True):
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        if data.shape[0] < data.shape[1]: data = data.T
+        ica = FastICA(n_components=3, max_iter=1000)
+        projected = ica.fit_transform(data)
         for class_label in set(labels):
             projected_class = projected[labels==class_label,:]
             x = projected_class[:, 0]

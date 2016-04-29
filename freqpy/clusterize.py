@@ -7,9 +7,14 @@ class Clusterize(wx.Panel):
         self.canvas = FigCanvas(self, -1, self.fig)
         self.data_dir = ''
         self.labels = list()
+        self.in_args = tuple()
         self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
         self.__do_layout()
+
+    def set_inargs(self, intup):
+        self.in_args = intup
+        # print('clusterize', self.in_args)
 
     def get_data(self):
         fname = '_normalized_freq.txt'
@@ -23,6 +28,7 @@ class Clusterize(wx.Panel):
     def clustering(self):
         data = self.get_data()
         labels = np.loadtxt(self.labels[0])
+        labels = labels[self.in_args]
         if data is not None:
             freq_changes = list()
             # Assuming label 1 is no_sim
@@ -57,6 +63,7 @@ class Clusterize(wx.Panel):
         fchanges = self.sort_cluster(self.clustering())
         if fchanges is not None:
             labels = np.loadtxt(self.labels[0])
+            labels = labels[self.in_args]
             ax = self.fig.add_subplot(111)
             ax.set_title('Average Change in Frequency')
             p = ax.pcolormesh(fchanges)

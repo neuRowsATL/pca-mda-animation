@@ -33,6 +33,7 @@ from mpl_toolkits.mplot3d import proj3d
 from matplotlib.text import Text
 from matplotlib.lines import Line2D
 from matplotlib import cm as CM
+import matplotlib.ticker as plticker 
 
 import numpy as np
 import pylab as plt
@@ -42,6 +43,8 @@ from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.mixture import GMM
+from sklearn.covariance import EllipticEnvelope
+from sklearn.svm import OneClassSVM
 
 
 from smoothing import bezier
