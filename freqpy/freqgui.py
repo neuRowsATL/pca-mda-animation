@@ -270,7 +270,7 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
-        self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
+        # self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
         self.nb.AddPage(self.clusterize, "Clusterize")
         self.nb.AddPage(self.compareize, "Compare-ize")
 
