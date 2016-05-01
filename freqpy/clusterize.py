@@ -54,11 +54,15 @@ class Clusterize(wx.Panel):
         return list(waveform_names.values())
 
     def sort_cluster(self, freqs):
-        thresh = 0.16
-        # fmap = freqs > thresh
-        alist = np.sum(freqs, 1)
-        # alist = np.lexsort([freqs[:, i] for i in range(freqs.shape[1])])
-        return np.flipud(freqs[alist.argsort(), :])
+        thresh = np.mean(freqs) + np.std(freqs)
+        w = np.where(freqs > thresh)
+        w = [(w[0][i], w[1][i]) for i in range(len(w[0]))]
+        order = list()
+        for r in range(freqs.shape[0]):
+            cols = [ww[1]*10 for ww in w if ww[0] == r]
+            order.append(sum(cols))
+        order = np.array(order)
+        return np.flipud(freqs[order.argsort(), :])
 
     def plotting(self):
         fchanges = self.sort_cluster(self.clustering())
