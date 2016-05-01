@@ -42,8 +42,7 @@ class Analyze(wx.Panel):
 
     def to_freq(self, data):
         nr_pts = 1e3
-        """ Could try setting this up to create a data array at the beginning.
-        """
+
         vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         for neuron, values in data.items():
             std_thresh = np.std(values) * 2

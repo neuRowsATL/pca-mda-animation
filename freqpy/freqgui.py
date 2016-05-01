@@ -135,9 +135,9 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
         return centers, classes, frame_no
     return centers, classes
 
-def save_anim(data_dir):
+def save_anim(data_dir, export_dir):
     try:
-        os.mkdir('./tmp')
+        os.mkdir(export_dir+'tmp')
     except Exception:
         pass
     waveform_list = waveforms()
@@ -178,7 +178,7 @@ def save_anim(data_dir):
                     projected[range_curr:range_curr+1, 2]]
     last_color = color_list[0]
 
-    os.chdir('./tmp')
+    os.chdir(export_dir+'tmp')
     filenames = list()
     
     fig.canvas.blit()
@@ -230,22 +230,35 @@ def save_anim(data_dir):
               '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + out_movie
     subprocess.call(command, shell=True)
 
-    dial = wx.MessageDialog(None, 'Exported Video: %s' % './tmp/' + out_movie, 'Done!', wx.OK)
+    dial = wx.MessageDialog(None, 'Exported Video: %s' % export_dir+'/tmp/' + out_movie, 'Done!', wx.OK)
     dial.ShowModal()
 
     for fi in filenames:
         os.remove(fi)
     os.chdir('..')
 
+def on_save(event):
+            dialog = wx.FileDialog(self, message="Select Export Directory", style=wx.FD_SAVE)
+            self.export_dir = dialog.GetPath()
+            win_delim = "\\"
+            dar_delim = "/"
+            if sys.platform[0:3] == "win":
+                delim = win_delim
+            elif sys.platform[0:3] == "dar":
+                delim = dar_delim
+            self.export_dir = self.export_dir+delim
+
 class MainFrame(wx.Frame):
     def __init__(self):
 
         wx.Frame.__init__(self, None, title="FreqPy", size=(800, 800))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+        wx.CallAfter(on_save)
 
         self.neurons = list()
         self.conditions = list()
         self.data_dir = ''
+        self.export_dir = ''
         self.in_args = tuple()
 
         p = wx.Panel(self)
@@ -270,9 +283,11 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
-        # self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
         self.nb.AddPage(self.clusterize, "Clusterize")
         self.nb.AddPage(self.compareize, "Compare-ize")
+
+        self.clusterize.export_dir = self.export_dir
+        self.compareize.export_dir = self.export_dir
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
@@ -297,7 +312,7 @@ class MainFrame(wx.Frame):
             tf.write('DPI:' + str(dpi) + '\n')
         # pool = Pool(processes=cpu_count()*2)
         # pool.apply_async(save_anim)
-        save_anim(self.data_dir)
+        save_anim(self.data_dir, self.export_dir)
         pool.close()
 
     def on_add_file(self, event):

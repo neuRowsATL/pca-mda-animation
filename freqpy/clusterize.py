@@ -6,6 +6,7 @@ class Clusterize(wx.Panel):
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
         self.data_dir = ''
+        self.export_dir = ''
         self.labels = list()
         self.in_args = tuple()
         self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))

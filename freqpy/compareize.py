@@ -8,6 +8,7 @@ class Compareize(wx.Panel):
         self.labels = list()
         self.in_args = tuple()
         self.data_dir = ''
+        self.export_dir = ''
         self.algList = ['Chung-Capps Index', 'dbi', 'spca', 'cos']
         self.alg = 'Chung-Capps Index'
         self.min_class = 5
