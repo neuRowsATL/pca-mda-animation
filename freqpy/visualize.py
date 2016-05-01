@@ -10,6 +10,9 @@ class Visualize(wx.Panel):
                        'r': (1.0, 0.0, 0.0), 'y': (0.75, 0.75, 0), 'w': (1.0, 1.0, 1.0), 
                        'g': (0.0, 0.5, 0.0), 'c': (0.0, 0.75, 0.75)}
         self.data_dir = ''
+        self.title_ = ''
+        self.out_movie = ''
+        self.ax_labels = list()
         self.vis_selected = False
         self.waveform = None
         self.data_arr = dict()
@@ -57,9 +60,11 @@ class Visualize(wx.Panel):
         # Choose files
         self.lbtitle = wx.StaticText(self, -1, "Choose Frequency Data:", (80, 10))
         self.lb = wx.Choice(self, -1, (80, 50), wx.DefaultSize, sampleList)
+        self.lb.SetSelection(0)
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
-
+        self.lb_cond.SetSelection(0)
+        
          # Algorithm selection
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
         self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means", "GMM"])
@@ -136,7 +141,7 @@ class Visualize(wx.Panel):
             selarr = self.get_current(sel, t=t)
         return selarr
 
-    def plot_selected(self, event):
+    def plot_selected(self):
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')

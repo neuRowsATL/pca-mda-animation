@@ -142,7 +142,7 @@ def save_anim(data_dir):
         pass
     waveform_list = waveforms()
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-    input_dict = opener(['_tmp.txt', 'pdat_labels.txt', 'waveform.txt'])
+    input_dict = opener(['_tmp.txt', data_dir+'inlier_labels.txt', data_dir+'waveform.txt'])
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
 
@@ -270,7 +270,7 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
-        self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
+        # self.nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.check_page)
         self.nb.AddPage(self.clusterize, "Clusterize")
         self.nb.AddPage(self.compareize, "Compare-ize")
 
@@ -283,6 +283,7 @@ class MainFrame(wx.Frame):
         self.Destroy()
 
     def open_vis_thread(self, event):
+        self.visualize.plot_selected()
         title_ = self.visualize.title_
         ax_labels = self.visualize.ax_labels
         labels = self.visualize.labels
@@ -296,7 +297,7 @@ class MainFrame(wx.Frame):
             tf.write('DPI:' + str(dpi) + '\n')
         # pool = Pool(processes=cpu_count()*2)
         # pool.apply_async(save_anim)
-        save_anim()
+        save_anim(self.data_dir)
         pool.close()
 
     def check_page(self, event):
