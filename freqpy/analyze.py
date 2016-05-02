@@ -261,22 +261,55 @@ class Analyze(wx.Panel):
 
     def kmeans_selected(self, selected_data, labels=None):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        def cosine_sim(A, B):
+            # https://en.wikipedia.org/wiki/Cosine_similarity
+            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+            return np.trace(np.dot(A.T, B)) / (np.linalg.norm(A)*np.linalg.norm(B))
+        def chung_capps_index(A, B):
+            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+            # compute cosine similarity
+            cs = cosine_sim(A, B)
+            with np.errstate(divide='ignore'):
+                diff = np.linalg.norm(A - B)
+                step2 =  np.sum(np.std(A) + np.std(B)) / diff
+                if np.isinf(step2): step2 = 1.0
+            return cs * step2
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
         range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
-        avgs = list()
-        for k in range_n_clusters:
-            kmeans = KMeans(n_clusters=k, random_state=0)
-            cluster_labels = kmeans.fit_predict(X)
-            sil_avg = silhouette_score(X, cluster_labels)
-            avgs.append((k, sil_avg))
-        best_k = max(avgs, key=itemgetter(1))
-        km = KMeans(n_clusters=best_k[0], random_state=0)
+        # avgs = list()
+        # for k in range_n_clusters:
+        #     kmeans = KMeans(n_clusters=k, random_state=0)
+        #     cluster_labels = kmeans.fit_predict(X)
+        #     sil_avg = silhouette_score(X, cluster_labels)
+        #     avgs.append((k, sil_avg))
+        # best_k = max(avgs, key=itemgetter(1))
+        
+        # km = KMeans(n_clusters=best_k[0], random_state=0)
+        km = KMeans(n_clusters=len(set(labels)), random_state=0)
+        
         y_pred = km.fit_predict(projected, labels)
-        # KMeans plot
+
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
-                              c=y_pred, marker='o', s=30)
+                          c=y_pred, marker='o', s=30)
+        # complist = list()
+        # for alab in set(labels):
+        #     for blab in set(y_pred):
+        #         A = projected[labels==alab,:]
+        #         B = projected[y_pred==blab,:]
+        #         complist.append((alab, blab, chung_capps_index(A, B)))
+        # y_corr = y_pred.copy()
+        # for ll in set(y_pred):
+        #     clab = [li for li in complist if li[1] == ll]
+        #     best_c = max(clab, key=itemgetter(-1))
+        #     y_corr[y_corr==ll] = best_c[0]
+
+        # for ix, yl in enumerate(y_corr):
+        #     self.axes.scatter(projected[y_corr==yl, 0], projected[y_corr==yl, 1], projected[y_corr==yl, 2],
+        #                       c=col, marker='o', s=30)
         self.canvas.draw()
 
     def gmm_selected(self, selected_data, labels=None):
