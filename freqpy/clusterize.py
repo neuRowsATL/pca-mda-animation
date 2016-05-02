@@ -9,7 +9,7 @@ class Clusterize(wx.Panel):
         self.export_dir = ''
         self.labels = list()
         self.in_args = tuple()
-        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))
+        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 10))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
         self.__do_layout()
 
@@ -59,7 +59,7 @@ class Clusterize(wx.Panel):
         w = [(w[0][i], w[1][i]) for i in range(len(w[0]))]
         order = list()
         for r in range(freqs.shape[0]):
-            cols = [ww[1]*10 for ww in w if ww[0] == r]
+            cols = [ww[1] for ww in w if ww[0] == r]
             order.append(sum(cols))
         order = np.array(order)
         return np.flipud(freqs[order.argsort(), :])
@@ -87,7 +87,7 @@ class Clusterize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig(self.data_dir.replace('Data','tmp')+'Avg_FreqResp.png')
+        self.fig.savefig(self.export_dir+'Avg_FreqResp.png')
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)

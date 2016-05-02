@@ -8,11 +8,13 @@ import itertools
 import time
 from operator import itemgetter
 
-from multiprocessing import Pool, cpu_count
+# from multiprocessing import Pool, cpu_count
+from threading import Thread
 import subprocess
 
 
 import wx
+from wx.lib.pubsub import pub
 
 from scipy.stats import entropy
 

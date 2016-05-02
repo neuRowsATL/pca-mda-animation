@@ -5,6 +5,7 @@ from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
+from prog_diag import MyProgressDialog
 
 def opener(names):
     df = dict()
@@ -136,6 +137,7 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
     return centers, classes
 
 def save_anim(data_dir, export_dir):
+    t0 = time.time()
     try:
         os.mkdir(export_dir+'tmp')
     except Exception:
@@ -216,6 +218,7 @@ def save_anim(data_dir, export_dir):
         filename = '__frame%03d.png' % int(i)
         fig.savefig(filename, dpi='figure')
         filenames.append(filename)
+        wx.CallAfter(pub.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
 
     crf = 30
     reso = '1280x720'
@@ -227,38 +230,34 @@ def save_anim(data_dir, export_dir):
         reso = '5120x2880'
 
     command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 ' +\
-              '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + out_movie
+              '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + export_dir+out_movie
     subprocess.call(command, shell=True)
-
-    dial = wx.MessageDialog(None, 'Exported Video: %s' % export_dir+'/tmp/' + out_movie, 'Done!', wx.OK)
-    dial.ShowModal()
 
     for fi in filenames:
         os.remove(fi)
     os.chdir('..')
 
-def on_save(event):
-            dialog = wx.FileDialog(self, message="Select Export Directory", style=wx.FD_SAVE)
-            self.export_dir = dialog.GetPath()
-            win_delim = "\\"
-            dar_delim = "/"
-            if sys.platform[0:3] == "win":
-                delim = win_delim
-            elif sys.platform[0:3] == "dar":
-                delim = dar_delim
-            self.export_dir = self.export_dir+delim
+class SaveThread(Thread):
+    def __init__(self, func, args):
+        Thread.__init__(self)
+        self.func = func
+        self.args = args
+        self.start()
+
+    def run(self):
+        self.func(self.args[0], self.args[1])
+
 
 class MainFrame(wx.Frame):
     def __init__(self):
 
         wx.Frame.__init__(self, None, title="FreqPy", size=(800, 800))
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
-        # wx.CallAfter(on_save)
+        # self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.neurons = list()
         self.conditions = list()
-        self.data_dir = ''
-        self.export_dir = ''
+        self.data_dir = '.'
+        self.export_dir = '.'
         self.in_args = tuple()
 
         p = wx.Panel(self)
@@ -266,6 +265,7 @@ class MainFrame(wx.Frame):
 
         self.import_files = ImportFiles(self.nb)
         self.import_files.DataButton.Bind(wx.EVT_BUTTON, self.on_add_file)
+        self.import_files.SaveButton.Bind(wx.EVT_BUTTON, self.on_save)
 
         self.label_data = LabelData(self.nb)
 
@@ -286,16 +286,28 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.clusterize, "Clusterize")
         self.nb.AddPage(self.compareize, "Compare-ize")
 
-        self.clusterize.export_dir = self.export_dir
-        self.compareize.export_dir = self.export_dir
-
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
         p.SetSizer(sizer)
         self.Layout()
 
+    def on_save(self, event):
+        dialog = wx.DirDialog(self, message="Select Export Directory", style=wx.OPEN)
+        if dialog.ShowModal() == wx.ID_OK:
+            self.export_dir = dialog.GetPath()
+            win_delim = "\\"
+            dar_delim = "/"
+            if sys.platform[0:3] == "win":
+                delim = win_delim
+            elif sys.platform[0:3] == "dar":
+                delim = dar_delim
+            self.export_dir = self.export_dir+delim
+            self.clusterize.export_dir = self.export_dir
+            self.compareize.export_dir = self.export_dir
+
     def OnClose(self, event):
         self.Destroy()
+        self.Close(True)
 
     def open_vis_thread(self, event):
         self.visualize.plot_selected()
@@ -310,9 +322,15 @@ class MainFrame(wx.Frame):
             tf.write('ax_labels:' + str(ax_labels) +'\n') 
             tf.write('outmoviename:' + out_movie + '\n')
             tf.write('DPI:' + str(dpi) + '\n')
-        # pool = Pool(processes=cpu_count()*2)
-        # pool.apply_async(save_anim)
-        save_anim(self.data_dir)
+        # save_anim(self.data_dir, self.export_dir)
+        t0 = time.time()
+        save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir))
+        dlg = MyProgressDialog()
+        dlg.ShowModal()
+        t1 = time.time()
+        dial = wx.MessageDialog(None, 'Exported Video to: %s' % export_dir + out_movie, 'Done in %.3f seconds.' % round(t1 - t0, 3), wx.OK)
+        dial.ShowModal()
+        wx.CallAfter(save_thread.join())
 
     def on_add_file(self, event):
         dialog = wx.DirDialog(
@@ -368,7 +386,6 @@ class MainFrame(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App(False)
-    app.frame = MainFrame()
-    app.frame.Show()
+    frame = MainFrame()
+    frame.Show()
     app.MainLoop()
-    sys.exit()

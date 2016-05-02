@@ -43,11 +43,11 @@ class Analyze(wx.Panel):
     def to_freq(self, data):
         nr_pts = 1e3
 
-        vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
-        for neuron, values in data.items():
-            std_thresh = np.std(values) * 2
-            mean_val = np.mean(values)
-            data[neuron] = values[np.where((values <= mean_val + std_thresh) & (values >= mean_val - std_thresh))]
+        # vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
+        # for neuron, values in data.items():
+        #     std_thresh = np.std(values) * 2
+        #     mean_val = np.mean(values)
+        #     data[neuron] = values[np.where((values <= mean_val + std_thresh) & (values >= mean_val - std_thresh))]
         vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
         if len(vals) > 0:
             time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
@@ -66,16 +66,17 @@ class Analyze(wx.Panel):
                    np.expand_dims(fstd,axis=1))
             freq = (1.000 + np.tanh(freq)) / 2.000
             freq = freq.T
-            np.random.seed(0)
-            train_ix = np.random.random_integers(0, len(freq)-1, int(0.4*len(freq)))
-            test_ix = np.in1d(np.asarray(list(range(0, len(freq)))), train_ix, invert=True)
-            X_train = freq[train_ix,:]
-            X_test = freq[test_ix,:]
-            # svm = OneClassSVM(random_state=0, kernel='rbf', nu=0.01)
+
+            # np.random.seed(0)
+            # train_ix = np.random.random_integers(0, len(freq)-1, int(0.4*len(freq)))
+            # test_ix = np.in1d(np.asarray(list(range(0, len(freq)))), train_ix, invert=True)
+            # X_train = freq[train_ix,:]
+            # X_test = freq[test_ix,:]
+            # svm = OneClassSVM(random_state=0, kernel='rbf', nu=0.5)
             # svm.fit(X_train)
             # y_pred_train = svm.predict(X_train)
             # y_pred_test = svm.predict(X_test)
-            # y_pred = svm.predict(freq)
+            # # y_pred = svm.predict(freq)
 
             # n_error_train = y_pred_train[y_pred_train == -1].shape[0] / float(X_train.shape[0])
             # n_error_test = y_pred_test[y_pred_test == -1].shape[0] / float(X_test.shape[0])

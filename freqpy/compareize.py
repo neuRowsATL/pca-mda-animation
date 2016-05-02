@@ -182,7 +182,7 @@ class Compareize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig(self.data_dir.replace('Data','tmp')+'Class_sim_'+self.alg+'.png', dpi=200)
+        self.fig.savefig(self.export_dir+'Class_sim_'+self.alg+'.png', dpi=200)
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)

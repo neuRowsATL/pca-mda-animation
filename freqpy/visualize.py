@@ -141,7 +141,7 @@ class Visualize(wx.Panel):
             selarr = self.get_current(sel, t=t)
         return selarr
 
-    def plot_selected(self):
+    def plot_selected(self, event=None):
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
         selected_dat = self.get_selection(self.lb, t='Data')
         selected_labels = self.get_selection(self.lb_cond, t='Cond')

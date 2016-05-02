@@ -17,12 +17,16 @@ class ImportFiles(wx.Panel):
         self.listCtrl.SetColumnWidth(1, 100)
 
     def create_buttons(self):
-        self.DataButton = wx.Button(self, -1, "Import Data Folder")
+        self.DataButton = wx.Button(self, -1, "Select Data Folder")
+        self.SaveButton = wx.Button(self, -1, "Select Export Folder")
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.listCtrl, 1, wx.EXPAND, 0)
-        sizer_1.Add(self.DataButton, 0, wx.ALIGN_LEFT)
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        hsize.Add(self.DataButton, 0, wx.ALIGN_LEFT|wx.ALL)
+        hsize.Add(self.SaveButton, 0, wx.ALIGN_RIGHT|wx.ALL)
+        sizer_1.Add(hsize)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()
