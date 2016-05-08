@@ -211,9 +211,9 @@ class Analyze(wx.Panel):
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='o', edgecolor='k', label=str(int(class_label)))
-                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
+                # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+                #                             cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def ica_selected(self, data, labels, toplot=True):
@@ -229,9 +229,9 @@ class Analyze(wx.Panel):
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='o', edgecolor='k', label=str(int(class_label)))
-                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
+                # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+                #                             cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def mda_selected(self, data, labels):
@@ -254,9 +254,9 @@ class Analyze(wx.Panel):
             z = selected_projection[:, 2]
             self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
                       marker='o', edgecolor='k', label=str(ii))
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
-            EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                cageColor=color_list[int(ii)-1], cageAlpha=0.1)
+            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
+            # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+            #                     cageColor=color_list[int(ii)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None):
@@ -275,7 +275,22 @@ class Analyze(wx.Panel):
                 diff = np.linalg.norm(A - B)
                 step2 =  np.sum(np.std(A) + np.std(B)) / diff
                 if np.isinf(step2): step2 = 1.0
-            return cs * step2
+            return cs + step2
+            # return step2
+        def modified_cci(A, B):
+            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+            with np.errstate(divide='ignore'):
+                # diff = np.linalg.norm(A - B)
+                # diff = np.sum([abs(g0 - f0) for g0, f0 in zip(A, B)])
+                diff = np.sum(cdist(A, B, 'seuclidean'))
+                # kurtA = (A - np.expand_dims(np.mean(A, 0), 0))**3 / np.std(A, 0)**(3)
+                # kurtB = (B - np.expand_dims(np.mean(B, 0), 0))**3 / np.std(B, 0)**(3)
+                step2 =  np.sum(np.std(A, 0) + np.std(B, 0)) / diff
+                # step2 = np.sum(kurtA + kurtB) / diff
+                # if np.isinf(step2): step2 = 1.0
+            return step2
+
         def davies_bouldin_index(A, B):
             # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
             p = 2
@@ -320,7 +335,7 @@ class Analyze(wx.Panel):
         starts = list()
         for lll in set(labels):
             starts.append(np.mean(projected[labels==lll, :], 0))
-        km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts))
+        km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
         
         y_pred = km.fit_predict(projected, labels)
 
