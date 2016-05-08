@@ -276,10 +276,35 @@ class Analyze(wx.Panel):
                 step2 =  np.sum(np.std(A) + np.std(B)) / diff
                 if np.isinf(step2): step2 = 1.0
             return cs * step2
+        def davies_bouldin_index(A, B):
+            # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
+            p = 2
+
+            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+            
+            T_A = A.shape[0]
+            A_c = np.mean(A, 0)
+            S_A = (1.0 / T_A) * np.linalg.norm(A_c - A, p)
+
+            T_B = B.shape[0]
+            B_c = np.mean(B, 0)
+            S_B = (1.0 / T_B) *  np.linalg.norm(B_c - B, p)
+
+            M_AB = np.linalg.norm(A_c - B_c, p)
+
+            with np.errstate(divide='ignore'):
+                R_AB = float(S_A + S_B) / M_AB
+                if np.isinf(R_AB): R_AB = 1.0
+
+            # return (np.tanh(R_AB) + 1.0) / 2.0
+            return R_AB
+
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
-        range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
+
+        # range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
         # avgs = list()
         # for k in range_n_clusters:
         #     kmeans = KMeans(n_clusters=k, random_state=0)
@@ -289,30 +314,44 @@ class Analyze(wx.Panel):
         # best_k = max(avgs, key=itemgetter(1))
         
         # km = KMeans(n_clusters=best_k[0], random_state=0)
-        km = KMeans(n_clusters=len(set(labels)), random_state=0)
+        
+        # km = KMeans(n_clusters=len(set(labels)), random_state=0)
+
+        starts = list()
+        for lll in set(labels):
+            starts.append(np.mean(projected[labels==lll, :], 0))
+        km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts))
         
         y_pred = km.fit_predict(projected, labels)
 
-        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
-                          c=y_pred, marker='o', s=30)
+        # self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
+        #                   c=y_pred, marker='o', s=30)
+        
         complist = list()
         for alab in set(labels):
             for blab in set(y_pred):
                 A = projected[labels==alab,:]
                 B = projected[y_pred==blab,:]
-                complist.append((alab, blab, chung_capps_index(A, B)))
+                complist.append((alab, blab, davies_bouldin_index(A, B)))
         y_corr = y_pred.copy()
         for ll in set(y_pred):
+            # Kmeans predicted label
             clab = [li for li in complist if li[1] == ll]
+            # Closest match
             best_c = max(clab, key=itemgetter(-1))
-            y_corr[y_corr==ll] = best_c[0]
+            # Set closest match as the new label
+            y_corr[y_corr==ll] = best_c[0] - 1 
         colist = list()
         for ix, yl in enumerate(y_corr):
-            if y_corr[ix] == yl: col = 'g'
+            # If the two match in label, use green
+            if y_pred[ix] == yl: col = 'g'
+            # otherwise, use red
             else: col = 'r'
             colist.append(col)
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                           c=colist, marker='o', s=30)
+        print colist.count('g')/float(len(colist))
+        
         self.canvas.draw()
 
     def gmm_selected(self, selected_data, labels=None):
