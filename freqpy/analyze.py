@@ -295,21 +295,24 @@ class Analyze(wx.Panel):
 
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                           c=y_pred, marker='o', s=30)
-        # complist = list()
-        # for alab in set(labels):
-        #     for blab in set(y_pred):
-        #         A = projected[labels==alab,:]
-        #         B = projected[y_pred==blab,:]
-        #         complist.append((alab, blab, chung_capps_index(A, B)))
-        # y_corr = y_pred.copy()
-        # for ll in set(y_pred):
-        #     clab = [li for li in complist if li[1] == ll]
-        #     best_c = max(clab, key=itemgetter(-1))
-        #     y_corr[y_corr==ll] = best_c[0]
-
-        # for ix, yl in enumerate(y_corr):
-        #     self.axes.scatter(projected[y_corr==yl, 0], projected[y_corr==yl, 1], projected[y_corr==yl, 2],
-        #                       c=col, marker='o', s=30)
+        complist = list()
+        for alab in set(labels):
+            for blab in set(y_pred):
+                A = projected[labels==alab,:]
+                B = projected[y_pred==blab,:]
+                complist.append((alab, blab, chung_capps_index(A, B)))
+        y_corr = y_pred.copy()
+        for ll in set(y_pred):
+            clab = [li for li in complist if li[1] == ll]
+            best_c = max(clab, key=itemgetter(-1))
+            y_corr[y_corr==ll] = best_c[0]
+        colist = list()
+        for ix, yl in enumerate(y_corr):
+            if y_corr[ix] == yl: col = 'g'
+            else: col = 'r'
+            colist.append(col)
+        self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
+                          c=colist, marker='o', s=30)
         self.canvas.draw()
 
     def gmm_selected(self, selected_data, labels=None):

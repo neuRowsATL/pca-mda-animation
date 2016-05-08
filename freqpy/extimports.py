@@ -17,7 +17,9 @@ import wx
 from wx.lib.pubsub import pub
 
 from scipy.stats import entropy
-
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.cluster.hierarchy import cophenet
+from scipy.spatial.distance import pdist
 
 import matplotlib
 matplotlib.use('WXAgg')
