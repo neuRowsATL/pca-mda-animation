@@ -276,6 +276,41 @@ class Analyze(wx.Panel):
                 step2 =  np.sum(np.std(A) + np.std(B)) / diff
                 if np.isinf(step2): step2 = 1.0
             return cs * step2
+        def davies_bouldin_index(A, B):
+            # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
+            p = 2
+
+            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+            
+            T_A = A.shape[0]
+            A_c = np.mean(A, 0)
+            S_A = (1.0 / T_A) * np.linalg.norm(A_c - A, p)
+
+            T_B = B.shape[0]
+            B_c = np.mean(B, 0)
+            S_B = (1.0 / T_B) *  np.linalg.norm(B_c - B, p)
+
+            M_AB = np.linalg.norm(A_c - B_c, p)
+
+            with np.errstate(divide='ignore'):
+                R_AB = float(S_A + S_B) / M_AB
+                if np.isinf(R_AB): R_AB = 1.0
+
+            # return (np.tanh(R_AB) + 1.0) / 2.0
+            return R_AB
+        def spca(A, B):
+            # A. Sinhal, D. Seborg.
+            # Matching patterns from historical data using pca and distance similarity factors,
+            # 2001.
+            
+            pcaA = PCA(n_components=2)
+            pcaB = PCA(n_components=2)
+            
+            A_p = pcaA.fit_transform(A)
+            B_p = pcaB.fit_transform(B)
+            
+            return cosine_sim(A_p, B_p)
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
@@ -293,23 +328,27 @@ class Analyze(wx.Panel):
         
         y_pred = km.fit_predict(projected, labels)
 
+        # self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
+        #                   c=y_pred, marker='o', s=30)
+        complist = list()
+        for alab in set(labels):
+            for blab in set(y_pred):
+                A = projected[labels==alab,:]
+                B = projected[y_pred==blab,:]
+                complist.append((alab, blab, davies_bouldin_index(A, B)))
+        y_corr = y_pred.copy()
+        for ll in set(y_pred):
+            clab = [li for li in complist if li[1] == ll]
+            best_c = max(clab, key=itemgetter(-1))
+            y_corr[y_corr==ll] = best_c[0]-1
+        cls = list()
+        for ix, yl in enumerate(y_corr):
+            if y_pred[ix]==yl: col = 'g'
+            else: col = 'r'
+            cls.append(col)
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
-                          c=y_pred, marker='o', s=30)
-        # complist = list()
-        # for alab in set(labels):
-        #     for blab in set(y_pred):
-        #         A = projected[labels==alab,:]
-        #         B = projected[y_pred==blab,:]
-        #         complist.append((alab, blab, chung_capps_index(A, B)))
-        # y_corr = y_pred.copy()
-        # for ll in set(y_pred):
-        #     clab = [li for li in complist if li[1] == ll]
-        #     best_c = max(clab, key=itemgetter(-1))
-        #     y_corr[y_corr==ll] = best_c[0]
-
-        # for ix, yl in enumerate(y_corr):
-        #     self.axes.scatter(projected[y_corr==yl, 0], projected[y_corr==yl, 1], projected[y_corr==yl, 2],
-        #                       c=col, marker='o', s=30)
+                          c=cls, marker='o', s=30)
+        print(float(cls.count('g')) / len(cls))
         self.canvas.draw()
 
     def gmm_selected(self, selected_data, labels=None):

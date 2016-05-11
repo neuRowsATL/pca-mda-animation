@@ -5,7 +5,7 @@ from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
-from prog_diag import MyProgressDialog
+# from prog_diag import MyProgressDialog
 
 def opener(names):
     df = dict()
@@ -218,7 +218,7 @@ def save_anim(data_dir, export_dir):
         filename = '__frame%03d.png' % int(i)
         fig.savefig(filename, dpi='figure')
         filenames.append(filename)
-        wx.CallAfter(pub.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
+        # wx.CallAfter(pub.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
 
     crf = 30
     reso = '1280x720'
@@ -324,13 +324,13 @@ class MainFrame(wx.Frame):
             tf.write('DPI:' + str(dpi) + '\n')
         # save_anim(self.data_dir, self.export_dir)
         t0 = time.time()
-        save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir))
-        dlg = MyProgressDialog()
-        dlg.ShowModal()
+        # save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir))
+        # dlg = MyProgressDialog()
+        # dlg.ShowModal()
         t1 = time.time()
         dial = wx.MessageDialog(None, 'Exported Video to: %s' % export_dir + out_movie, 'Done in %.3f seconds.' % round(t1 - t0, 3), wx.OK)
         dial.ShowModal()
-        wx.CallAfter(save_thread.join())
+        # wx.CallAfter(save_thread.join())
 
     def on_add_file(self, event):
         dialog = wx.DirDialog(
