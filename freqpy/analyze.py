@@ -211,9 +211,9 @@ class Analyze(wx.Panel):
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='o', edgecolor='k', label=str(int(class_label)))
-                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
+                # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+                #                             cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def ica_selected(self, data, labels, toplot=True):
@@ -229,9 +229,9 @@ class Analyze(wx.Panel):
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='o', edgecolor='k', label=str(int(class_label)))
-                center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                            cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
+                # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
+                # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+                #                             cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def mda_selected(self, data, labels):
@@ -254,9 +254,9 @@ class Analyze(wx.Panel):
             z = selected_projection[:, 2]
             self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
                       marker='o', edgecolor='k', label=str(ii))
-            center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
-            EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                                cageColor=color_list[int(ii)-1], cageAlpha=0.1)
+            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
+            # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
+            #                     cageColor=color_list[int(ii)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None):
@@ -275,7 +275,22 @@ class Analyze(wx.Panel):
                 diff = np.linalg.norm(A - B)
                 step2 =  np.sum(np.std(A) + np.std(B)) / diff
                 if np.isinf(step2): step2 = 1.0
-            return cs * step2
+            return cs + step2
+
+        def modified_cci(A, B):
+            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
+            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
+            with np.errstate(divide='ignore'):
+                # diff = np.linalg.norm(A - B)
+                # diff = np.sum([abs(g0 - f0) for g0, f0 in zip(A, B)])
+                diff = np.sum(cdist(A, B, 'seuclidean'))
+                # kurtA = (A - np.expand_dims(np.mean(A, 0), 0))**3 / np.std(A, 0)**(3)
+                # kurtB = (B - np.expand_dims(np.mean(B, 0), 0))**3 / np.std(B, 0)**(3)
+                step2 =  np.sum(np.std(A, 0) + np.std(B, 0)) / diff
+                # step2 = np.sum(kurtA + kurtB) / diff
+                # if np.isinf(step2): step2 = 1.0
+            return step2
+
         def davies_bouldin_index(A, B):
             # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
             p = 2
@@ -299,6 +314,7 @@ class Analyze(wx.Panel):
 
             # return (np.tanh(R_AB) + 1.0) / 2.0
             return R_AB
+
         def spca(A, B):
             # A. Sinhal, D. Seborg.
             # Matching patterns from historical data using pca and distance similarity factors,
@@ -311,10 +327,12 @@ class Analyze(wx.Panel):
             B_p = pcaB.fit_transform(B)
             
             return cosine_sim(A_p, B_p)
+
         X = selected_data
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
-        range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
+
+        # range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
         # avgs = list()
         # for k in range_n_clusters:
         #     kmeans = KMeans(n_clusters=k, random_state=0)
@@ -324,12 +342,17 @@ class Analyze(wx.Panel):
         # best_k = max(avgs, key=itemgetter(1))
         
         # km = KMeans(n_clusters=best_k[0], random_state=0)
-        km = KMeans(n_clusters=len(set(labels)), random_state=0)
+        
+        # km = KMeans(n_clusters=len(set(labels)), random_state=0)
+
+        starts = list()
+        for lll in set(labels):
+            starts.append(np.mean(projected[labels==lll, :], 0))
+        km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
         
         y_pred = km.fit_predict(projected, labels)
 
-        # self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
-        #                   c=y_pred, marker='o', s=30)
+
         complist = list()
         for alab in set(labels):
             for blab in set(y_pred):
@@ -338,17 +361,25 @@ class Analyze(wx.Panel):
                 complist.append((alab, blab, davies_bouldin_index(A, B)))
         y_corr = y_pred.copy()
         for ll in set(y_pred):
+            # Kmeans predicted label
             clab = [li for li in complist if li[1] == ll]
+            # Closest match
             best_c = max(clab, key=itemgetter(-1))
-            y_corr[y_corr==ll] = best_c[0]-1
-        cls = list()
+            # Set closest match as the new label
+            y_corr[y_corr==ll] = best_c[0] - 1 
+        colist = list()
         for ix, yl in enumerate(y_corr):
-            if y_pred[ix]==yl: col = 'g'
-            else: col = 'r'
-            cls.append(col)
+            # If the two match in label, use green
+            if y_pred[ix] == yl: col = 'g'
+            # otherwise, use red
+            else: 
+                col = 'r'
+                print yl
+            colist.append(col)
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
-                          c=cls, marker='o', s=30)
-        print(float(cls.count('g')) / len(cls))
+                          c=colist, marker='o', s=30)
+        print colist.count('g')/float(len(colist))
+        
         self.canvas.draw()
 
     def gmm_selected(self, selected_data, labels=None):

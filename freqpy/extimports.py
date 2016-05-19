@@ -11,12 +11,16 @@ from operator import itemgetter
 # from multiprocessing import Pool, cpu_count
 from threading import Thread
 import subprocess
+import json
 
 
 import wx
 from wx.lib.pubsub import pub
 
 from scipy.stats import entropy
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.cluster.hierarchy import cophenet
+from scipy.spatial.distance import pdist, cdist
 
 
 import matplotlib
@@ -45,7 +49,7 @@ from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.mixture import GMM
-from sklearn.covariance import EllipticEnvelope
+# from sklearn.covariance import EllipticEnvelope
 from sklearn.svm import OneClassSVM
 
 

@@ -13,8 +13,8 @@ def opener(names):
         if name == '_tmp.txt':
             with open(name, 'r') as nf:
                 df[name] = [line for line in nf]
-        elif 'labels' in name and 'inlier' in name:
-            df[name] = np.loadtxt(name)
+        # elif 'labels' in name and 'inlier' in name:
+            # df[name] = np.loadtxt(name)
     of = dict()
     for k, it in df.items():
         if k == '_tmp.txt':
@@ -55,20 +55,22 @@ def opener(names):
     os.remove('_tmp.txt')
     return of
 
-def waveforms():
-    waveform_names = {
-                  5: 'inf_sine',
-                  2: 'CL',
-                  3: 'low_sine',
-                  1: 'no_sim',
-                  4: 'top_sine',
-                  6: 'tugs_ol',
-                  7: 'other'}
+def waveforms(folder):
+    # waveform_names = {
+    #               5: 'inf_sine',
+    #               2: 'CL',
+    #               3: 'low_sine',
+    #               1: 'no_sim',
+    #               4: 'top_sine',
+    #               6: 'tugs_ol',
+    #               7: 'other'}
+    with open(os.path.join(folder, 'waveform_names.json'), 'r') as wf:
+        waveform_names = json.load(wf)
     return list(waveform_names.values())
 
 def init_func(fig, axes, axes2, title_, ax_labels, projected, 
-            labels, waveform, all_ret=True, color=None, i=None):
-    wave_labels = waveforms()
+            labels, waveform, data_dir, all_ret=True, color=None, i=None):
+    wave_labels = waveforms(data_dir)
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     centers = list()
     classes = list()
@@ -142,9 +144,9 @@ def save_anim(data_dir, export_dir):
         os.mkdir(export_dir+'tmp')
     except Exception:
         pass
-    waveform_list = waveforms()
+    waveform_list = waveforms(data_dir)
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-    input_dict = opener(['_tmp.txt', data_dir+'inlier_labels.txt', data_dir+'waveform.txt'])
+    input_dict = opener(['_tmp.txt', data_dir+'waveform.txt']) # data_dir+'inlier_labels.txt'
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
 
@@ -169,7 +171,7 @@ def save_anim(data_dir, export_dir):
     plot_args = (fig, axes, axes2,
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'],
-                 waveform)
+                 waveform, data_dir)
     centers, classes, frame_no = init_func(*plot_args)
 
     range_curr = 10
