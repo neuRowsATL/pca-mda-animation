@@ -42,18 +42,18 @@ class Clusterize(wx.Panel):
             return np.asarray(freq_changes).T
         return None
 
-def waveforms(self):
-    # waveform_names = {
-    #               5: 'inf_sine',
-    #               2: 'CL',
-    #               3: 'low_sine',
-    #               1: 'no_sim',
-    #               4: 'top_sine',
-    #               6: 'tugs_ol',
-    #               7: 'other'}
-    with open(os.path.join(self.data_dir, 'waveform_names.json'), 'r') as wf:
-        waveform_names = json.load(wf)
-    return list(waveform_names.values())
+    def waveforms(self):
+        # waveform_names = {
+        #               5: 'inf_sine',
+        #               2: 'CL',
+        #               3: 'low_sine',
+        #               1: 'no_sim',
+        #               4: 'top_sine',
+        #               6: 'tugs_ol',
+        #               7: 'other'}
+        with open(os.path.join(self.data_dir, 'waveform_names.json'), 'r') as wf:
+            waveform_names = json.load(wf)
+        return list(waveform_names.values())
 
     def sort_cluster(self, freqs):
         freqs = (np.tanh(freqs) + 1.0) / 2.0
