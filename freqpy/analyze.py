@@ -366,7 +366,8 @@ class Analyze(wx.Panel):
             # Closest match
             best_c = max(clab, key=itemgetter(-1))
             # Set closest match as the new label
-            y_corr[y_corr==ll] = best_c[0] - 1 
+            y_corr[y_corr==ll] = best_c[0] - 1
+            # print best_c[0]
         colist = list()
         for ix, yl in enumerate(y_corr):
             # If the two match in label, use green
@@ -374,11 +375,11 @@ class Analyze(wx.Panel):
             # otherwise, use red
             else: 
                 col = 'r'
-                print yl
+                # print yl
             colist.append(col)
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                           c=colist, marker='o', s=30)
-        print colist.count('g')/float(len(colist))
+        # print colist.count('g')/float(len(colist))
         
         self.canvas.draw()
 

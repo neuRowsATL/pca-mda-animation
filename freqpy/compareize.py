@@ -9,8 +9,8 @@ class Compareize(wx.Panel):
         self.in_args = tuple()
         self.data_dir = ''
         self.export_dir = ''
-        self.algList = ['Chung-Capps Index', 'dbi', 'spca', 'cos']
-        self.alg = 'Chung-Capps Index'
+        self.algList = ['dbi', 'spca', 'cos']
+        self.alg = 'dbi'
         self.min_class = 5
         self.algtitle = wx.StaticText(self, -1, "Choose Similarity Metric:", (80, 10))
         self.algchoice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.algList)
@@ -107,8 +107,8 @@ class Compareize(wx.Panel):
         comp_algs = {
                 'spca': self.spca,
                 'cos': self.cosine_sim,
-                'dbi': self.davies_bouldin_index,
-                'Chung-Capps Index': self.chung_capps_index
+                'dbi': self.davies_bouldin_index
+                # 'Chung-Capps Index': self.chung_capps_index
                 }
         labels = np.loadtxt(self.labels[0])[self.in_args]
         data = self.get_data()
@@ -133,8 +133,8 @@ class Compareize(wx.Panel):
             titles = {
                 'spca': 'PCA Cosine Similarity',
                 'cos': 'Cosine Similarity',
-                'dbi': 'Davies Bouldin Index',
-                'Chung-Capps Index': 'Chung-Capps Index'
+                'dbi': 'Davies Bouldin Index'
+                # 'Chung-Capps Index': 'Chung-Capps Index'
             }
             labels = np.loadtxt(self.labels[0])
             self.fig.clf()

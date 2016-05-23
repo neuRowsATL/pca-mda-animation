@@ -5,7 +5,8 @@ from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
-# from prog_diag import MyProgressDialog
+if sys.platform[0:3] == "win":
+    from prog_diag import MyProgressDialog
 
 def opener(names):
     df = dict()
@@ -13,8 +14,8 @@ def opener(names):
         if name == '_tmp.txt':
             with open(name, 'r') as nf:
                 df[name] = [line for line in nf]
-        # elif 'labels' in name and 'inlier' in name:
-            # df[name] = np.loadtxt(name)
+        elif 'labels' in name:# and 'inlier' in name:
+            df[name] = np.loadtxt(name)
     of = dict()
     for k, it in df.items():
         if k == '_tmp.txt':
@@ -37,7 +38,7 @@ def opener(names):
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
         os.chdir('..')
         ica = FastICA(n_components=3)
-        of['projected'] = ica.fit_transform(of['data'].T)
+        of['projected'] = ica.fit_transform(of['data'])
     elif of['title'] == 'MDA':
         os.chdir('Data')
         of['projected'] = np.loadtxt('_mda_projected.txt')
@@ -146,12 +147,12 @@ def save_anim(data_dir, export_dir):
         pass
     waveform_list = waveforms(data_dir)
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-    input_dict = opener(['_tmp.txt', data_dir+'waveform.txt']) # data_dir+'inlier_labels.txt'
+    input_dict = opener(['_tmp.txt', data_dir+'waveform.txt', data_dir+'pdat_labels.txt']) # data_dir+'inlier_labels.txt'
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
 
     # interpolation (bezier)
-    projected = bezier(projected)
+    projected = bezier(projected, res=1000)
 
     labels = input_dict['labels']
     waveform = np.loadtxt(data_dir+'waveform.txt')
@@ -175,7 +176,7 @@ def save_anim(data_dir, export_dir):
     centers, classes, frame_no = init_func(*plot_args)
 
     range_curr = 10
-    total_range = np.arange(1, len(labels)-range_curr-1)
+    total_range = np.arange(1, len(projected)-range_curr-1)
 
     last_pts = [projected[range_curr:range_curr+1, 0], 
                     projected[range_curr:range_curr+1, 1], 
@@ -220,7 +221,8 @@ def save_anim(data_dir, export_dir):
         filename = '__frame%03d.png' % int(i)
         fig.savefig(filename, dpi='figure')
         filenames.append(filename)
-        # wx.CallAfter(pub.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
+        if sys.platform[0:3] == "win":
+            wx.CallAfter(pub.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
 
     crf = 30
     reso = '1280x720'
@@ -230,14 +232,14 @@ def save_anim(data_dir, export_dir):
     elif dpi == 200:
         crf = 20
         reso = '5120x2880'
-
-    command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 ' +\
-              '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + export_dir+out_movie
-    subprocess.call(command, shell=True)
-
-    for fi in filenames:
-        os.remove(fi)
-    os.chdir('..')
+    if sys.platform[0:3] == 'win':
+        command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 ' +\
+                  '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + out_movie
+    elif sys.platform[0:3] == 'dar':
+        command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 -crf ' + str(crf) +\
+                  ' ' + out_movie
+    return_code = subprocess.call(command, shell=True)
+    return filenames
 
 class SaveThread(Thread):
     def __init__(self, func, args):
@@ -258,8 +260,14 @@ class MainFrame(wx.Frame):
 
         self.neurons = list()
         self.conditions = list()
-        self.data_dir = '.'
-        self.export_dir = '.'
+        win_delim = "\\"
+        dar_delim = "/"
+        if sys.platform[0:3] == "win":
+            delim = win_delim
+        elif sys.platform[0:3] == "dar":
+            delim = dar_delim
+        self.data_dir = '.'+delim+'Data'+delim
+        self.export_dir = '.'+delim+'output_dir'+delim
         self.in_args = tuple()
 
         p = wx.Panel(self)
@@ -324,15 +332,21 @@ class MainFrame(wx.Frame):
             tf.write('ax_labels:' + str(ax_labels) +'\n') 
             tf.write('outmoviename:' + out_movie + '\n')
             tf.write('DPI:' + str(dpi) + '\n')
-        # save_anim(self.data_dir, self.export_dir)
         t0 = time.time()
-        # save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir))
-        # dlg = MyProgressDialog()
-        # dlg.ShowModal()
+        if sys.platform[0:3] == "dar":
+            filenames = save_anim(self.data_dir, self.export_dir) # line for mac
+        elif sys.platform[0:3] == "win":
+            save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir))
+            dlg = MyProgressDialog()
+            dlg.ShowModal()
         t1 = time.time()
-        dial = wx.MessageDialog(None, 'Exported Video to: %s' % export_dir + out_movie, 'Done in %.3f seconds.' % round(t1 - t0, 3), wx.OK)
-        dial.ShowModal()
-        # wx.CallAfter(save_thread.join())
+        dial = wx.MessageDialog(None, 'Exported Video to: %s' % os.path.join(self.export_dir+'tmp'+'/', out_movie), 'Done in %.3f seconds.' % round(t1 - t0, 3), wx.OK)
+        if dial.ShowModal() == wx.ID_OK:
+            for fi in filenames:
+                os.remove(fi)
+            os.chdir('..')
+        if sys.platform[0:3] == "win":
+            wx.CallAfter(save_thread.join())
 
     def on_add_file(self, event):
         dialog = wx.DirDialog(
