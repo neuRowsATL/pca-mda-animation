@@ -59,4 +59,10 @@ You'll need the following files in the data folder:
 		"waveform.txt"
 
 	- The name of each condition (class) should be in "waveform_names.json". It should look like this:
+		
 		{"1": "no_sim", "2": "CL", "3": "low_sine", "4": "top_sine", "5": "inf_sine", "6": "tugs_ol", "7": "other"}
+		
+		*** IMPORTANT ***
+		Label "1" should correspond to "No Simulation". Otherwise it creates problems for the [Clusterize] tab, which
+		assumes "1" is a baseline.
+		*****************

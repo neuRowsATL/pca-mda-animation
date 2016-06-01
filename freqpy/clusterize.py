@@ -81,14 +81,21 @@ class Clusterize(wx.Panel):
             ax.set_xticks(np.arange(fchanges.shape[1])+0.5, minor=False)
             ax.set_yticks(np.arange(fchanges.shape[0])+0.5, minor=False)
             ax.set_xticklabels(self.waveforms()[1:], minor=False)
-            # ax.set_yticklabels(range(fchanges.shape[0]), minor=False)
-            # ax.set_yticklabels(visible=False)
             plt.setp(ax.get_xticklabels(), fontsize=4)
             plt.setp(ax.get_yticklabels(), fontsize=4)
-            # ax.get_yaxis().set_visible(False)
             ax.get_yaxis().set_ticks([])
             ax.set_xlabel('Class')
             ax.set_ylabel('Neuron')
+            # for xmaj in ax.xaxis.get_majorticklocs():
+            #   ax.axvline(x=xmaj-0.5,ls='-',c='k')
+            # for xmin in ax.xaxis.get_minorticklocs():
+            #   ax.axvline(x=xmin-0.5,ls='--',c='k')
+
+            # for ymaj in ax.yaxis.get_majorticklocs():
+            #   ax.axhline(y=ymaj-0.5,ls='-',c='k')
+            # for ymin in ax.yaxis.get_minorticklocs():
+            #   ax.axhline(y=ymin-0.5,ls='--',c='k')
+
             self.fig.colorbar(p)
             self.canvas.draw()
 
