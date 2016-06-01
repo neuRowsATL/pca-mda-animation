@@ -27,22 +27,27 @@ class MDA:
             stds[ii-1, :] = np.std(data[labels==ii,:], 0)
         return weights, means, stds
 
-    def splitData(self, data):
-        testData = list()
+    def splitData(self, data, test_percent=None):
+        np.random.seed(0122)
         trainingData = list()
-        chosenVals = list()
-        rstate = np.random.RandomState(1112)
-        for current_class in set(self.labels):
-            possible_data = data[self.labels==current_class, :]
-            chosen_val = rstate.randint(0, len(possible_data)-1)
-            chosenVals.append(chosen_val)
-            testData.append(possible_data[chosen_val, :])
+        testData = list()
+        X = np.c_[data, self.labels]
+        if test_percent is None: test_percent = 40.0
+        if test_percent >= 1.0: test_percent = test_percent / 100.00
+        for lab in set(self.labels):
+            curr = X[self.labels==lab, :]
+            indices = np.random.permutation(curr.shape[0])
+            curr_percent = int(len(indices) * test_percent)
+            training_idx, test_idx = indices[curr_percent:], indices[:curr_percent]
+            training, test = curr[training_idx,:].tolist(), curr[test_idx,:].tolist()
+            trainingData.extend(training)
+            testData.extend(test)
+        trainingData = np.array(trainingData)
         testData = np.array(testData)
-        trainingData = np.delete(data, chosenVals, 0)
-        self.trainingData = trainingData
-        self.trainingLabels = np.delete(self.labels, chosenVals, 0)
-        self.testLabels = self.labels[np.array(chosenVals)]
-        self.testData = testData
+        self.trainingData = np.array(trainingData[:, :-1])
+        self.testData = np.array(testData[:, :-1])
+        self.trainingLabels = np.array(trainingData[:, -1])
+        self.testLabels = np.array(testData[:, -1])
 
     def sw(self):
         weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
@@ -51,7 +56,7 @@ class MDA:
         for ii in set(self.labels):
             ii = int(ii)
             diff_array = self.trainingData[self.trainingLabels==ii, :] - means[ii-1,:]
-            sw_exp[:, :, ii-1] = np.cov(diff_array.T)
+            sw_exp[:, :, ii-1] = np.cov(diff_array, rowvar=0)
             sw_0 = sw_0 + sw_exp[:, :, ii-1]
         return sw_0
 
@@ -67,27 +72,27 @@ class MDA:
             sb_0 = sb_0 + sb_exp[:, :, ii-1]
         return sb_0
 
-    def projection_weights(self, sb, sw):
-        lambda_1 = -0.2
-        lambda_2 = -0.2
+    def projection_weights(self, sb, sw, l1=0., l2=0.):
+        lambda_1 = l1
+        lambda_2 = l2
         sw = (1 - lambda_1)*sw + lambda_1*np.eye(sw.shape[1])
         sb = (1 - lambda_2)*sb + lambda_2*np.eye(sb.shape[1])
         eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
         order = np.flipud(eigval.argsort())
         # print(eigval[eigval.argsort()])
         disc = eigvect[order]
-        disc = disc[:, 0:self.nr_classes]
+        disc = disc[:, :self.nr_classes]
         return disc
 
-    def fit(self):
-        self.splitData(self.data)
+    def fit(self, l1=0., l2=0., test_percent=None):
+        self.splitData(self.data, test_percent=test_percent)
         sb = self.sb()
         sw = self.sw()
-        disc = self.projection_weights(sb, sw)
+        disc = self.projection_weights(sb, sw, l1=l1, l2=l2)
         self.y_train = np.dot(self.trainingData, disc)
         self.y_test = np.dot(self.testData, disc)
         return self.y_train
     
-    def fit_transform(self):
-        self.fit()
+    def fit_transform(self, l1=0., l2=0., test_percent=None):
+        self.fit(l1=l1, l2=l2, test_percent=test_percent)
         return self.trainingLabels, self.y_train, self.testLabels, self.y_test

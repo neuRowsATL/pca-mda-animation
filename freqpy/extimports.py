@@ -52,5 +52,5 @@ from sklearn.mixture import GMM
 # from sklearn.covariance import EllipticEnvelope
 from sklearn.svm import OneClassSVM
 
-
 from smoothing import bezier
+from kmeans import KPlusPlus

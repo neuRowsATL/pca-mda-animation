@@ -79,7 +79,6 @@ class Compareize(wx.Panel):
             diff = np.linalg.norm(A - B)
             step2 =  np.sum(np.std(A) + np.std(B)) / diff
             if np.isinf(step2): step2 = 1.0
-
         return cs * step2
 
     def spca(self, A, B):

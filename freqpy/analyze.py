@@ -36,7 +36,9 @@ class Analyze(wx.Panel):
         self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
         self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
-        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", "k-Means (PCA)", "GMM (PCA)"])
+        self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", 
+                                                                         "k-Means (PCA)", "k-Means (ICA)", 
+                                                                         "k-Means (MDA)", "GMM (PCA)"])
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
@@ -173,6 +175,10 @@ class Analyze(wx.Panel):
                 self.mda_selected(selected_dat, selected_labels)
         elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (PCA)':
             self.kmeans_selected(selected_dat, labels=selected_labels)
+        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (ICA)':
+            self.kmeans_selected(selected_dat, labels=selected_labels, alg='ICA')
+        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (MDA)':
+            self.kmeans_selected(selected_dat, labels=selected_labels, alg='MDA')
         elif selected_alg == 'GMM (PCA)':
             self.gmm_selected(selected_dat, labels=selected_labels)
         elif selected_alg == 'ICA':
@@ -199,6 +205,7 @@ class Analyze(wx.Panel):
             return
 
     def pca_selected(self, data, labels, toplot=True):
+        self.axes.set_title('PCA', size=10)
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         if data.shape[0] < data.shape[1]: data = data.T
         pca = PCA(n_components=3)
@@ -211,12 +218,10 @@ class Analyze(wx.Panel):
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='o', edgecolor='k', label=str(int(class_label)))
-                # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                #                             cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def ica_selected(self, data, labels, toplot=True):
+        self.axes.set_title('ICA', size=10)
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         if data.shape[0] < data.shape[1]: data = data.T
         ica = FastICA(n_components=3, max_iter=1000)
@@ -229,14 +234,12 @@ class Analyze(wx.Panel):
             if toplot:
                 self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
                                   marker='o', edgecolor='k', label=str(int(class_label)))
-                # center, radii, rotation = EllipsoidTool().getMinVolEllipse(projected_class)
-                # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-                #                             cageColor=color_list[int(class_label)-1], cageAlpha=0.1)
         self.canvas.draw()
 
     def mda_selected(self, data, labels):
+        self.axes.set_title('MDA', size=10)
         mda = MDA(data, labels)
-        train_labels, y_train, test_labels, y_test = mda.fit_transform()
+        train_labels, y_train, test_labels, y_test = mda.fit_transform(test_percent=30.0)
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         self.axes.set_xlabel('D1',size=5)
         self.axes.set_ylabel('D2',size=5)
@@ -245,51 +248,16 @@ class Analyze(wx.Panel):
             test_val = y_test[test_labels==ii, 0:3]
             self.axes.scatter(test_val[:, 0], test_val[:, 1], test_val[:, 2], c=color_list[int(ii-1)], 
                       marker='o', edgecolor='k', label=str(ii))
-            selected_projection = y_train[train_labels==ii, 0:3]
-            # _, _, v = np.linalg.svd(selected_projection)
-            # recentered = np.dot(selected_projection, np.linalg.inv(v))
-            # v = v[0:3, 0:3]
-            x = selected_projection[:, 0]
-            y = selected_projection[:, 1]
-            z = selected_projection[:, 2]
-            self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
-                      marker='o', edgecolor='k', label=str(ii))
-            # center, radii, rotation = EllipsoidTool().getMinVolEllipse(selected_projection, 0.001)
-            # EllipsoidTool().plotEllipsoid(center, radii, rotation, ax=self.axes, plotAxes=False, 
-            #                     cageColor=color_list[int(ii)-1], cageAlpha=0.1)
+            # selected_projection = y_train[train_labels==ii, 0:3]
+            # x = selected_projection[:, 0]
+            # y = selected_projection[:, 1]
+            # z = selected_projection[:, 2]
+            # self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
+                      # marker='o', edgecolor='k', label=str(ii))
         self.canvas.draw()
 
-    def kmeans_selected(self, selected_data, labels=None):
+    def kmeans_selected(self, selected_data, labels=None, alg='PCA'):
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-        def cosine_sim(A, B):
-            # https://en.wikipedia.org/wiki/Cosine_similarity
-            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
-            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
-            return np.trace(np.dot(A.T, B)) / (np.linalg.norm(A)*np.linalg.norm(B))
-        def chung_capps_index(A, B):
-            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
-            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
-            # compute cosine similarity
-            cs = cosine_sim(A, B)
-            with np.errstate(divide='ignore'):
-                diff = np.linalg.norm(A - B)
-                step2 =  np.sum(np.std(A) + np.std(B)) / diff
-                if np.isinf(step2): step2 = 1.0
-            return cs + step2
-
-        def modified_cci(A, B):
-            if A.size > B.size: B = bezier(B, res=A.shape[0], dim=B.shape[1])
-            elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
-            with np.errstate(divide='ignore'):
-                # diff = np.linalg.norm(A - B)
-                # diff = np.sum([abs(g0 - f0) for g0, f0 in zip(A, B)])
-                diff = np.sum(cdist(A, B, 'seuclidean'))
-                # kurtA = (A - np.expand_dims(np.mean(A, 0), 0))**3 / np.std(A, 0)**(3)
-                # kurtB = (B - np.expand_dims(np.mean(B, 0), 0))**3 / np.std(B, 0)**(3)
-                step2 =  np.sum(np.std(A, 0) + np.std(B, 0)) / diff
-                # step2 = np.sum(kurtA + kurtB) / diff
-                # if np.isinf(step2): step2 = 1.0
-            return step2
 
         def davies_bouldin_index(A, B):
             # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
@@ -305,69 +273,63 @@ class Analyze(wx.Panel):
             T_B = B.shape[0]
             B_c = np.mean(B, 0)
             S_B = (1.0 / T_B) *  np.linalg.norm(B_c - B, p)
-
+            
             M_AB = np.linalg.norm(A_c - B_c, p)
-
+            
             with np.errstate(divide='ignore'):
                 R_AB = float(S_A + S_B) / M_AB
                 if np.isinf(R_AB): R_AB = 1.0
-
-            # return (np.tanh(R_AB) + 1.0) / 2.0
             return R_AB
 
-        def spca(A, B):
-            # A. Sinhal, D. Seborg.
-            # Matching patterns from historical data using pca and distance similarity factors,
-            # 2001.
-            
-            pcaA = PCA(n_components=2)
-            pcaB = PCA(n_components=2)
-            
-            A_p = pcaA.fit_transform(A)
-            B_p = pcaB.fit_transform(B)
-            
-            return cosine_sim(A_p, B_p)
-
         X = selected_data
-        pca = PCA(n_components=3)
-        projected = pca.fit_transform(X)
-
-        # range_n_clusters = [2, 3, 4, 5, 6, 7, 8]
-        # avgs = list()
-        # for k in range_n_clusters:
-        #     kmeans = KMeans(n_clusters=k, random_state=0)
-        #     cluster_labels = kmeans.fit_predict(X)
-        #     sil_avg = silhouette_score(X, cluster_labels)
-        #     avgs.append((k, sil_avg))
-        # best_k = max(avgs, key=itemgetter(1))
-        
-        # km = KMeans(n_clusters=best_k[0], random_state=0)
-        
-        # km = KMeans(n_clusters=len(set(labels)), random_state=0)
+        if alg == 'PCA': 
+            pca = PCA(n_components=3)
+            projected = pca.fit_transform(X)
+        elif alg == 'ICA': 
+            pca = FastICA(n_components=3)
+            projected = pca.fit_transform(X)
+        elif alg == 'MDA':
+            mda = MDA(X, labels)
+            train_labels, y_train, test_labels, y_test = mda.fit_transform(test_percent=30.0)
+            projected = y_test[:, 0:3]
+            labels = test_labels
 
         starts = list()
         for lll in set(labels):
             starts.append(np.mean(projected[labels==lll, :], 0))
-        km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
         
+        km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
+        # km = KMeans(n_clusters=len(set(labels)), init='k-means++', n_init=100, max_iter=300, random_state=123)
         y_pred = km.fit_predict(projected, labels)
+        
+        # km = KPlusPlus(K=len(set(labels)), X=projected)
+        # km.init_centers(method='given', given=starts)
+        # y_pred = km.find_centers(method='++')
 
-
+        modlab = labels - 1.0
         complist = list()
-        for alab in set(labels):
+        for alab in set(modlab):
             for blab in set(y_pred):
-                A = projected[labels==alab,:]
+                A = projected[modlab==alab,:]
                 B = projected[y_pred==blab,:]
                 complist.append((alab, blab, davies_bouldin_index(A, B)))
+
         y_corr = y_pred.copy()
         for ll in set(y_pred):
             # Kmeans predicted label
             clab = [li for li in complist if li[1] == ll]
             # Closest match
-            best_c = max(clab, key=itemgetter(-1))
+            best_c = max(clab, key=itemgetter(2))
             # Set closest match as the new label
-            y_corr[y_corr==ll] = best_c[0] - 1
-            # print best_c[0]
+            y_corr[y_corr==ll] = best_c[0]
+
+        # for tl in range(7):
+        #     print('Original Labels:, ', tl, ' : ', len(modlab[modlab==tl]))
+        #     print('DBI Labels: ', tl, ' : ', len(y_corr[y_corr==tl]))
+        #     print('K-Means Labels: ', tl, ' : ', len(y_pred[y_pred==tl]))
+
+        # print(set(y_pred), set(y_corr))
+
         colist = list()
         for ix, yl in enumerate(y_corr):
             # If the two match in label, use green
@@ -375,11 +337,11 @@ class Analyze(wx.Panel):
             # otherwise, use red
             else: 
                 col = 'r'
-                # print yl
             colist.append(col)
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                           c=colist, marker='o', s=30)
-        # print colist.count('g')/float(len(colist))
+
+        self.axes.set_title('k-Means (%s) \n %01f %% correct' % (alg, 100.00*colist.count('g')/float(len(colist))), size=10)
         
         self.canvas.draw()
 
@@ -389,7 +351,7 @@ class Analyze(wx.Panel):
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
 
-        gmm = GMM(n_components=7, random_state=0, covariance_type='diag')
+        gmm = GMM(n_components=3, random_state=0, covariance_type='diag')
         y_pred = gmm.fit_predict(projected, labels)
         # GMM plot
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
