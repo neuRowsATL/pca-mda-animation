@@ -8,9 +8,10 @@ import numpy
 import sklearn
 import matplotlib
 import mpl_toolkits
+from wx.lib.pubsub import setuparg1
 
 
-packages = []
+packages = ['wx.lib.pubsub']
 includes = ['matplotlib.backends.backend_wxagg', 'matplotlib.figure', 'numpy', 
             'sklearn', 'sklearn.utils.*', 'sklearn.neighbors.typedefs', 'sklearn.utils.sparsetools._graph_validation',
             

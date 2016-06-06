@@ -15,7 +15,8 @@ import json
 
 
 import wx
-from wx.lib.pubsub import pub
+from wx.lib.pubsub import setuparg1
+from wx.lib.pubsub import pub as Publisher
 
 from scipy.stats import entropy
 from scipy.cluster.hierarchy import dendrogram, linkage
@@ -53,4 +54,4 @@ from sklearn.mixture import GMM
 from sklearn.svm import OneClassSVM
 
 from smoothing import bezier
-from kmeans import KPlusPlus
+# from kmeans import KPlusPlus
