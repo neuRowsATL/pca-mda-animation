@@ -5,13 +5,30 @@ class Clusterize(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
+
         self.data_dir = ''
         self.export_dir = ''
+
+        self.is_binary = True
+
         self.labels = list()
         self.in_args = tuple()
+
         self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 10))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
+        
+        self.binary_tog = wx.Button(self, -1, "Toggle Binary/Gradient", size=(50, 5))
+        self.Bind(wx.EVT_BUTTON, self.toggle_binary)
+
         self.__do_layout()
+
+    def toggle_binary(self):
+    	if self.is_binary is True:
+    		self.is_binary = False
+    		self.plotting()
+			return
+		self.is_binary = True
+		self.plotting()
 
     def set_inargs(self, intup):
         self.in_args = intup
@@ -60,8 +77,9 @@ class Clusterize(wx.Panel):
         freqs = (freqs - np.min(freqs)) / (np.max(freqs) - np.min(freqs))
         thresh = np.mean(freqs) + np.std(freqs)
         w = np.where(freqs > thresh)
-        freqs[freqs < thresh] = 0
-        freqs[freqs >= thresh] = 1
+        if self.is_binary:
+        	freqs[freqs < thresh] = 0
+	        freqs[freqs >= thresh] = 1
         w = [(w[0][i], w[1][i]) for i in range(len(w[0]))]
         order = list()
         for r in range(freqs.shape[0]):
@@ -75,15 +93,17 @@ class Clusterize(wx.Panel):
         if fchanges is not None:
             labels = np.loadtxt(self.labels[0])
             labels = labels[self.in_args]
+
             ax = self.fig.add_subplot(111)
             ax.set_title('Average Change in Frequency')
-            p = ax.pcolormesh(fchanges)
+
             ax.set_xticks(np.arange(fchanges.shape[1])+0.5, minor=False)
             ax.set_yticks(np.arange(fchanges.shape[0])+0.5, minor=False)
             ax.set_xticklabels(self.waveforms()[1:], minor=False)
             plt.setp(ax.get_xticklabels(), fontsize=4)
             plt.setp(ax.get_yticklabels(), fontsize=4)
             ax.get_yaxis().set_ticks([])
+
             ax.set_xlabel('Class')
             ax.set_ylabel('Neuron')
             # for xmaj in ax.xaxis.get_majorticklocs():
@@ -96,7 +116,9 @@ class Clusterize(wx.Panel):
             # for ymin in ax.yaxis.get_minorticklocs():
             #   ax.axhline(y=ymin-0.5,ls='--',c='k')
 
-            self.fig.colorbar(p)
+            if self.is_binary is False: 
+				p = ax.pcolormesh(fchanges)
+            	self.fig.colorbar(p)
             self.canvas.draw()
 
     def save_fig(self, event):
@@ -105,6 +127,10 @@ class Clusterize(wx.Panel):
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER)
+
+        sizer_1.AddSpacer(5)
+        
+        sizer_1.Add(self.binary_tog, wx.ALIGN_CENTER)
 
         sizer_1.AddSpacer(5)
         
