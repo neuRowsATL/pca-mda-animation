@@ -7,18 +7,28 @@ class Compareize(wx.Panel):
         self.canvas = FigCanvas(self, -1, self.fig)
         self.labels = list()
         self.in_args = tuple()
+
         self.data_dir = ''
         self.export_dir = ''
-        self.algList = ['dbi', 'spca', 'cos']
-        self.alg = 'dbi'
-        self.min_class = 5
+
+        self.algList = ['DBI', 'PCA Distance', 'Cosine Similarity']
+        self.alg = 'DBI'
+
+        self.class_title = wx.StaticText(self, -1, "Original or K-Means Classes?", (80, 10))
+        self.class_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ['Original', 'K-Means'])
+        self.Bind(wx.EVT_CHOICE, self.plotting, self.class_choice)
+        self.class_choice.SetSelection(0)
+
         self.algtitle = wx.StaticText(self, -1, "Choose Similarity Metric:", (80, 10))
         self.algchoice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.algList)
         self.Bind(wx.EVT_CHOICE, self.plotting, self.algchoice)
         self.algchoice.SetSelection(0)
-        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 100))
+
+        self.save_button = wx.Button(self, -1, "Save as PNG", size=(800, 100))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
+
         self.__do_layout()
+
 
     def set_inargs(self, intup):
         self.in_args = intup
@@ -34,14 +44,16 @@ class Compareize(wx.Panel):
         return None
 
     def waveforms(self):
-        waveform_names = {
-                          5: 'inf_sine',
-                          2: 'CL',
-                          3: 'low_sine',
-                          1: 'no_sim',
-                          4: 'top_sine',
-                          6: 'tugs_ol',
-                          7: 'other'}
+        # waveform_names = {
+        #                   5: 'inf_sine',
+        #                   2: 'CL',
+        #                   3: 'low_sine',
+        #                   1: 'no_sim',
+        #                   4: 'top_sine',
+        #                   6: 'tugs_ol',
+        #                   7: 'other'}
+        with open(os.path.join(self.data_dir, 'waveform_names.json'), 'r') as wf:
+            waveform_names = json.load(wf)
         return list(waveform_names.values())
 
     def davies_bouldin_index(self, A, B):
@@ -104,13 +116,24 @@ class Compareize(wx.Panel):
 
     def compare(self):
         comp_algs = {
-                'spca': self.spca,
-                'cos': self.cosine_sim,
-                'dbi': self.davies_bouldin_index
-                # 'Chung-Capps Index': self.chung_capps_index
+                'PCA Distance': self.spca,
+                'Cosine Similarity': self.cosine_sim,
+                'DBI': self.davies_bouldin_index
                 }
-        labels = np.loadtxt(self.labels[0])[self.in_args]
         data = self.get_data()
+        
+        if self.class_choice.GetSelection() == 0:
+            labels = np.loadtxt(self.labels[0])[self.in_args]
+        else:
+            labels = np.loadtxt(self.labels[0])[self.in_args]
+            starts = list()
+            for lll in set(labels):
+                starts.append(np.mean(projected[labels==lll, :], 0))
+            
+            km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
+            y_pred = km.fit_predict(projected, labels)
+
+
         if data is not None:
             self.min_class = min([list(labels).count(i) for i in range(1, 1+len(set(labels)))])
             comps = list()
@@ -130,15 +153,15 @@ class Compareize(wx.Panel):
         comparison = self.compare()
         if comparison is not None:
             titles = {
-                'spca': 'PCA Cosine Similarity',
-                'cos': 'Cosine Similarity',
-                'dbi': 'Davies Bouldin Index'
-                # 'Chung-Capps Index': 'Chung-Capps Index'
+                'PCA Distance': 'PCA Cosine Similarity',
+                'Cosine Similarity': 'Cosine Similarity',
+                'DBI': 'Davies Bouldin Index'
             }
             labels = np.loadtxt(self.labels[0])
-            self.fig.clf()
-            ax = self.fig.add_subplot(111)
 
+            self.fig.clf()
+
+            ax = self.fig.add_subplot(111)
             ax.set_title('Metric:\n' + titles[self.alg], size=7)
 
             mask = np.tri(comparison.shape[0], k=-1)
@@ -172,7 +195,10 @@ class Compareize(wx.Panel):
             for cx in range(comparison_masked.shape[0]):
                 for cy in range(comparison_masked.shape[0]):
                     if cx >= cy:
-                        ax.annotate('%.3f' % round(comparison_masked[cy, cx], 3), xy=(cx, cy), xytext=(cx+0.25, cy+0.25), fontsize=5, color='w')
+                        ax.annotate('%.3f' %\
+                                    round(comparison_masked[cy, cx], 3), xy=(cx, cy), 
+                                    xytext=(cx+0.25, cy+0.25), fontsize=5, color='w'
+                                    )
             
             cbar = self.fig.colorbar(p)
             cbar.ax.tick_params(labelsize=5)

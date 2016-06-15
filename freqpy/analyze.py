@@ -299,12 +299,7 @@ class Analyze(wx.Panel):
             starts.append(np.mean(projected[labels==lll, :], 0))
         
         km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
-        # km = KMeans(n_clusters=len(set(labels)), init='k-means++', n_init=100, max_iter=300, random_state=123)
         y_pred = km.fit_predict(projected, labels)
-        
-        # km = KPlusPlus(K=len(set(labels)), X=projected)
-        # km.init_centers(method='given', given=starts)
-        # y_pred = km.find_centers(method='++')
 
         modlab = labels - 1.0
         complist = list()

@@ -14,21 +14,31 @@ class Clusterize(wx.Panel):
         self.labels = list()
         self.in_args = tuple()
 
-        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 10))
+        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 1))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
+
+        self.binary_title = wx.StaticText(self, -1, "Toggle Binary/Graded Plot:", (80, 10))
         
-        self.binary_tog = wx.Button(self, -1, "Toggle Binary/Gradient", size=(50, 5))
+        self.binary_tog = wx.Button(self, -1, "Toggle", size=(800, 1))
         self.Bind(wx.EVT_BUTTON, self.toggle_binary)
+
+        self.threshList = ['mean', 'mean + 1s', 'mean + 2s']
+
+        self.thresh_title = wx.StaticText(self, -1, "Choose a Threshold:", (80, 10))
+
+        self.thresh_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.threshList)
+        self.Bind(wx.EVT_CHOICE, self.plotting, self.thresh_choice)
+        self.thresh_choice.SetSelection(1)
 
         self.__do_layout()
 
-    def toggle_binary(self):
-    	if self.is_binary is True:
-    		self.is_binary = False
-    		self.plotting()
-			return
-		self.is_binary = True
-		self.plotting()
+    def toggle_binary(self, event):
+        if self.is_binary is True:
+            self.is_binary = False
+            self.plotting()
+            return 1
+        self.is_binary = True
+        self.plotting()
 
     def set_inargs(self, intup):
         self.in_args = intup
@@ -60,14 +70,6 @@ class Clusterize(wx.Panel):
         return None
 
     def waveforms(self):
-        # waveform_names = {
-        #               5: 'inf_sine',
-        #               2: 'CL',
-        #               3: 'low_sine',
-        #               1: 'no_sim',
-        #               4: 'top_sine',
-        #               6: 'tugs_ol',
-        #               7: 'other'}
         with open(os.path.join(self.data_dir, 'waveform_names.json'), 'r') as wf:
             waveform_names = json.load(wf)
         return list(waveform_names.values())
@@ -75,11 +77,13 @@ class Clusterize(wx.Panel):
     def sort_cluster(self, freqs):
         freqs = (np.tanh(freqs) + 1.0) / 2.0
         freqs = (freqs - np.min(freqs)) / (np.max(freqs) - np.min(freqs))
-        thresh = np.mean(freqs) + np.std(freqs)
+        chosen_thresh = self.thresh_choice.GetSelection()
+        # if chosen_thresh <= 2:  
+        thresh = np.mean(freqs) + (np.std(freqs)*chosen_thresh)
         w = np.where(freqs > thresh)
         if self.is_binary:
-        	freqs[freqs < thresh] = 0
-	        freqs[freqs >= thresh] = 1
+            freqs[freqs < thresh] = 0
+            freqs[freqs >= thresh] = 1
         w = [(w[0][i], w[1][i]) for i in range(len(w[0]))]
         order = list()
         for r in range(freqs.shape[0]):
@@ -88,7 +92,8 @@ class Clusterize(wx.Panel):
         order = np.array(order)
         return np.flipud(freqs[order.argsort(), :])
 
-    def plotting(self):
+    def plotting(self, event=None):
+        self.fig.clf()
         fchanges = self.sort_cluster(self.clustering())
         if fchanges is not None:
             labels = np.loadtxt(self.labels[0])
@@ -106,19 +111,12 @@ class Clusterize(wx.Panel):
 
             ax.set_xlabel('Class')
             ax.set_ylabel('Neuron')
-            # for xmaj in ax.xaxis.get_majorticklocs():
-            #   ax.axvline(x=xmaj-0.5,ls='-',c='k')
-            # for xmin in ax.xaxis.get_minorticklocs():
-            #   ax.axvline(x=xmin-0.5,ls='--',c='k')
 
-            # for ymaj in ax.yaxis.get_majorticklocs():
-            #   ax.axhline(y=ymaj-0.5,ls='-',c='k')
-            # for ymin in ax.yaxis.get_minorticklocs():
-            #   ax.axhline(y=ymin-0.5,ls='--',c='k')
+            p = ax.pcolormesh(fchanges)
 
-            if self.is_binary is False: 
-				p = ax.pcolormesh(fchanges)
-            	self.fig.colorbar(p)
+            if self.is_binary is False:
+                self.fig.colorbar(p)
+            
             self.canvas.draw()
 
     def save_fig(self, event):
@@ -129,8 +127,12 @@ class Clusterize(wx.Panel):
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER)
 
         sizer_1.AddSpacer(5)
-        
+        sizer_1.Add(self.binary_title, 0, wx.ALIGN_CENTER, 0)
         sizer_1.Add(self.binary_tog, wx.ALIGN_CENTER)
+
+        sizer_1.AddSpacer(5)
+        sizer_1.Add(self.thresh_title, 0, wx.ALIGN_CENTER, 0)
+        sizer_1.Add(self.thresh_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
 
         sizer_1.AddSpacer(5)
         
