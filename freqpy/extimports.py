@@ -17,6 +17,7 @@ import json
 import wx
 from wx.lib.pubsub import setuparg1
 from wx.lib.pubsub import pub as Publisher
+import wx.lib.newevent
 
 from scipy.stats import entropy
 from scipy.cluster.hierarchy import dendrogram, linkage

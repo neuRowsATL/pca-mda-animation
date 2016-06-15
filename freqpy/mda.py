@@ -1,53 +1,13 @@
-""" Multiple Discriminant Analysis Script
-    Python 3.5.1
-    Author: Robert Capps
-    Adapted from (Osan 2007) 
-"""
-
 from extimports import *
+from SL import SL
 
-class MDA:
+class MDA(SL):
+    """ Multiple Discriminant Analysis Script
+    Author: Robert Capps
+    Adapted from (Osan 2007)
+    """
     def __init__(self, data, labels):
-        if data.shape[1] > data.shape[0]:
-            data = data.T
-        self.data = data
-        self.labels = labels
-        self.nr_classes = int(max(set(labels)))
-        self.nr_repetitions = self.data.shape[0]
-        self.nvar = self.data.shape[1]
-
-    def classStats(self, data, labels):
-        classes = set(labels)
-        weights = np.array([list(labels).count(c) for c in classes])
-        means = np.empty((self.nr_classes, self.nvar))
-        stds = np.empty((self.nr_classes, self.nvar))
-        for ii in classes:
-            ii = int(ii)
-            means[ii-1, :] = np.mean(data[labels==ii,:], 0)
-            stds[ii-1, :] = np.std(data[labels==ii,:], 0)
-        return weights, means, stds
-
-    def splitData(self, data, test_percent=None):
-        np.random.seed(0122)
-        trainingData = list()
-        testData = list()
-        X = np.c_[data, self.labels]
-        if test_percent is None: test_percent = 40.0
-        if test_percent >= 1.0: test_percent = test_percent / 100.00
-        for lab in set(self.labels):
-            curr = X[self.labels==lab, :]
-            indices = np.random.permutation(curr.shape[0])
-            curr_percent = int(len(indices) * test_percent)
-            training_idx, test_idx = indices[curr_percent:], indices[:curr_percent]
-            training, test = curr[training_idx,:].tolist(), curr[test_idx,:].tolist()
-            trainingData.extend(training)
-            testData.extend(test)
-        trainingData = np.array(trainingData)
-        testData = np.array(testData)
-        self.trainingData = np.array(trainingData[:, :-1])
-        self.testData = np.array(testData[:, :-1])
-        self.trainingLabels = np.array(trainingData[:, -1])
-        self.testLabels = np.array(testData[:, -1])
+        SL.__init__(self, data, labels)
 
     def sw(self):
         weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
@@ -56,6 +16,7 @@ class MDA:
         for ii in set(self.labels):
             ii = int(ii)
             diff_array = self.trainingData[self.trainingLabels==ii, :] - means[ii-1,:]
+            diff_array = np.dot(diff_array.T, diff_array)
             sw_exp[:, :, ii-1] = np.cov(diff_array, rowvar=0)
             sw_0 = sw_0 + sw_exp[:, :, ii-1]
         return sw_0
@@ -67,8 +28,8 @@ class MDA:
         sb_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
             ii = int(ii)
-            sb_exp[:, :, ii-1] = np.multiply(np.multiply(weights[ii-1], np.subtract(means[ii-1,:], gmeans).T), 
-                                             np.subtract(means[ii-1,:], gmeans))
+            diff_array = means[ii-1, :] - gmeans
+            sb_exp[:, :, ii-1] = weights[ii-1] * np.multiply(diff_array.T, diff_array)
             sb_0 = sb_0 + sb_exp[:, :, ii-1]
         return sb_0
 

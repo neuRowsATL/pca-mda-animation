@@ -222,7 +222,7 @@ def save_anim(data_dir, export_dir):
         fig.savefig(filename, dpi='figure')
         filenames.append(filename)
         if sys.platform[0:3] == "win":
-            wx.CallAfter(pub.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
+            wx.CallAfter(Publisher.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
 
     crf = 30
     reso = '1280x720'
@@ -269,6 +269,10 @@ class MainFrame(wx.Frame):
         self.data_dir = '.'+delim+'Data'+delim
         self.export_dir = '.'+delim+'output_dir'+delim
         self.in_args = tuple()
+
+        OnLoad, EVT_ON_LOAD = wx.lib.newevent.NewEvent()
+        wx.PostEvent(self, OnLoad(attr1=True))
+        self.Bind(EVT_ON_LOAD, self.on_add_file)
 
         p = wx.Panel(self)
         self.nb = wx.Notebook(p)
@@ -340,7 +344,10 @@ class MainFrame(wx.Frame):
             dlg = MyProgressDialog()
             dlg.ShowModal()
         t1 = time.time()
-        dial = wx.MessageDialog(None, 'Exported Video to: %s' % os.path.join(self.export_dir+'tmp'+'/', out_movie), 'Done in %.3f seconds.' % round(t1 - t0, 3), wx.OK)
+        dial = wx.MessageDialog(None,
+                              'Exported Video to: %s' % os.path.join(self.export_dir+'tmp'+'/', out_movie), 
+                              'Done in %.3f seconds.' % round(t1 - t0, 3), 
+                               wx.OK)
         if dial.ShowModal() == wx.ID_OK:
             for fi in filenames:
                 os.remove(fi)
@@ -349,19 +356,17 @@ class MainFrame(wx.Frame):
             wx.CallAfter(save_thread.join())
 
     def on_add_file(self, event):
-        dialog = wx.DirDialog(
-        self,
-        message="Import Data Directory",
-        style=wx.OPEN|wx.MULTIPLE)
-        if dialog.ShowModal() == wx.ID_OK:
+        def check_platform():
             win_delim = "\\"
             dar_delim = "/"
             if sys.platform[0:3] == "win":
                 delim = win_delim
             elif sys.platform[0:3] == "dar":
                 delim = dar_delim
-            data_dir = dialog.GetPath() + delim
-            files_ = [os.path.abspath(dialog.GetPath()+delim+ff) for ff in os.listdir(dialog.GetPath())]
+            return delim
+
+        def distribute_path(data_dir):
+            files_ = [os.path.abspath(data_dir+delim+ff) for ff in os.listdir(data_dir)]
             files = [f.split(delim)[-1] for f in files_]
             data_files = [f for f in files if all(fl.isdigit() for fl in f.split('D_')[0]) and f.split('.')[-1]=='txt' \
                           and 'labels' not in f.lower() and f.split('.')[0][-1].isdigit()]
@@ -397,8 +402,34 @@ class MainFrame(wx.Frame):
             self.visualize.load_conditions(self.import_files.conditions)
             if self.visualize.vis_selected:
                 self.visualize.init_plot()
-        # os.chdir('..')
-        dialog.Destroy()
+
+        delim = check_platform()
+
+        try:
+            etest = event.attr1
+        except AttributeError:
+            etest = False
+
+        if etest is True:
+            y_n_dialog = wx.MessageDialog(self,
+                                          message="Import data from %s?" % self.data_dir,
+                                          caption="Auto-Import?",
+                                          style=wx.YES_NO|wx.YES_DEFAULT|wx.ICON_QUESTION
+                                          )
+            if y_n_dialog.ShowModal() == wx.ID_NO:
+                etest = False
+
+        if etest is False:
+            dialog = wx.DirDialog(self,
+                                  message="Import Data Directory",
+                                  style=wx.OPEN|wx.MULTIPLE
+                                )
+            if dialog.ShowModal() == wx.ID_OK:
+                data_dir = dialog.GetPath() + delim
+                distribute_path(data_dir)
+                dialog.Destroy()
+        else:
+            distribute_path(self.data_dir)
 
 if __name__ == '__main__':
     app = wx.App(False)

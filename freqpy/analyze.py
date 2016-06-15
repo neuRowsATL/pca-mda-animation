@@ -282,10 +282,10 @@ class Analyze(wx.Panel):
             return R_AB
 
         X = selected_data
-        if alg == 'PCA': 
+        if alg == 'PCA':
             pca = PCA(n_components=3)
             projected = pca.fit_transform(X)
-        elif alg == 'ICA': 
+        elif alg == 'ICA':
             pca = FastICA(n_components=3)
             projected = pca.fit_transform(X)
         elif alg == 'MDA':
@@ -335,7 +335,7 @@ class Analyze(wx.Panel):
             # If the two match in label, use green
             if y_pred[ix] == yl: col = 'g'
             # otherwise, use red
-            else: 
+            else:
                 col = 'r'
             colist.append(col)
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
@@ -351,8 +351,9 @@ class Analyze(wx.Panel):
         pca = PCA(n_components=3)
         projected = pca.fit_transform(X)
 
-        gmm = GMM(n_components=3, random_state=0, covariance_type='diag')
+        gmm = GMM(n_components=len(set(labels)), random_state=0, covariance_type='diag')
         y_pred = gmm.fit_predict(projected, labels)
+        # print gmm.score_samples(projected)[0]
         # GMM plot
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                               c=y_pred, marker='o', s=30)

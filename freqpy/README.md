@@ -62,7 +62,12 @@ You'll need the following files in the data folder:
 		
 		{"1": "no_sim", "2": "CL", "3": "low_sine", "4": "top_sine", "5": "inf_sine", "6": "tugs_ol", "7": "other"}
 		
+		
 		*** IMPORTANT ***
-		Label "1" should correspond to "No Simulation". Otherwise it creates problems for the [Clusterize] tab, which
+		
+		- Label "1" should correspond to "No Simulation". Otherwise it creates problems for the [Clusterize] tab, which
 		assumes "1" is a baseline.
+
+		- Labelling should always begin with 1.
+		
 		*****************
