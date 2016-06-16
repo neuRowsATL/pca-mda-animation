@@ -6,35 +6,20 @@ class Analyze(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.t = 0
         self.dpi = 150
+
+        self.data = None
+        self.labels = None
+        self.data_dir = ''
+        self.export_dir = ''
+        
         self.fig = Figure((5.5, 3.5), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.data_arr = dict()
-        self.cond_arr = dict()
-        self.lb_arr = list()
-        self.lb_condarr = list()
-        self.neurons = list()
-        self.conditions = list()
-        self.in_args = tuple()
+        
         self.create_listbox()
         self.__do_layout()
 
     def create_listbox(self):
-        sampleList = list()
-        condList = list()
-        for ii, k in enumerate(self.data_arr.keys()):
-            if ii > 0 and self.data_arr.keys()[ii-1].split('\\')[-1].split('_')[0] != self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]:
-                sampleList.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
-            if ii == 0:
-                sampleList.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
-        for ii, k in enumerate(self.cond_arr.keys()):
-            if ii > 0 and self.cond_arr.keys()[ii-1].split('\\')[-1].split('_')[0] != self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0]:
-                condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
-            if ii == 0:
-                condList.append(self.cond_arr.keys()[ii].split('\\')[-1].split('_')[0])
-        self.lbtitle = wx.StaticText(self, -1, "Choose Frequency Data:", (80, 10))
-        self.lb = wx.Choice(self, -1, (80, 50), wx.DefaultSize, sampleList)
-        self.condtitle = wx.StaticText(self, -1, "Choose Condition File:", (80, 10))
-        self.lb_cond = wx.Choice(self, -1, (80, 50), wx.DefaultSize, condList)
+
         self.alg_title = wx.StaticText(self, -1, "Analyze with...:", (80, 10))
         self.alg_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ["PCA", "MDA", "ICA", 
                                                                          "k-Means (PCA)", "k-Means (ICA)", 
@@ -42,142 +27,36 @@ class Analyze(wx.Panel):
         self.alg_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.plot_selected, self.alg_choice) # Algorithm selection
 
-    def to_freq(self, data):
-        nr_pts = 1e3
-
-        # vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
-        # for neuron, values in data.items():
-        #     std_thresh = np.std(values) * 2
-        #     mean_val = np.mean(values)
-        #     data[neuron] = values[np.where((values <= mean_val + std_thresh) & (values >= mean_val - std_thresh))]
-        vals = np.fromiter(itertools.chain.from_iterable(data.values()),dtype=np.float32)
-        if len(vals) > 0:
-            time_space = np.linspace(min(vals), max(vals), nr_pts, endpoint=True)
-            delta = time_space[1] - time_space[0]
-            time_space = np.insert(time_space, 0, time_space[0] - delta)
-            time_space = np.insert(time_space, -1, time_space[-1] + delta)
-            freq = np.zeros((int(max(data.keys())+1), int(nr_pts)))
-            for neuron, datum in data.items():
-                for ii in np.arange(nr_pts):
-                    ii = int(ii)
-                    count = len(datum[np.where((datum < time_space[ii + 1]) & (datum > time_space[ii]))])
-                    freq[neuron, ii] = np.divide(count, delta)
-            fmean = np.mean(freq, 1)
-            fstd = np.std(freq, 1)
-            freq = np.array((freq - np.expand_dims(fmean, axis=1)) /
-                   np.expand_dims(fstd,axis=1))
-            freq = (1.000 + np.tanh(freq)) / 2.000
-            freq = freq.T
-
-            # np.random.seed(0)
-            # train_ix = np.random.random_integers(0, len(freq)-1, int(0.4*len(freq)))
-            # test_ix = np.in1d(np.asarray(list(range(0, len(freq)))), train_ix, invert=True)
-            # X_train = freq[train_ix,:]
-            # X_test = freq[test_ix,:]
-            # svm = OneClassSVM(random_state=0, kernel='rbf', nu=0.5)
-            # svm.fit(X_train)
-            # y_pred_train = svm.predict(X_train)
-            # y_pred_test = svm.predict(X_test)
-            # # y_pred = svm.predict(freq)
-
-            # n_error_train = y_pred_train[y_pred_train == -1].shape[0] / float(X_train.shape[0])
-            # n_error_test = y_pred_test[y_pred_test == -1].shape[0] / float(X_test.shape[0])
-            # print(n_error_train, n_error_test)
-
-            # self.in_args = np.where(y_pred_test == 1)
-            # print(len(y_pred_test == 1))
-            # return X_test[self.in_args]
-            return freq
-
-    def load_data(self, filenames):
-        data = dict()
-        if len(filenames) > 0:
-            for ii, filename in enumerate(filenames):
-                if ii == 0:
-                    tagname = filename.split('_')[0]
-                if filenames[ii-1].split('_')[0] == filenames[ii].split('_')[0]:
-                    datum = np.loadtxt(filename,skiprows=2)
-                    data.update({ii: datum})
-            freq = self.to_freq(data)
-            self.data_arr.update({tagname: freq})
-            save_name = tagname + "_normalized_freq.txt"
-            np.savetxt(save_name, freq)
-            if self.t == 0:
-                self.init_plot()
-                self.t += 1
-            for ii, k in enumerate(self.data_arr.keys()):
-                if ii > 0 and self.data_arr.keys()[ii-1].split('_')[0] != self.data_arr.keys()[ii].split('_')[0]:
-                    self.lb.InsertItems([self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
-                    self.lb.SetSelection(0)
-                    self.lb_arr.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]) 
-                if ii == 0:
-                    self.lb.InsertItems([self.data_arr.keys()[ii].split('\\')[-1].split('_')[0]],0)
-                    self.lb.SetSelection(0)
-                    self.lb_arr.append(self.data_arr.keys()[ii].split('\\')[-1].split('_')[0])
-
-    def load_conditions(self, filenames):
-        for filename in filenames:
-            conds = np.loadtxt(filename)
-            self.cond_arr.update({filename: conds})
-        for ii, k in enumerate(self.cond_arr.keys()):
-            if ii > 0 and self.cond_arr.keys()[ii-1] != self.cond_arr.keys()[ii]:
-                self.lb_cond.InsertItems([self.cond_arr.keys()[ii].split('\\')[-1]],0)
-                self.lb_cond.SetSelection(0)
-                self.lb_condarr.append(self.cond_arr.keys()[ii].split('\\')[-1]) 
-            if ii == 0:
-                self.lb_cond.InsertItems([self.cond_arr.keys()[ii].split('\\')[-1]],0)
-                self.lb_cond.SetSelection(0)
-                self.lb_condarr.append(self.cond_arr.keys()[ii].split('\\')[-1])
-
-    def get_current(self, keyname, t):
-        init_arr = dict()
-        if t == 'Data':
-            for ii, _ in enumerate(self.data_arr.keys()):
-                if self.data_arr.keys()[ii].split('\\')[-1].split('_')[0] == keyname:
-                    init_arr = self.data_arr[_]
-                    return init_arr
-        elif t == 'Cond':
-            for ii, _ in enumerate(self.cond_arr.keys()):
-                if self.cond_arr.keys()[ii].split('\\')[-1] == keyname:
-                    init_arr = self.cond_arr[_]
-                    return init_arr[self.in_args]
-
-    def get_selection(self, box, t):
-        selected = [box.GetString(box.GetSelection())]
-        selarr = dict()
-        # if len(selected) == 1:
-        sel = selected[0]
-        selarr = self.get_current(sel, t=t)
-        return selarr
 
     def plot_selected(self, event):
         self.axes.cla()
         self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('Cluster Analysis', size=10)
+        self.axes.set_title('PCA', size=10)
+
         self.axes.set_xlabel('PC1',size=5)
         self.axes.set_ylabel('PC2',size=5)
         self.axes.set_zlabel('PC3',size=5)
+        
         plt.setp(self.axes.get_xticklabels(), fontsize=4)
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
+        
         selected_alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
-        selected_dat = self.get_selection(self.lb, t='Data')
-        selected_labels = self.get_selection(self.lb_cond, t='Cond')
-        # selected_labels = selected_labels[self.in_args]
+        selected_dat = self.data
+        selected_labels = self.labels
+
         if selected_dat.shape[0] < selected_dat.shape[1]: selected_dat = selected_dat.T
-        if len(self.cond_arr.keys()) < 1 and selected_alg in ['PCA', 'MDA']:
-            print("To use MDA or PCA, please select both frequency and labels.")
-            return
-        if len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg in ['PCA', 'MDA']:
+
+        if selected_alg in ['PCA', 'MDA']:
             if selected_alg == 'PCA':
                 self.pca_selected(selected_dat, selected_labels)
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
-        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (PCA)':
+        elif selected_alg == 'k-Means (PCA)':
             self.kmeans_selected(selected_dat, labels=selected_labels)
-        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (ICA)':
+        elif selected_alg == 'k-Means (ICA)':
             self.kmeans_selected(selected_dat, labels=selected_labels, alg='ICA')
-        elif len(self.cond_arr.keys()) > 0 and len(self.data_arr.keys()) > 0 and selected_alg == 'k-Means (MDA)':
+        elif selected_alg == 'k-Means (MDA)':
             self.kmeans_selected(selected_dat, labels=selected_labels, alg='MDA')
         elif selected_alg == 'GMM (PCA)':
             self.gmm_selected(selected_dat, labels=selected_labels)
@@ -187,22 +66,20 @@ class Analyze(wx.Panel):
     def init_plot(self):
         self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
         self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('Cluster Analysis', size=10)
+        self.axes.set_title('PCA', size=10)
         self.axes.set_xlabel('PC1',size=5)
         self.axes.set_ylabel('PC2',size=5)
         self.axes.set_zlabel('PC3',size=5)
         plt.setp(self.axes.get_xticklabels(), fontsize=4)
         plt.setp(self.axes.get_yticklabels(), fontsize=4)
         plt.setp(self.axes.get_zticklabels(), fontsize=4)
-        init_dat = self.data_arr[self.data_arr.keys()[0]]
-        try:
-            init_labels = self.cond_arr[self.cond_arr.keys()[0]][self.in_args]
-            # labelled_data = self.class_creation(init_labels, init_dat)
-            color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-            self.pca_selected(init_dat, init_labels, toplot=True)
-            self.legend = self.axes.legend(frameon=True, loc='upper left', scatterpoints=1, ncol=2, fontsize=8, bbox_to_anchor=(0, 0))
-        except IndexError:
-            return
+
+        init_dat = self.data
+        init_labels = self.labels
+
+        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+        self.pca_selected(init_dat, init_labels, toplot=True)
+        self.legend = self.axes.legend(frameon=True, loc='upper left', scatterpoints=1, ncol=2, fontsize=8, bbox_to_anchor=(0, 0))
 
     def pca_selected(self, data, labels, toplot=True):
         self.axes.set_title('PCA', size=10)
@@ -318,13 +195,6 @@ class Analyze(wx.Panel):
             # Set closest match as the new label
             y_corr[y_corr==ll] = best_c[0]
 
-        # for tl in range(7):
-        #     print('Original Labels:, ', tl, ' : ', len(modlab[modlab==tl]))
-        #     print('DBI Labels: ', tl, ' : ', len(y_corr[y_corr==tl]))
-        #     print('K-Means Labels: ', tl, ' : ', len(y_pred[y_pred==tl]))
-
-        # print(set(y_pred), set(y_corr))
-
         colist = list()
         for ix, yl in enumerate(y_corr):
             # If the two match in label, use green
@@ -355,22 +225,14 @@ class Analyze(wx.Panel):
     
         self.canvas.draw()
 
-    def class_creation(self, labels, data):
-        classes = dict()
-        data = data.T
-        for label in range(int(min(labels)), int(max(labels))+1):
-            classes[label] = data[labels==label,:]
-        return classes
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER)
-        sizer_1.Add(self.lbtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
-        sizer_1.Add(self.lb, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
-        sizer_1.Add(self.condtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
-        sizer_1.Add(self.lb_cond, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+
         sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

@@ -5,17 +5,22 @@ class Compareize(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.fig = Figure((5.5, 3.5), dpi=150)
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.labels = list()
-        self.in_args = tuple()
+        
+        self.labels = None
+        self.data = None
+        self.waveform_names = None
 
-        self.data_dir = ''
         self.export_dir = ''
+        self.data_dir = ''
 
         self.algList = ['DBI', 'PCA Distance', 'Cosine Similarity']
         self.alg = 'DBI'
 
-        self.class_title = wx.StaticText(self, -1, "Original or K-Means Classes?", (80, 10))
-        self.class_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, ['Original', 'K-Means'])
+        self.axesList = ['Original/Original', 'K-Means/K-Means', 'Original/K-Means']
+        self.axesCurr = 'Original/Original'
+
+        self.class_title = wx.StaticText(self, -1, "Choose Axis1/Axis2:", (80, 10))
+        self.class_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.axesList)
         self.Bind(wx.EVT_CHOICE, self.plotting, self.class_choice)
         self.class_choice.SetSelection(0)
 
@@ -29,32 +34,11 @@ class Compareize(wx.Panel):
 
         self.__do_layout()
 
-
-    def set_inargs(self, intup):
-        self.in_args = intup
-        # print('compareize', self.in_args)
-
     def get_data(self):
-        fname = '_normalized_freq.txt'
-        dname = [f for f in os.listdir(self.data_dir) if fname in f]
-        if len(dname) > 0:
-            data = np.loadtxt(self.data_dir+dname[0])
-            if data.shape[0] < data.shape[1]: data = data.T
-            return data
-        return None
+        return self.data
 
     def waveforms(self):
-        # waveform_names = {
-        #                   5: 'inf_sine',
-        #                   2: 'CL',
-        #                   3: 'low_sine',
-        #                   1: 'no_sim',
-        #                   4: 'top_sine',
-        #                   6: 'tugs_ol',
-        #                   7: 'other'}
-        with open(os.path.join(self.data_dir, 'waveform_names.json'), 'r') as wf:
-            waveform_names = json.load(wf)
-        return list(waveform_names.values())
+        return self.waveform_names
 
     def davies_bouldin_index(self, A, B):
         # https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index
@@ -98,7 +82,6 @@ class Compareize(wx.Panel):
         # Matching patterns from historical data using pca and distance similarity factors,
         # 2001.
         
-        min_class = self.min_class
         pcaA = PCA(n_components=10)
         pcaB = PCA(n_components=10)
         
@@ -120,44 +103,61 @@ class Compareize(wx.Panel):
                 'Cosine Similarity': self.cosine_sim,
                 'DBI': self.davies_bouldin_index
                 }
+        comp_ax = {
+                'Original/Original': 'oo', 
+                'K-Means/K-Means': 'kk',
+                'Original/K-Means': 'ok'
+                }
         data = self.get_data()
-        
-        if self.class_choice.GetSelection() == 0:
-            labels = np.loadtxt(self.labels[0])[self.in_args]
-        else:
-            labels = np.loadtxt(self.labels[0])[self.in_args]
+        labels = self.labels
+
+        if 'k' in comp_ax[self.axesCurr]:
             starts = list()
             for lll in set(labels):
-                starts.append(np.mean(projected[labels==lll, :], 0))
+                starts.append(np.mean(data[labels==lll, :], 0))
             
             km = KMeans(n_clusters=len(set(labels)), init=np.asarray(starts), n_init=1)
-            y_pred = km.fit_predict(projected, labels)
+            k_labels = km.fit_predict(data, labels) ## TODO: add ability to choose projection
 
+        if 'kk' == comp_ax[self.axesCurr]:
+            l1 = k_labels
+            l2 = k_labels
+        elif 'ok' == comp_ax[self.axesCurr]:
+            l1 = labels
+            l2 = k_labels
+        elif 'oo' == comp_ax[self.axesCurr]:
+            l1 = labels
+            l2 = labels
 
         if data is not None:
-            self.min_class = min([list(labels).count(i) for i in range(1, 1+len(set(labels)))])
             comps = list()
             do_comp = comp_algs[self.alg]
-            for li in set(labels):
+            for li in set(l1):
                 cl = list()
-                for li2 in set(labels):
-                    A = data[labels==li, :]
-                    B = data[labels==li2, :]
+                for li2 in set(l2):
+                    A = data[l1==li, :]
+                    B = data[l2==li2, :]
                     cl.append(do_comp(A, B))
                 comps.append(cl)
-            return np.asarray(comps)
+            return np.asarray(comps), comp_ax[self.axesCurr]
         return None
 
     def plotting(self, event=None):
         self.alg = self.algList[self.algchoice.GetSelection()]
-        comparison = self.compare()
+        self.axesCurr = self.axesList[self.class_choice.GetSelection()]
+        comparison, ax_tip = self.compare()
         if comparison is not None:
             titles = {
                 'PCA Distance': 'PCA Cosine Similarity',
                 'Cosine Similarity': 'Cosine Similarity',
                 'DBI': 'Davies Bouldin Index'
             }
-            labels = np.loadtxt(self.labels[0])
+            ax_titles = {
+                'oo': ['Original Classes', 'Original Classes'],
+                'ok': ['Original Classes', 'K-Means Classes'],
+                'kk': ['K-Means Classes', 'K-Means Classes']
+            }
+            labels = self.labels
 
             self.fig.clf()
 
@@ -172,14 +172,16 @@ class Compareize(wx.Panel):
 
             ax.set_xticks(np.arange(comparison.shape[1])+0.5, minor=False)
             ax.set_yticks(np.arange(comparison.shape[0])+0.5, minor=False)
+            # if 'k' not in ax_tip:
             ax.set_xticklabels(self.waveforms(), minor=False)
+            # if 'k' != ax_tip[0]:
             ax.set_yticklabels(self.waveforms(), minor=False)
 
             plt.setp(ax.get_xticklabels(), fontsize=5)
             plt.setp(ax.get_yticklabels(), fontsize=5)
 
-            ax.set_xlabel('Class 1', size=6)
-            ax.set_ylabel('Class 2', size=6)
+            ax.set_xlabel(ax_titles[ax_tip][1], size=6)
+            ax.set_ylabel(ax_titles[ax_tip][0], size=6)
 
             for xmaj in ax.xaxis.get_majorticklocs():
               ax.axvline(x=xmaj-0.5,ls='-',c='k')
@@ -217,6 +219,10 @@ class Compareize(wx.Panel):
         sizer_1.AddSpacer(5)
         sizer_1.Add(self.algtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.algchoice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+
+        sizer_1.AddSpacer(5)
+        sizer_1.Add(self.class_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.class_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
 
         sizer_1.AddSpacer(7)
 

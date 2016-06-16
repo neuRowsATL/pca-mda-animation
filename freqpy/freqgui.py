@@ -5,8 +5,10 @@ from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
+from formatize import FormatFileNames
 if sys.platform[0:3] == "win":
     from prog_diag import MyProgressDialog
+
 
 def opener(names):
     df = dict()
@@ -57,14 +59,6 @@ def opener(names):
     return of
 
 def waveforms(folder):
-    # waveform_names = {
-    #               5: 'inf_sine',
-    #               2: 'CL',
-    #               3: 'low_sine',
-    #               1: 'no_sim',
-    #               4: 'top_sine',
-    #               6: 'tugs_ol',
-    #               7: 'other'}
     with open(os.path.join(folder, 'waveform_names.json'), 'r') as wf:
         waveform_names = json.load(wf)
     return list(waveform_names.values())
@@ -256,19 +250,26 @@ class MainFrame(wx.Frame):
     def __init__(self):
 
         wx.Frame.__init__(self, None, title="FreqPy", size=(800, 800))
-        # self.Bind(wx.EVT_CLOSE, self.OnClose)
 
-        self.neurons = list()
-        self.conditions = list()
-        win_delim = "\\"
-        dar_delim = "/"
-        if sys.platform[0:3] == "win":
-            delim = win_delim
-        elif sys.platform[0:3] == "dar":
-            delim = dar_delim
-        self.data_dir = '.'+delim+'Data'+delim
-        self.export_dir = '.'+delim+'output_dir'+delim
-        self.in_args = tuple()
+        self.delim = ''
+        def do_delims(dir_):
+            win_delim = "\\"
+            dar_delim = "/"
+            if sys.platform[0:3] == "win":
+                self.delim = win_delim
+            elif sys.platform[0:3] == "dar":
+                self.delim = dar_delim
+            return '.'+self.delim+dir_+self.delim
+
+        self.data_dir = do_delims('Data')
+        self.export_dir = do_delims('output_dir')
+
+        self.resolution = 1e3
+
+        self.frequency_data = None
+        self.labels = None
+        self.waveform_names = None
+        self.waveform = None
 
         OnLoad, EVT_ON_LOAD = wx.lib.newevent.NewEvent()
         wx.PostEvent(self, OnLoad(attr1=True))
@@ -287,23 +288,35 @@ class MainFrame(wx.Frame):
 
         self.visualize = Visualize(self.nb)
         self.visualize.save_button.Bind(wx.EVT_BUTTON, self.open_vis_thread)
-        self.visualize.to_freq = self.analyze.to_freq
 
         self.clusterize = Clusterize(self.nb)
 
         self.compareize = Compareize(self.nb)
 
+        self.formatize = FormatFileNames(self.nb)
+        self.formatize.ResButton.Bind(wx.EVT_BUTTON, self.OnAdjust)
+
+        self.nb.AddPage(self.formatize, "Formatize")
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
         self.nb.AddPage(self.visualize, "Visualize")
         self.nb.AddPage(self.clusterize, "Clusterize")
-        self.nb.AddPage(self.compareize, "Compare-ize")
+        self.nb.AddPage(self.compareize, "Comparize")
 
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.EXPAND)
         p.SetSizer(sizer)
         self.Layout()
+
+    def OnAdjust(self, event):
+        val = self.formatize.t1.GetValue()
+        self.resolution = int(val)
+        self.frequency_data = to_freq(self.label_data.data, nr_pts=self.resolution)
+        pages = [self.visualize, self.clusterize,
+                self.compareize, self.analyze]
+        for ix, p in enumerate(pages):
+            p.data = self.frequency_data
 
     def on_save(self, event):
         dialog = wx.DirDialog(self, message="Select Export Directory", style=wx.OPEN)
@@ -366,40 +379,51 @@ class MainFrame(wx.Frame):
             return delim
 
         def distribute_path(data_dir):
-            files_ = [os.path.abspath(data_dir+delim+ff) for ff in os.listdir(data_dir)]
+            files_ = [os.path.join(data_dir, ff) for ff in os.listdir(data_dir)]
             files = [f.split(delim)[-1] for f in files_]
+            
             data_files = [f for f in files if all(fl.isdigit() for fl in f.split('D_')[0]) and f.split('.')[-1]=='txt' \
                           and 'labels' not in f.lower() and f.split('.')[0][-1].isdigit()]
             data_files = [df for df in files_ if df.split(delim)[-1] in data_files]
-            label_files = [f for f in files if all(fl.isalpha() for fl in f.split('_')[0]) and f.split('.')[-1]=='txt' \
-                           and 'labels' in f.lower()]
-            label_files = [lf for lf in files_ if lf.split(delim)[-1] in label_files]
+
+            self.data_dir = data_dir
+
+            self.frequency_data = load_data(data_files, nr_pts=self.resolution)
+
+            self.labels = np.loadtxt(os.path.join(data_dir, 'pdat_labels.txt'))
+
+            self.waveform_names = get_waveform_names(data_dir)
+        
+            waveform_list = [ff for ff in os.listdir(data_dir) if ff.split('.')[-1] == 'asc']
+            txt_wv_list = [ff for ff in os.listdir(data_dir) if ff == 'waveform.txt']
+
+            if len(waveform_list) > 0 and len(txt_wv_list) < 1:
+                waveform_file = os.path.join(data_dir, waveform_list[0])
+                self.waveform = average_waveform(np.loadtxt(waveform_file), nr_pts=self.resolution)
+            else:
+                self.waveform = np.loadtxt(os.path.join(data_dir, 'waveform.txt'))
+
             for each in data_files:
                 self.import_files.listCtrl.Append([each.split(delim)[-1],'Frequency Data'])
-                self.import_files.neurons.append(os.path.normpath(each))
-            for each in label_files:
-                self.import_files.listCtrl.Append([each.split(delim)[-1],'Labels'])
-                self.import_files.conditions.append(os.path.normpath(each))
-                self.clusterize.labels.append(os.path.normpath(each))
-                self.compareize.labels.append(os.path.normpath(each))
-            self.visualize.data_dir = data_dir
-            self.clusterize.data_dir = data_dir
-            self.compareize.data_dir = data_dir
-            self.data_dir = data_dir
-            self.label_data.load_data(self.import_files.neurons)
-            self.label_data.load_conditions(self.import_files.conditions)
-            self.analyze.load_data(self.import_files.neurons)
-            self.analyze.load_conditions(self.import_files.conditions)
+
+            pages = [self.label_data, self.visualize, self.clusterize,
+                     self.compareize, self.analyze]
+            for ix, p in enumerate(pages):
+                p.data_dir = data_dir
+                if ix > 0:
+                    p.data = self.frequency_data
+                p.labels = self.labels
+                p.waveform_names = self.waveform_names
+                p.waveform = self.waveform
+
+            self.label_data.data = load_data(data_files, full=False)
+            
             self.analyze.init_plot()
-            the_inargs = self.analyze.in_args
-            self.in_args = the_inargs
-            self.visualize.set_inargs(the_inargs)
-            self.clusterize.set_inargs(the_inargs)
-            self.compareize.set_inargs(the_inargs)
+            self.label_data.init_plot()
+
             self.clusterize.plotting()
             self.compareize.plotting()
-            self.visualize.load_data(self.import_files.neurons)
-            self.visualize.load_conditions(self.import_files.conditions)
+
             if self.visualize.vis_selected:
                 self.visualize.init_plot()
 
