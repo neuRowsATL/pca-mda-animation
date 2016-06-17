@@ -2,6 +2,7 @@ import numpy as np
 import os
 import json
 import sys
+from waveform_convert import load_waveform, waveform_compress, waveform_convert
 
 def check_platform():
     win_delim = "\\"

@@ -18,29 +18,45 @@ class FormatFileNames(wx.Panel):
         self.listCtrl.SetColumnWidth(1, 300)
 
     def create_buttons(self):
-        bold_title_font = wx.Font(24, family=wx.DEFAULT, weight=wx.BOLD, style=wx.NORMAL)
+        import_button_size = (100, 1)
+
+        bold_title_font = wx.Font(18, family=wx.DEFAULT, weight=wx.BOLD, style=wx.NORMAL)
+        bold_sub_font = wx.Font(14, family=wx.DEFAULT, weight=wx.BOLD, style=wx.NORMAL)
+        teletype_font = wx.Font(10, family=wx.TELETYPE, weight=wx.NORMAL, style=wx.NORMAL)
         
-        self.res_title = wx.StaticText(self, -1, "Set Resolution")
+        self.res_title = wx.StaticText(self, -1, "Set Resolution", (100, 1))
         self.res_title.SetFont(bold_title_font)
+        self.ResButton = wx.Button(self, -1, "Set Resolution", (1, 50))
         
         self.rn_title = wx.StaticText(self, -1, "Format Files")
         self.rn_title.SetFont(bold_title_font)
         
         self.data_title1 = wx.StaticText(self, -1, "Spike Times Files:")
-        self.data_title2 = wx.StaticText(self, -1, " | e.g. [CBCO-01.txt] -> [2011116D_CBCO-01.txt]", (100,1))
-        self.DataButton = wx.Button(self, 0, "Select Spike On/Off Files")
-        # self.DataButton.Bind(wx.EVT_BUTTON, self.open_dialog)
+        self.data_title2 = wx.StaticText(self, -1, " e.g. [CBCO-01.txt] -> [2011116D_CBCO-01.txt]", (200,1))
+
+        self.data_title2.SetForegroundColour((0, 102, 0)) # green
+        self.data_title2.SetFont(teletype_font)
+
+        self.DataButton = wx.Button(self, 0, "Select Spike Times Files", import_button_size)
+
+        self.data_title1.SetForegroundColour((153, 0, 0)) # red
+        self.data_title1.SetFont(bold_sub_font)
         
         self.labels_title1 = wx.StaticText(self, -1, "Labels Files:", (200, 1))
-        # self.labels_title2 = wx.StaticText(self, -1, "Typically only one choice from below is necessary:", (200, 1))
+        self.labels_title1.SetForegroundColour((46, 86, 182)) # blue
+        self.labels_title1.SetFont(bold_sub_font)
 
-        self.l1_title = wx.StaticText(self, -1, " | e.g. [cbco_labels.txt] -> [pdat_labels.txt]", (200, 1))
-        self.LabelsButton1 = wx.Button(self, 1, "Select Labels File (integer labels)")
+        self.l1_title = wx.StaticText(self, -1, " e.g. [cbco_labels.txt] -> [pdat_labels.txt]", (200, 1))
+        self.l1_title.SetFont(teletype_font)
+        self.l1_title.SetForegroundColour((0, 102, 0)) # green
+
+        self.LabelsButton1 = wx.Button(self, 1, "Select Labels File (integer labels)", import_button_size)
         
-        self.l2_title = wx.StaticText(self, -1, " | e.g. load [label_times.txt] and create [pdat_labels.txt]", (200, 1))
-        self.LabelsButton2 = wx.Button(self, 2, "Select Labels File (event times)")
-        
-        self.ResButton = wx.Button(self, -1, "Set Resolution")
+        self.l2_title = wx.StaticText(self, -1, " e.g. load [label_times.txt] and create [pdat_labels.txt]", (200, 1))
+        self.l2_title.SetFont(teletype_font)
+        self.l2_title.SetForegroundColour((0, 102, 0)) # green
+
+        self.LabelsButton2 = wx.Button(self, 2, "Select Labels File (event times)", import_button_size)
         
         buttons = [(self.DataButton, 'Spike Times'), 
                    (self.LabelsButton1, 'Integer Labels'), 
@@ -52,7 +68,7 @@ class FormatFileNames(wx.Panel):
         for b in buttons:
             b[0].Bind(wx.EVT_BUTTON, self.open_dialog)
 
-        self.RenameButton = wx.Button(self, -1, "Format All Files in List.", size=(250, 250))
+        self.RenameButton = wx.Button(self, -1, "Format All Files in List.", size=(400, 50))
 
     def create_text(self):
         self.titler = wx.StaticText(self, -1, 
@@ -106,9 +122,9 @@ class FormatFileNames(wx.Panel):
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
-        sizer_1.Add(self.titler, 0, wx.ALIGN_LEFT)
+        # sizer_1.Add(self.titler, 0, wx.ALIGN_LEFT|wx.EXPAND)
 
-        sizer_1.AddSpacer(20)
+        # sizer_1.AddSpacer(20)
 
         sizer_1.Add(self.res_title, 0, wx.ALIGN_CENTER)
         
@@ -119,7 +135,7 @@ class FormatFileNames(wx.Panel):
         sizer_1.Add(hsize_res)
 
         sizer_1.AddSpacer(10)
-        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,15)))
+        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,7)))
         sizer_1.AddSpacer(15)
 
         sizer_1.Add(self.rn_title, 0, wx.ALIGN_CENTER)
@@ -135,37 +151,39 @@ class FormatFileNames(wx.Panel):
         sizer_1.AddSpacer(10)
         
         hsize_dat = wx.BoxSizer(wx.HORIZONTAL)
-        hsize_dat.Add(self.DataButton, 1, wx.ALIGN_LEFT)
+        hsize_dat.Add(self.DataButton, 0, wx.ALIGN_LEFT|wx.EXPAND)
         hsize_dat.Add(self.data_title2, 1, wx.ALIGN_LEFT)
         sizer_1.Add(hsize_dat)
 
         sizer_1.AddSpacer(15)
-        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,5)))
+        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,3)))
         sizer_1.AddSpacer(15)
 
         sizer_1.Add(self.labels_title1, 0, wx.ALIGN_LEFT)
-        # sizer_1.AddSpacer(10)
-        # sizer_1.Add(self.labels_title2, 0, wx.ALIGN_LEFT)
+
         sizer_1.AddSpacer(15)
 
         hsize_l1 = wx.BoxSizer(wx.HORIZONTAL)
-        hsize_l1.Add(self.LabelsButton1, 0, wx.ALIGN_LEFT)
+        hsize_l1.Add(self.LabelsButton1, 0, wx.ALIGN_LEFT|wx.EXPAND, 0)
         hsize_l1.Add(self.l1_title, 0, wx.ALIGN_LEFT)
         sizer_1.Add(hsize_l1)
 
-        sizer_1.AddSpacer(10)
+        sizer_1.AddSpacer(5)
+        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,1)))
+        sizer_1.AddSpacer(5)
         
         hsize_l2 = wx.BoxSizer(wx.HORIZONTAL)
-        hsize_l2.Add(self.LabelsButton2, 0, wx.ALIGN_LEFT)
+        hsize_l2.Add(self.LabelsButton2, 0, wx.ALIGN_LEFT|wx.EXPAND|wx.ALL, 0)
         hsize_l2.Add(self.l2_title, 0, wx.ALIGN_LEFT)
         sizer_1.Add(hsize_l2)
 
         sizer_1.AddSpacer(20)
-        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,5)))
+        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,3)))
         sizer_1.AddSpacer(20)
         
         sizer_1.Add(self.RenameButton, 0, wx.ALIGN_CENTER)
-
+        
+        sizer_1.SetSizeHints(self)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

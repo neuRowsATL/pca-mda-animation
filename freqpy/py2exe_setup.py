@@ -23,7 +23,7 @@ excludes = ['_gtkagg', '_tkagg']
 dll_excludes = ['libgdk-win32-2.0-0.dll', 'libgobject-2.0-0.dll', 'tcl84.dll',
                 'tk84.dll']
 
-data_files = matplotlib.get_py2exe_datafiles()
+data_files = matplotlib.get_py2exe_datafiles() + ['Data', 'README.md']
 
 # setup(windows=['freqgui.py'])
 

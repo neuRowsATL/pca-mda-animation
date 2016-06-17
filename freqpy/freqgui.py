@@ -6,6 +6,7 @@ from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
 from formatize import FormatFileNames
+from readme import ReadMe
 if sys.platform[0:3] == "win":
     from prog_diag import MyProgressDialog
 
@@ -249,7 +250,7 @@ class SaveThread(Thread):
 class MainFrame(wx.Frame):
     def __init__(self):
 
-        wx.Frame.__init__(self, None, title="FreqPy", size=(800, 800))
+        wx.Frame.__init__(self, None, title="FreqPy", size=(800, 750))
 
         self.delim = ''
         def do_delims(dir_):
@@ -297,6 +298,9 @@ class MainFrame(wx.Frame):
         self.formatize = FormatFileNames(self.nb)
         self.formatize.ResButton.Bind(wx.EVT_BUTTON, self.OnAdjust)
 
+        self.readme = ReadMe(self.nb)
+
+        self.nb.AddPage(self.readme, "Dogmatize")
         self.nb.AddPage(self.formatize, "Formatize")
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
@@ -408,7 +412,9 @@ class MainFrame(wx.Frame):
 
             if len(waveform_list) > 0 and len(txt_wv_list) < 1:
                 waveform_file = os.path.join(data_dir, waveform_list[0])
-                self.waveform = average_waveform(np.loadtxt(waveform_file), nr_pts=self.resolution)
+                # self.waveform = average_waveform(np.loadtxt(waveform_file), nr_pts=self.resolution)
+                self.waveform = waveform_compress(waveform_file, n=self.resolution)
+                np.savetxt(os.path.join(data_dir, 'waveform.txt'), self.waveform)
             else:
                 self.waveform = np.loadtxt(os.path.join(data_dir, 'waveform.txt'))
 

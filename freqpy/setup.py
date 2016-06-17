@@ -16,7 +16,7 @@ import freqgui
 import macholib_patch
 
 APP = ['FreqPy.py']
-DATA_FILES = ['Data']
+DATA_FILES = ['Data', 'README.md']
 includes = ['matplotlib.backends.backend_wxagg', 'matplotlib.figure', 'numpy', 
             'sklearn', 'sklearn.utils.*', 'sklearn.neighbors.typedefs', 
             'sklearn.utils.sparsetools._graph_validation',
