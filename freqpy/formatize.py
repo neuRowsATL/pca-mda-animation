@@ -6,7 +6,7 @@ class FormatFileNames(wx.Panel):
         self.files = list()
         self.create_buttons()
         self.create_listctrl()
-        self.create_text()
+        # self.create_text()
         self.create_input()
         self.__do_layout()
 
@@ -24,9 +24,9 @@ class FormatFileNames(wx.Panel):
         bold_sub_font = wx.Font(14, family=wx.DEFAULT, weight=wx.BOLD, style=wx.NORMAL)
         teletype_font = wx.Font(10, family=wx.TELETYPE, weight=wx.NORMAL, style=wx.NORMAL)
         
-        self.res_title = wx.StaticText(self, -1, "Set Resolution", (100, 1))
+        self.res_title = wx.StaticText(self, -1, "Set Resolution")
         self.res_title.SetFont(bold_title_font)
-        self.ResButton = wx.Button(self, -1, "Set Resolution", (1, 50))
+        self.ResButton = wx.Button(self, -1, "Set Resolution", style=wx.BU_EXACTFIT)
         
         self.rn_title = wx.StaticText(self, -1, "Format Files")
         self.rn_title.SetFont(bold_title_font)
@@ -70,16 +70,9 @@ class FormatFileNames(wx.Panel):
 
         self.RenameButton = wx.Button(self, -1, "Format All Files in List.", size=(400, 50))
 
-    def create_text(self):
-        self.titler = wx.StaticText(self, -1, 
-                                    "Use this tab to help format your data folder before importing."+\
-                                    "\nRefer to the readme for more info."+\
-                                    "\n** IMPORTANT ** It is HIGHLY recommended that you back up all files first.", 
-                                    (800, 1))
-
     def create_input(self):
         self.t1_title = wx.StaticText(self, -1, "Choose target number of samples: ")
-        self.t1 = wx.TextCtrl(self, -1, "1000")
+        self.t1 = wx.TextCtrl(self, -1, "1000", (1, 75))
 
     def open_dialog(self, event):
         filetype = self.filetypes[event.GetId()]
@@ -117,26 +110,26 @@ class FormatFileNames(wx.Panel):
             pass
 
 
-
-
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
 
-        # sizer_1.Add(self.titler, 0, wx.ALIGN_LEFT|wx.EXPAND)
-
-        # sizer_1.AddSpacer(20)
-
+        sizer_1.AddSpacer(5)
         sizer_1.Add(self.res_title, 0, wx.ALIGN_CENTER)
+        sizer_1.AddSpacer(5)
         
+        # Resolution setting
+        sizer_1.Add(self.t1_title, proportion=0, flag=wx.ALIGN_CENTER, border=0)
         hsize_res = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_1.Add(self.t1_title, 0, wx.ALIGN_LEFT)
-        hsize_res.Add(self.t1, 0, wx.ALIGN_LEFT)
-        hsize_res.Add(self.ResButton, 0)
-        sizer_1.Add(hsize_res)
+        t1_sizer = wx.BoxSizer(wx.VERTICAL)
+        t1_sizer.Add(self.t1, 0, 0, 0)
+        hsize_res.Add(t1_sizer, 0, 0, 0)
+        rbutton_sizer = wx.BoxSizer(wx.VERTICAL)
+        rbutton_sizer.Add(self.ResButton, 0, 0, 0)
+        hsize_res.Add(rbutton_sizer, 0, 0, 0)
+        sizer_1.Add(hsize_res, -1, wx.ALIGN_CENTER, 0)
 
-        sizer_1.AddSpacer(10)
-        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,7)))
-        sizer_1.AddSpacer(15)
+        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,7)), 0, 0, 0)
+        sizer_1.AddSpacer(5)
 
         sizer_1.Add(self.rn_title, 0, wx.ALIGN_CENTER)
 

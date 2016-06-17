@@ -20,7 +20,9 @@ class ReadMe(wx.Panel):
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
         # sizer_1.Add(self.title_, 0, 0, 0)
+        
         sizer_1.Add(self.t1, 1, wx.EXPAND|wx.ALIGN_CENTER|wx.LEFT|wx.RIGHT, 0)
 
         sizer_1.SetSizeHints(self)
