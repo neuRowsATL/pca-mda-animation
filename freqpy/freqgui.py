@@ -263,6 +263,7 @@ class MainFrame(wx.Frame):
 
         self.data_dir = do_delims('Data')
         self.export_dir = do_delims('output_dir')
+        self.open_counter = 1
 
         self.resolution = 1e3
 
@@ -450,6 +451,7 @@ class MainFrame(wx.Frame):
                                           )
             if y_n_dialog.ShowModal() == wx.ID_NO:
                 etest = False
+                return 1
 
         if etest is False:
             dialog = wx.DirDialog(self,

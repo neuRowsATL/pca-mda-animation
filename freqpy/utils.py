@@ -1,6 +1,16 @@
 import numpy as np
 import os
 import json
+import sys
+
+def check_platform():
+    win_delim = "\\"
+    dar_delim = "/"
+    if sys.platform[0:3] == "win":
+        delim = win_delim
+    elif sys.platform[0:3] == "dar":
+        delim = dar_delim
+    return delim
 
 def get_waveform_names(data_dir):
     with open(os.path.join(data_dir, 'waveform_names.json'), 'r') as wf:
@@ -56,7 +66,7 @@ def load_data(filenames, full=True, nr_pts=1e3, save=True):
 def timeline(data, nr_pts=1000):
     return np.linspace(min([np.min(v) for v in vals]), max([np.max(v) for v in vals]), nr_pts, endpoint=True)
 
-def labeller(data_freq=None, data_list=None, data_files=None, label_times_file='label_times.csv', nr_pts=1000):
+def labeller(data_freq=None, data_list=None, data_files=None, label_times_file='label_times.txt', nr_pts=1000):
     label_list = list()
     with open(label_times_file, 'r') as lf:
         lines = [line for line in lf]
@@ -85,7 +95,20 @@ def labeller(data_freq=None, data_list=None, data_files=None, label_times_file='
     np.savetxt('pdat_labels.txt', labels)
     return freq, labels
 
-def renamer(data_files, YEAR, MONTH, DAY):
-    add_this = str(YEAR)+str(MONTH)+str(DAY)+'D_'
+def renamer(data_files, YEAR=None, MONTH=None, DAY=None, type_='spikes'):
+    if type_ == 'spikes':
+        add_this = str(YEAR)+str(MONTH)+str(DAY)+'D_'
+    elif type_ == 'int_lab':
+        add_this = 'pdat_labels.txt'
+    out = list()
     for f in data_files:
-        os.rename(f, add_this+f)
+        fn = f.split(check_platform())[-1]
+        fp = f.split(check_platform())[0]
+        if type_== 'spikes':
+            os.rename(f, os.path.join(fp, add_this+fn))
+            out.append(os.path.join(fp, add_this+fn))
+        elif type_=='int_lab':
+            os.rename(f, os.path.join(fp, add_this))
+            out.append(os.path.join(fp, add_this))
+
+    return out
