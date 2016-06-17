@@ -31,7 +31,7 @@ class ImportFiles(wx.Panel):
         sizer_1.Add(self.listCtrl, 1, wx.EXPAND, 0)
         hsize = wx.BoxSizer(wx.HORIZONTAL)
         hsize2 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_1.Add(self.titler, 0, wx.ALIGN_LEFT)
+        # sizer_1.Add(self.titler, 0, wx.ALIGN_LEFT)
         # hsize2.Add(self.t1, 0, wx.ALIGN_LEFT)
         # hsize2.Add(self.ResButton, 0, wx.ALIGN_RIGHT)
         hsize.Add(self.DataButton, 0, wx.ALIGN_LEFT|wx.ALL)

@@ -26,15 +26,33 @@ class FormatFileNames(wx.Panel):
         self.titler = wx.StaticText(self, -1, 
                                     "Use this tab to help format your data folder before importing."+\
                                     "\nFollow the readme for more info.", 
-                                    (50, 10))
+                                    (800, 1))
 
     def create_input(self):
+        self.t1_title = wx.StaticText(self, -1, "Choose Resolution: ")
         self.t1 = wx.TextCtrl(self, -1, "1000")
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
-        sizer_1.Add(self.titler, 0, wx.ALIGN_CENTER)
-        sizer_1.Add(self.listCtrl, 1, wx.EXPAND, 0)
+
+        sizer_1.Add(self.titler, 0, wx.ALIGN_LEFT)
+
+        sizer_1.AddSpacer(10)
+
+        sizer_1.Add(self.listCtrl, 0, wx.EXPAND|wx.ALL)
+        sizer_1.AddSpacer(10)        
+        
+        sizer_1.Add(self.DataButton, 0, wx.ALIGN_LEFT)
+        sizer_1.Add(self.LabelsButton1, 0, wx.ALIGN_LEFT)
+        sizer_1.Add(self.LabelsButton2, 0, wx.ALIGN_LEFT)
+        sizer_1.AddSpacer(10)
+
+        hsize_res = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1.Add(self.t1_title, 0, wx.ALIGN_LEFT)
+        hsize_res.Add(self.t1, 0, wx.ALIGN_LEFT)
+        hsize_res.Add(self.ResButton, 0)
+        sizer_1.Add(hsize_res)
+
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

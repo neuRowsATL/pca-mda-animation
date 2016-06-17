@@ -56,7 +56,7 @@ def load_data(filenames, full=True, nr_pts=1e3, save=True):
 def timeline(data, nr_pts=1000):
     return np.linspace(min([np.min(v) for v in vals]), max([np.max(v) for v in vals]), nr_pts, endpoint=True)
 
-def labeller(data_files, label_times_file='label_times.csv', nr_pts=1000):
+def labeller(data_freq=None, data_list=None, data_files=None, label_times_file='label_times.csv', nr_pts=1000):
     label_list = list()
     with open(label_times_file, 'r') as lf:
         lines = [line for line in lf]
@@ -65,15 +65,23 @@ def labeller(data_files, label_times_file='label_times.csv', nr_pts=1000):
         if 'LABEL' not in line:
             label_list.append(line.split(','))
     
-    freq = load_data(data_files)
+    if data_files is not None:
+        freq = load_data(data_files)
+        time_space = timeline(load_data(data_files, full=False), nr_pts=nr_pts)
+    else:
+        freq = data_freq
+        time_space = timeline(data_list, nr_pts=nr_pts)
     labels = np.ones((nr_pts, 1))
-    time_space = timeline(load_data(data_files, full=False), nr_pts=nr_pts)
 
     for l in label_list:
         on_time = float(l[0])
         off_time = float(l[1])
         label = int(l[2])
         labels[np.where((time_space >= on_time) & (time_space <= off_time))] = label
+    try:
+        os.rename('pdat_labels.txt', '__old_pdat_labels.txt')
+    except:
+        ''
     np.savetxt('pdat_labels.txt', labels)
     return freq, labels
 

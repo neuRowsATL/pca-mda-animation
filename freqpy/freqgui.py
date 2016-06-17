@@ -311,6 +311,14 @@ class MainFrame(wx.Frame):
 
     def OnAdjust(self, event):
         val = self.formatize.t1.GetValue()
+        if int(val) != self.labels.shape[0]:
+            try:
+                self.frequency_data, self.labels = labeller(data_freq=to_freq(self.label_data.data, nr_pts=int(val)), 
+                         data_list=self.label_data.data,
+                         nr_pts=int(val))
+            except Exception as e:
+                print(e)
+                return 1
         self.resolution = int(val)
         self.frequency_data = to_freq(self.label_data.data, nr_pts=self.resolution)
         pages = [self.visualize, self.clusterize,
@@ -454,6 +462,13 @@ class MainFrame(wx.Frame):
                 dialog.Destroy()
         else:
             distribute_path(self.data_dir)
+
+def main():
+    app = wx.App(False)
+    frame = MainFrame()
+    frame.Show()
+    app.MainLoop()
+
 
 if __name__ == '__main__':
     app = wx.App(False)
