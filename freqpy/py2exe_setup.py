@@ -3,6 +3,7 @@ from distutils.core import setup
 import py2exe
 
 import glob
+import os
 
 import numpy
 import sklearn
@@ -23,9 +24,18 @@ excludes = ['_gtkagg', '_tkagg']
 dll_excludes = ['libgdk-win32-2.0-0.dll', 'libgobject-2.0-0.dll', 'tcl84.dll',
                 'tk84.dll']
 
-data_files = matplotlib.get_py2exe_datafiles() + ['Data', 'README.md']
+demo_data = list()
+demo_dir = 'C:\\Users\\Robbie\\Documents\\GitHub\\pca-mda-animation\\freqpy\\Data'
+for files in os.listdir(demo_dir):
+  f1 = os.path.join(demo_dir, files)
+  if os.path.isfile(f1):
+    f2 = 'Data', [f1]
+    demo_data.append(f2)
+data_files = matplotlib.get_py2exe_datafiles()
+data_files.extend(demo_data)
+fdir = 'C:\\Users\\Robbie\\Documents\\GitHub\\pca-mda-animation\\freqpy\\Readme'
+data_files.append(('Readme', [os.path.join(fdir, 'README.md')]))
 
-# setup(windows=['freqgui.py'])
 
 setup(
     options = {"py2exe": {"compressed": 0, 
@@ -42,6 +52,6 @@ setup(
                           "custom_boot_script": '',
                          }
               },
-    windows=['freqgui.py'],
+    windows=['FreqPy.py'],
     data_files = data_files
 )

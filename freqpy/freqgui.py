@@ -133,11 +133,11 @@ class MainFrame(wx.Frame):
         # self.mbar.Enable(self.nb.GetSelection(), False)
 
     def OpenReadme(self, evt):
+        readme = os.path.join(os.getcwd(), 'Readme'+self.delim+'README.md')
         if self.plat == 'win':
-            os.system("start "+"README.md")
+            os.system("start %s" % (readme,))
         elif self.plat == 'dar':
-            os.system("open "+"README.md")
-
+            os.system("open %s" % (readme,))
 
     def GoToPage(self, evt):
         self.nb.ChangeSelection(evt.GetId())
