@@ -17,6 +17,7 @@ import pickle
 import wx
 from wx.lib.pubsub import setuparg1
 from wx.lib.pubsub import pub as Publisher
+# from wx.lib.pubsub import pubsubconf
 import wx.lib.newevent
 
 import numpy as np

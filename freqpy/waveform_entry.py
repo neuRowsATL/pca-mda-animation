@@ -15,11 +15,16 @@ class WaveformEntry(wx.Dialog):
         self.open_button = wx.Button(panel, -1, "Open JSON", style=wx.BU_EXACTFIT)
         self.open_button.Bind(wx.EVT_BUTTON, self.open_dialog)
 
+        self.ok_button = wx.Button(panel, -1, "Ok", style=wx.BU_EXACTFIT)
+        self.ok_button.Bind(wx.EVT_BUTTON, self.OnOk)
+
         sbs.Add(self.open_button)
 
         self.grid = gridlib.Grid(panel)
 
         sbs.Add(self.grid)
+
+        sbs.Add(self.ok_button, -1, flag=wx.EXPAND)
 
         panel.SetSizer(sbs)
 
@@ -54,5 +59,10 @@ class WaveformEntry(wx.Dialog):
     def SetNumRows(self, nr_rows=None):
         self.nr_rows = nr_rows
         self.grid.CreateGrid(self.nr_rows, 2)
+        self.grid.SetColLabelValue(0, "Class #")
+        self.grid.SetColLabelValue(1, "Class Name")
         for r in range(self.nr_rows):
             self.grid.SetCellValue(r, 0, str(r+1))
+
+    def OnOk(self, evt):
+        self.Close(True)

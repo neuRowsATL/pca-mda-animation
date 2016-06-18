@@ -6,6 +6,7 @@ from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
 from waveform_entry import WaveformEntry
+from label_entry import LabelEntry
 from viz_save import *
 
 if sys.platform[0:3] == "win":
@@ -200,27 +201,26 @@ class MainFrame(wx.Frame):
         out_movie = self.visualize.out_movie
         dpi = self.visualize.dpi
         plot_args = (title_, ax_labels, out_movie)
-        with open('_tmp.txt', 'w') as tf:
+        with open(os.path.join(self.data_dir, '_tmp.txt'), 'w') as tf:
             tf.write('title:' + title_ +'\n')
             tf.write('ax_labels:' + str(ax_labels) +'\n') 
             tf.write('outmoviename:' + out_movie + '\n')
             tf.write('DPI:' + str(dpi) + '\n')
         t0 = time.time()
         if sys.platform[0:3] == "dar":
-            filenames = save_anim(self.data_dir, self.export_dir) # line for mac
+            filenames = save_anim(self.data_dir, self.export_dir, res=self.resolution) # line for mac
         elif sys.platform[0:3] == "win":
-            save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir))
+            save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir, self.resolution))
             dlg = MyProgressDialog()
+            dlg.setRange(int(self.resolution-12))
             dlg.ShowModal()
+            dlg.Destroy()
         t1 = time.time()
         dial = wx.MessageDialog(None,
-                              'Exported Video to: %s' % os.path.join(self.export_dir+'tmp'+'/', out_movie), 
+                              'Exported Video to: %s' % os.path.join(self.export_dir, out_movie), 
                               'Done in %.3f seconds.' % round(t1 - t0, 3), 
                                wx.OK)
-        if dial.ShowModal() == wx.ID_OK:
-            for fi in filenames:
-                os.remove(fi)
-            os.chdir('..')
+        dial.ShowModal()
         if sys.platform[0:3] == "win":
             wx.CallAfter(save_thread.join())
 
@@ -253,10 +253,11 @@ class MainFrame(wx.Frame):
                                     defaultValue="CBCO")
                 fd_dlg.ShowModal()
                 dfn = fd_dlg.GetValue()
-                data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.split('.')[1]=='txt' \
+                data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if '.' in f and f.split('.')[1]=='txt' \
                               and dfn in f.split('.')[0]]
                 if len(data_files) > 0:
                     self.frequency_data = load_data(data_files, nr_pts=self.resolution)
+                    np.savetxt(os.path.join(data_dir, '_normalized_freq.txt'), self.frequency_data)
                 else:
                     fm_dlg = wx.MessageDialog(self,
                                           message="We couldn't find files that corresponded to that name.\n" +\
@@ -270,47 +271,11 @@ class MainFrame(wx.Frame):
             try:
                 self.labels = np.loadtxt(os.path.join(data_dir, 'pdat_labels.txt'))
             except IOError:
-                dialog = wx.FileDialog(self,
-                              message="Select Labels File OR Event Times File",
-                              style=wx.OPEN|wx.MULTIPLE
-                            )
-                if dialog.ShowModal() == wx.ID_OK:
-                    path = dialog.GetPath()
-                    dialog.Destroy()
-                    try:
-                        self.labels = np.loadtxt(path)
-                    except ValueError:
-                        self.labels = labeller(data_files=data_files, label_times_file=path)[1]
-                        np.savetxt(os.path.join(data_dir, 'pdat_labels.txt'), self.labels)
-                        lab_dlg = wx.MessageDialog(self,
-                                                  message="Labels saved as pdat_labels.txt",
-                                                  caption="Labels Saved.",
-                                                  style=wx.OK
-                                                  )
-                        lab_dlg.ShowModal()
-                        lab_dlg.Destroy()
-                        pass
-                else:
-                    self.labels = None
-                    lab_dlg = wx.MessageDialog(self,
-                                              message="You must have a pdat_labels.txt file in your data folder.\n" +\
-                                              "Please refer to the readme for more information",
-                                              caption="Missing Labels",
-                                              style=wx.OK
-                                              )
-                    lab_dlg.ShowModal()
-                    lab_dlg.Destroy()
-
-            except ValueError:
-                self.labels = None
-                lab_dlg = wx.MessageDialog(self,
-                                          message="That file wasn't in the correct format.\n" +\
-                                          "Please refer to the readme for more information.",
-                                          caption="Missing Labels",
-                                          style=wx.OK
-                                          )
-                lab_dlg.ShowModal()
-                lab_dlg.Destroy()
+                lbls_diag = LabelEntry(self, size=(550, 400))
+                lbls_diag.ShowModal()
+                self.labels = lbls_diag.labeller(data_files, nr_pts=self.resolution)
+                lbls_diag.Destroy()
+                np.savetxt(os.path.join(data_dir, 'pdat_labels.txt'), self.labels.astype(np.uint8))
 
             try:
                 self.waveform_names = get_waveform_names(data_dir)

@@ -13,9 +13,13 @@ def check_platform():
         delim = dar_delim
     return delim
 
-def get_waveform_names(fn='waveform_names.json'):
-    with open(fn, 'r') as wf:
-        waveform_names = json.load(wf)
+def get_waveform_names(data_dir=None, fn='waveform_names.json'):
+    if fn == 'waveform_names.json' and data_dir is not None:
+        with open(os.path.join(data_dir, fn), 'r') as wf:
+            waveform_names = json.load(wf)
+    else:
+        with open(fn, 'r') as wf:
+            waveform_names = json.load(wf)
     return list(waveform_names.values())
 
 def average_waveform(wave, nr_pts=1000):
@@ -46,7 +50,7 @@ def to_freq(data, nr_pts=1e3):
         freq = freq.T
         return freq
 
-def load_data(filenames, full=True, nr_pts=1e3, save=True):
+def load_data(filenames, full=True, nr_pts=1e3, save=False):
     data = list()
     if len(filenames) > 0:
         for ii, filename in enumerate(filenames):

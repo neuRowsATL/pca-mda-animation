@@ -3,49 +3,53 @@ from extimports import *
 def opener(names):
     df = dict()
     for name in names:
-        if name == '_tmp.txt':
+        if '_tmp.txt' in name:
             with open(name, 'r') as nf:
                 df[name] = [line for line in nf]
-        else:
+        elif 'labels' in name:
             df[name] = np.loadtxt(name)
+        elif '.' not in name:
+            df['data_dir'] = name
     of = dict()
     for k, it in df.items():
-        if k == '_tmp.txt':
+        if '_tmp.txt' in k:
             of['title'] = it[0].split(':')[1].replace('\n','')
             of['axes_labels'] = eval(it[1].split(':')[1].replace('\n', ''))
             of['out_name'] = it[2].split(':')[1].replace('\n', '')
             of['dpi'] = int(it[3].split(':')[1].replace('\n', ''))
         elif 'labels' in k:
             of['labels'] = it
+        elif 'data_dir' == k:
+            of['data_dir'] = it
     if of['title'] == 'PCA':
-        os.chdir('Data')
-        of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
+        # os.chdir('Data')
+        of['data'] = np.loadtxt([fi for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
-        os.chdir('..')
+        # os.chdir('..')
         pca = PCA(n_components=3)
         of['projected'] = pca.fit_transform(of['data'])
     elif of['title'] == 'ICA':
-        os.chdir('Data')
-        of['data'] = np.loadtxt([fi for fi in os.listdir('.') if 'normalized_freq.txt' in fi][0])
+        # os.chdir('Data')
+        of['data'] = np.loadtxt([os.path.join(of['data_dir'],fi) for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
-        os.chdir('..')
+        # os.chdir('..')
         ica = FastICA(n_components=3)
         of['projected'] = ica.fit_transform(of['data'])
     elif of['title'] == 'MDA':
-        os.chdir('Data')
-        of['projected'] = np.loadtxt('_mda_projected.txt')
-        of['labels'] = np.loadtxt('_mda_labels.txt')
-        os.remove('_mda_labels.txt')
-        os.remove('_mda_projected.txt')
-        os.chdir('..')
+        # os.chdir('Data')
+        of['projected'] = np.loadtxt(os.path.join(of['data_dir'], '_mda_projected.txt'))
+        of['labels'] = np.loadtxt(os.path.join(of['data_dir'], '_mda_labels.txt'))
+        # os.remove('_mda_labels.txt')
+        # os.remove('_mda_projected.txt')
+        # os.chdir('..')
     elif of['title'] == 'K-Means (PCA)':
-        os.chdir('Data')
-        of['projected'] = np.loadtxt('_kmeans_projected.txt')
-        of['labels'] = np.loadtxt('_kmeans_labels.txt')
-        os.remove('_kmeans_labels.txt')
-        os.remove('_kmeans_projected.txt')
-        os.chdir('..')
-    os.remove('_tmp.txt')
+        # os.chdir('Data')
+        of['projected'] = np.loadtxt(os.path.join(of['data_dir'],'_kmeans_projected.txt'))
+        of['labels'] = np.loadtxt(os.path.join(of['data_dir'],'_kmeans_labels.txt'))
+        # os.remove('_kmeans_labels.txt')
+        # os.remove('_kmeans_projected.txt')
+        # os.chdir('..')
+    # os.remove('_tmp.txt')
     return of
 
 def waveforms(folder):
@@ -123,7 +127,7 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
         return centers, classes, frame_no
     return centers, classes
 
-def save_anim(data_dir, export_dir):
+def save_anim(data_dir, export_dir, res=1000):
     t0 = time.time()
     try:
         os.mkdir(export_dir+'tmp')
@@ -131,14 +135,17 @@ def save_anim(data_dir, export_dir):
         pass
     waveform_list = waveforms(data_dir)
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-    input_dict = opener(['_tmp.txt', data_dir+'waveform.txt', data_dir+'pdat_labels.txt']) # data_dir+'inlier_labels.txt'
+    input_dict = opener([data_dir, os.path.join(data_dir, '_tmp.txt'), 
+                        os.path.join(data_dir,'waveform.txt'),
+                        os.path.join(data_dir,'pdat_labels.txt')])
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
+    labels = input_dict['labels']
+    ##### WHY IS LABELS/PROJECTED NOT BEING PICKED UP FOR MDA?????
 
     # interpolation (bezier)
-    projected = bezier(projected, res=1000)
-
-    labels = input_dict['labels']
+    projected = bezier(projected, res=len(labels))
+    
     waveform = np.loadtxt(data_dir+'waveform.txt')
     dpi = int(input_dict['dpi'])
 
@@ -167,7 +174,7 @@ def save_anim(data_dir, export_dir):
                     projected[range_curr:range_curr+1, 2]]
     last_color = color_list[0]
 
-    os.chdir(export_dir+'tmp')
+    # os.chdir(export_dir+'tmp')
     filenames = list()
     
     fig.canvas.blit()
@@ -203,10 +210,10 @@ def save_anim(data_dir, export_dir):
         last_pts = [x, y, z]
         fig.canvas.draw()
         filename = '__frame%03d.png' % int(i)
-        fig.savefig(filename, dpi='figure')
-        filenames.append(filename)
+        fig.savefig(os.path.join(export_dir+'tmp', filename), dpi='figure')
+        # filenames.append(filename)
         if sys.platform[0:3] == "win":
-            wx.CallAfter(Publisher.sendMessage, "update", msg='{0} of {1}'.format(i, len(total_range)))
+            wx.CallAfter(Publisher.sendMessage, "update", str('{0} of {1}'.format(i, len(total_range))))
 
     crf = 30
     reso = '1280x720'
@@ -217,10 +224,10 @@ def save_anim(data_dir, export_dir):
         crf = 20
         reso = '5120x2880'
     if sys.platform[0:3] == 'win':
-        command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 ' +\
+        command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(export_dir+'tmp', '__frame%03d.png'),) + reso + ' -c:v libx264 ' +\
                   '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + out_movie
     elif sys.platform[0:3] == 'dar':
-        command = 'ffmpeg -framerate 20 -i __frame%03d.png -s:v ' + reso + ' -c:v libx264 -crf ' + str(crf) +\
+        command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(export_dir+'tmp', '__frame%03d.png'),) + reso + ' -c:v libx264 -crf ' + str(crf) +\
                   ' ' + out_movie
     return_code = subprocess.call(command, shell=True)
     return filenames

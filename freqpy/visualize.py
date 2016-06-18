@@ -83,10 +83,8 @@ class Visualize(wx.Panel):
         self.out_movie = 'MDA_Anim.mp4'
         mda = MDA(data, labels)
         train_labels, y_train, test_labels, y_test = mda.fit_transform()
-        os.chdir(self.data_dir)
-        np.savetxt('_mda_labels.txt', np.hstack((train_labels, test_labels)))
-        np.savetxt('_mda_projected.txt', np.vstack((y_train[:, 0:3], y_test[:, 0:3])))
-        os.chdir('..')
+        np.savetxt(os.path.join(self.data_dir, '_mda_labels.txt'), test_labels)
+        np.savetxt('_mda_projected.txt', y_test[:, 0:3])
 
     def kmeans_selected(self, selected_data, labels=None):
         self.title_ = 'K-Means (PCA)'
@@ -99,10 +97,8 @@ class Visualize(wx.Panel):
         kmeans = KMeans(n_clusters=len(set(labels)), random_state=0)
         kmeans.fit(projected)
         y_pred = kmeans.labels_
-        os.chdir(self.data_dir)
-        np.savetxt('_kmeans_labels.txt', y_pred)
-        np.savetxt('_kmeans_projected.txt', projected)
-        os.chdir('..')
+        np.savetxt(os.path.join(self.data_dir,'_kmeans_labels.txt'), y_pred)
+        np.savetxt(os.path.join(self.data_dir,'_kmeans_projected.txt'), projected)
 
     def gmm_selected(self, selected_data, labels=None):
         self.title_ = 'GMM (PCA)'
@@ -114,10 +110,8 @@ class Visualize(wx.Panel):
         projected = pca.fit_transform(X)
         gmm = GMM(n_components=len(set(labels)), random_state=0)
         y_pred = gmm.fit_predict(projected)
-        os.chdir(self.data_dir)
-        np.savetxt('_gmm_labels.txt', y_pred)
-        np.savetxt('_gmm_projected.txt', projected)
-        os.chdir('..')
+        np.savetxt(os.path.join(self.data_dir,'_gmm_labels.txt'), y_pred)
+        np.savetxt(os.path.join(self.data_dir,'_gmm_projected.txt'), projected)
 
     def class_creation(self, labels, data):
         classes = dict()
