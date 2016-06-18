@@ -5,8 +5,7 @@ from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
-from formatize import FormatFileNames
-from readme import ReadMe
+from waveform_entry import WaveformEntry
 from viz_save import *
 
 if sys.platform[0:3] == "win":
@@ -15,33 +14,47 @@ if sys.platform[0:3] == "win":
 class MainFrame(wx.Frame):
     def __init__(self):
 
-        wx.Frame.__init__(self, None, title="FreqPy", size=(800, 750))
+        wx.Frame.__init__(self, None, -1, "FreqPy", wx.DefaultPosition, 
+                          size=(800, 750), style=wx.SYSTEM_MENU|wx.CAPTION|wx.CLOSE_BOX)
 
+        ### Get Delimiter for OS ####
         self.delim = ''
+        self.plat = ''
         def do_delims(dir_):
             win_delim = "\\"
             dar_delim = "/"
             if sys.platform[0:3] == "win":
                 self.delim = win_delim
+                self.plat = 'win'
             elif sys.platform[0:3] == "dar":
                 self.delim = dar_delim
+                self.plat = 'dar'
             return '.'+self.delim+dir_+self.delim
-
         self.data_dir = do_delims('Data')
         self.export_dir = do_delims('output_dir')
         self.open_counter = 1
 
+        ### Default Resolution
         self.resolution = 1e3
 
+        ### Data files that will be imported
         self.frequency_data = None
         self.labels = None
         self.waveform_names = None
         self.waveform = None
 
+        ### Auto-import (imports demo data folder)
         # OnLoad, EVT_ON_LOAD = wx.lib.newevent.NewEvent()
         # wx.PostEvent(self, OnLoad(attr1=True))
         # self.Bind(EVT_ON_LOAD, self.on_add_file)
 
+        #### Set up menu bars
+        self.mbar = wx.MenuBar()
+        self.SetMenuBar(self.mbar)
+
+        self.sbar = self.CreateStatusBar()
+
+        #### Set up notebook and pages ###
         p = wx.Panel(self)
         self.nb = wx.Notebook(p)
 
@@ -60,13 +73,6 @@ class MainFrame(wx.Frame):
 
         self.compareize = Compareize(self.nb)
 
-        self.formatize = FormatFileNames(self.nb)
-        self.formatize.ResButton.Bind(wx.EVT_BUTTON, self.OnAdjust)
-
-        self.readme = ReadMe(self.nb)
-
-        self.nb.AddPage(self.readme, "Dogmatize")
-        self.nb.AddPage(self.formatize, "Formatize")
         self.nb.AddPage(self.import_files, "Initialize")
         self.nb.AddPage(self.label_data, "Categorize")
         self.nb.AddPage(self.analyze, "Analyze")
@@ -74,10 +80,83 @@ class MainFrame(wx.Frame):
         self.nb.AddPage(self.clusterize, "Clusterize")
         self.nb.AddPage(self.compareize, "Comparize")
 
+        ### File Menu
+        filemenu = wx.Menu()
+
+        open_menu = wx.Menu()
+        demo_data = wx.MenuItem(open_menu, wx.ID_OPEN, '&Data&Folder\tCtrl+D')
+        open_menu.AppendItem(demo_data)
+        self.Bind(wx.EVT_MENU, self.on_add_file, demo_data)
+        # open_menu.Append(wx.ID_OPEN, 'Data Folder')
+
+        filemenu.AppendMenu(wx.ID_OPEN, 'O&pen...', open_menu)
+
+        qmi = wx.MenuItem(filemenu, wx.ID_EXIT, '&Quit\tCtrl+W')
+        filemenu.AppendItem(qmi)
+        self.Bind(wx.EVT_MENU, self.OnClose, qmi)
+
+        self.mbar.Append(filemenu, "&File")
+
+        ### Menu to select tabs
+        tabmenu = wx.Menu()
+        for pp in range(self.nb.GetPageCount()):
+            name = self.nb.GetPageText(pp)
+
+            # sets shortcut key ctrl+number to go to each page.
+            tabmenu.Append(pp, "%s\tCtrl+%d" % (name, pp+1),"Go to the %s tab." % (name))
+            self.Bind(wx.EVT_MENU, self.GoToPage, id=pp)
+        tabmenu.AppendSeparator()
+        self.mbar.Append(tabmenu, "&Tabs")
+
+        readme_menu = wx.Menu()
+        rmi = wx.MenuItem(readme_menu, wx.ID_ANY, '&Open Readme as Text\tCtrl+R')
+        readme_menu.AppendItem(rmi)
+        self.Bind(wx.EVT_MENU, self.OpenReadme, rmi)
+
+        self.mbar.Append(readme_menu, "&Readme")
+
+        # m = self.nb.GetCurrentPage().Menu
+        # n = self.nb.GetCurrentPage().MenuName
+        # self.mbar.Append(m, n)
+
+        self.SetMenuBar(self.mbar)
         sizer = wx.BoxSizer()
-        sizer.Add(self.nb, 1, wx.EXPAND)
-        p.SetSizer(sizer)
+        sizer.Add(self.nb, 1, wx.ALL|wx.EXPAND)
+        p.SetSizerAndFit(sizer)
         self.Layout()
+
+        # self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.AdjustMenus)
+        self.Bind(wx.EVT_MENU, self.OnMenu)
+
+        # Disable currently selected tab
+        # self.mbar.Enable(self.nb.GetSelection(), False)
+
+    def OpenReadme(self, evt):
+        if self.plat == 'win':
+            os.system("start "+"README.md")
+        elif self.plat == 'dar':
+            os.system("open "+"README.md")
+
+
+    def GoToPage(self, evt):
+        self.nb.ChangeSelection(evt.GetId())
+        self.AdjustMenus(evt)
+
+    def AdjustMenus(self, evt):
+        m = self.nb.GetCurrentPage().Menu
+        n = self.nb.GetCurrentPage().MenuName
+
+        self.mbar = self.GetMenuBar()
+        self.mbar.Replace(1, m, n)
+
+        for page in range(self.nb.GetPageCount()):
+            if page == self.nb.GetSelection():
+                self.mbar.Enable(page, False)
+            else:
+                self.mbar.Enable(page, True)
+
+    def OnMenu(self, evt):
+        evt.Skip()
 
     def OnAdjust(self, event):
         val = self.formatize.t1.GetValue()
@@ -111,7 +190,6 @@ class MainFrame(wx.Frame):
             self.compareize.export_dir = self.export_dir
 
     def OnClose(self, event):
-        self.Destroy()
         self.Close(True)
 
     def open_vis_thread(self, event):
@@ -166,46 +244,135 @@ class MainFrame(wx.Frame):
 
             self.data_dir = data_dir
 
-            self.frequency_data = load_data(data_files, nr_pts=self.resolution)
+            if len(data_files) > 0:
+                self.frequency_data = load_data(data_files, nr_pts=self.resolution)
+            else:
+                fd_dlg = wx.TextEntryDialog(self, 
+                                    message="Please enter the name of the neural data files.\n" +\
+                                     "Don't include numbers or file extensions.", 
+                                    defaultValue="CBCO")
+                fd_dlg.ShowModal()
+                dfn = fd_dlg.GetValue()
+                data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.split('.')[1]=='txt' \
+                              and dfn in f.split('.')[0]]
+                if len(data_files) > 0:
+                    self.frequency_data = load_data(data_files, nr_pts=self.resolution)
+                else:
+                    fm_dlg = wx.MessageDialog(self,
+                                          message="We couldn't find files that corresponded to that name.\n" +\
+                                          "Please refer to the readme for more information.",
+                                          caption="Couldn't Find Data Files",
+                                          style=wx.OK
+                                          )
+                    fm_dlg.ShowModal()
+                    fm_dlg.Destroy()
 
-            self.labels = np.loadtxt(os.path.join(data_dir, 'pdat_labels.txt'))
+            try:
+                self.labels = np.loadtxt(os.path.join(data_dir, 'pdat_labels.txt'))
+            except IOError:
+                dialog = wx.FileDialog(self,
+                              message="Select Labels File OR Event Times File",
+                              style=wx.OPEN|wx.MULTIPLE
+                            )
+                if dialog.ShowModal() == wx.ID_OK:
+                    path = dialog.GetPath()
+                    dialog.Destroy()
+                    try:
+                        self.labels = np.loadtxt(path)
+                    except ValueError:
+                        self.labels = labeller(data_files=data_files, label_times_file=path)[1]
+                        np.savetxt(os.path.join(data_dir, 'pdat_labels.txt'), self.labels)
+                        lab_dlg = wx.MessageDialog(self,
+                                                  message="Labels saved as pdat_labels.txt",
+                                                  caption="Labels Saved.",
+                                                  style=wx.OK
+                                                  )
+                        lab_dlg.ShowModal()
+                        lab_dlg.Destroy()
+                        pass
+                else:
+                    self.labels = None
+                    lab_dlg = wx.MessageDialog(self,
+                                              message="You must have a pdat_labels.txt file in your data folder.\n" +\
+                                              "Please refer to the readme for more information",
+                                              caption="Missing Labels",
+                                              style=wx.OK
+                                              )
+                    lab_dlg.ShowModal()
+                    lab_dlg.Destroy()
 
-            self.waveform_names = get_waveform_names(data_dir)
+            except ValueError:
+                self.labels = None
+                lab_dlg = wx.MessageDialog(self,
+                                          message="That file wasn't in the correct format.\n" +\
+                                          "Please refer to the readme for more information.",
+                                          caption="Missing Labels",
+                                          style=wx.OK
+                                          )
+                lab_dlg.ShowModal()
+                lab_dlg.Destroy()
+
+            try:
+                self.waveform_names = get_waveform_names(data_dir)
+            except IOError:
+                wv_entry = WaveformEntry(self)
+                wv_entry.SetNumRows(nr_rows=len(set(self.labels)))
+                wv_entry.ShowModal()
+                self.waveform_names = wv_entry.getCellVals()
+                with open(os.path.join(data_dir, 'waveform_names.json'), 'w') as wn:
+                    json.dump(dict([(wii+1, ww) for wii, ww in enumerate(self.waveform_names)]), wn)
+                wv_entry.Destroy()
         
             waveform_list = [ff for ff in os.listdir(data_dir) if ff.split('.')[-1] == 'asc']
             txt_wv_list = [ff for ff in os.listdir(data_dir) if ff == 'waveform.txt']
 
             if len(waveform_list) > 0 and len(txt_wv_list) < 1:
                 waveform_file = os.path.join(data_dir, waveform_list[0])
-                # self.waveform = average_waveform(np.loadtxt(waveform_file), nr_pts=self.resolution)
-                self.waveform = waveform_compress(waveform_file, n=self.resolution)
+                wv_dlg = wx.TextEntryDialog(self, message="Which trace contains the waveform data?", defaultValue="0")
+                wv_dlg.ShowModal()
+                trace = int(wv_dlg.GetValue())
+                wv_dlg.Destroy()
+                self.waveform = waveform_compress(waveform_file, trace=trace, n=self.resolution)
                 np.savetxt(os.path.join(data_dir, 'waveform.txt'), self.waveform)
-            else:
+            elif len(txt_wv_list) > 0:
                 self.waveform = np.loadtxt(os.path.join(data_dir, 'waveform.txt'))
+            elif len(txt_wv_list) == 0 and len(waveform_list) == 0:
+                self.waveform = None
+                wv_m = wx.MessageDialog(self,
+                                      message="You must have a waveform.txt file in your data folder.\n" +\
+                                      "Please refer to the readme for more information",
+                                      caption="Missing Waveform",
+                                      style=wx.OK
+                                      )
+                return 1
 
-            for each in data_files:
-                self.import_files.listCtrl.Append([each.split(delim)[-1],'Frequency Data'])
+            if len(data_files) > 0:
+                for each in data_files:
+                    self.import_files.listCtrl.Append([each.split(delim)[-1],'Frequency Data'])
 
             pages = [self.label_data, self.visualize, self.clusterize,
                      self.compareize, self.analyze]
-            for ix, p in enumerate(pages):
-                p.data_dir = data_dir
-                if ix > 0:
-                    p.data = self.frequency_data
-                p.labels = self.labels
-                p.waveform_names = self.waveform_names
-                p.waveform = self.waveform
+            if self.frequency_data is not None and self.labels is not None:
+                for ix, p in enumerate(pages):
+                    p.data_dir = data_dir
+                    if ix > 0:
+                        p.data = self.frequency_data
+                    p.labels = self.labels
+                    p.waveform_names = self.waveform_names
+                    p.waveform = self.waveform
 
-            self.label_data.data = load_data(data_files, full=False)
+            if len(data_files) > 0:
+                self.label_data.data = load_data(data_files, full=False)
             
-            self.analyze.init_plot()
-            self.label_data.init_plot()
+            if self.frequency_data is not None:
+                self.analyze.init_plot()
+                self.label_data.init_plot()
 
-            self.clusterize.plotting()
-            self.compareize.plotting()
+                self.clusterize.plotting()
+                self.compareize.plotting()
 
-            if self.visualize.vis_selected:
-                self.visualize.init_plot()
+                if self.visualize.vis_selected:
+                    self.visualize.init_plot()
 
         delim = check_platform()
 
@@ -235,6 +402,8 @@ class MainFrame(wx.Frame):
                 dialog.Destroy()
         else:
             distribute_path(self.data_dir)
+
+
 
 def main():
     app = wx.App(False)

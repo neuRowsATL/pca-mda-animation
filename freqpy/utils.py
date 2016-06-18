@@ -13,8 +13,8 @@ def check_platform():
         delim = dar_delim
     return delim
 
-def get_waveform_names(data_dir):
-    with open(os.path.join(data_dir, 'waveform_names.json'), 'r') as wf:
+def get_waveform_names(fn='waveform_names.json'):
+    with open(fn, 'r') as wf:
         waveform_names = json.load(wf)
     return list(waveform_names.values())
 
@@ -64,17 +64,22 @@ def load_data(filenames, full=True, nr_pts=1e3, save=True):
             return freq
         return data
 
-def timeline(data, nr_pts=1000):
+def timeline(vals, nr_pts=1000):
     return np.linspace(min([np.min(v) for v in vals]), max([np.max(v) for v in vals]), nr_pts, endpoint=True)
 
-def labeller(data_freq=None, data_list=None, data_files=None, label_times_file='label_times.txt', nr_pts=1000):
-    label_list = list()
-    with open(label_times_file, 'r') as lf:
-        lines = [line for line in lf]
-    lines = lines[0].split('\r')
-    for line in lines:
-        if 'LABEL' not in line:
-            label_list.append(line.split(','))
+def labeller(data_freq=None, data_list=None, data_files=None, 
+            label_times_file=None, label_list=None, nr_pts=1000):
+    
+    if label_times_file is not None:
+        label_list = list()
+        with open(label_times_file, 'r') as lf:
+            lines = [line for line in lf]
+        lines = lines[0].split('\r')
+        if len(lines) == 1:
+            lines = lines[0].split('\n')
+        for line in lines:
+            if 'LABEL' not in line:
+                label_list.append(line.split(','))
     
     if data_files is not None:
         freq = load_data(data_files)
@@ -89,16 +94,12 @@ def labeller(data_freq=None, data_list=None, data_files=None, label_times_file='
         off_time = float(l[1])
         label = int(l[2])
         labels[np.where((time_space >= on_time) & (time_space <= off_time))] = label
-    try:
-        os.rename('pdat_labels.txt', '__old_pdat_labels.txt')
-    except:
-        ''
-    np.savetxt('pdat_labels.txt', labels)
-    return freq, labels
+    return freq, labels.ravel().astype(np.uint8)
 
-def renamer(data_files, YEAR=None, MONTH=None, DAY=None, type_='spikes'):
+def renamer(data_files, add_this=None, type_='spikes'):
     if type_ == 'spikes':
-        add_this = str(YEAR)+str(MONTH)+str(DAY)+'D_'
+        # add_this = str(YEAR)+str(MONTH)+str(DAY)+'D_'
+        add_this = str(add_this)
     elif type_ == 'int_lab':
         add_this = 'pdat_labels.txt'
     out = list()

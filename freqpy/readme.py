@@ -4,7 +4,7 @@ class ReadMe(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
-        self.title_ = wx.StaticText(self, -1, 
+        self.title_ = wx.StaticText(self, -1,
                                     "ReadMe Doc", size=(75, 1))
         self.t1 = wx.TextCtrl(self, -1, size=(800, 500), style=wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_AUTO_URL)
         self.populate_readme()
@@ -17,6 +17,14 @@ class ReadMe(wx.Panel):
             rlines = rmf.readlines()
         for rl in rlines:
             self.t1.AppendText(rl)
+
+    def create_menubar(self):
+        self.menubar = wx.MenuBar()
+        
+        fileMenu = wx.Menu()
+
+        quit_item = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit FreqPy.')
+
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)

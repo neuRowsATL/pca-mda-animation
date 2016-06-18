@@ -3,10 +3,10 @@ from extimports import *
 class FormatFileNames(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+
         self.files = list()
         self.create_buttons()
         self.create_listctrl()
-        # self.create_text()
         self.create_input()
         self.__do_layout()
 

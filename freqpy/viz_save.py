@@ -6,7 +6,7 @@ def opener(names):
         if name == '_tmp.txt':
             with open(name, 'r') as nf:
                 df[name] = [line for line in nf]
-        elif 'labels' in name:# and 'inlier' in name:
+        else:
             df[name] = np.loadtxt(name)
     of = dict()
     for k, it in df.items():
