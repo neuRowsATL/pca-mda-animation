@@ -10,20 +10,20 @@ class MDA(SL):
         SL.__init__(self, data, labels)
 
     def sw(self):
-        weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
+        weights, means, std = self.classStats(self.data, self.labels) # Weights, means, std
         sw_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sw_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
             ii = int(ii)
-            diff_array = self.trainingData[self.trainingLabels==ii, :] - means[ii-1,:]
+            diff_array = self.data[self.labels==ii, :] - means[ii-1,:]
             diff_array = np.dot(diff_array.T, diff_array)
             sw_exp[:, :, ii-1] = np.cov(diff_array, rowvar=0)
             sw_0 = sw_0 + sw_exp[:, :, ii-1]
         return sw_0
 
     def sb(self):
-        weights, means, std = self.classStats(self.trainingData, self.trainingLabels) # Weights, means, std
-        gmeans = np.mean(self.trainingData, 0)
+        weights, means, std = self.classStats(self.data, self.labels) # Weights, means, std
+        gmeans = np.mean(self.data, 0)
         sb_exp = np.zeros((self.nvar, self.nvar, self.nr_classes))
         sb_0 = np.zeros((self.nvar, self.nvar))
         for ii in set(self.labels):
@@ -46,14 +46,17 @@ class MDA(SL):
         return disc
 
     def fit(self, l1=0., l2=0., test_percent=None):
-        self.splitData(self.data, test_percent=test_percent)
+        # self.splitData(self.data, test_percent=test_percent)
         sb = self.sb()
         sw = self.sw()
         disc = self.projection_weights(sb, sw, l1=l1, l2=l2)
-        self.y_train = np.dot(self.trainingData, disc)
-        self.y_test = np.dot(self.testData, disc)
-        return self.y_train
+        self.output_data = np.dot(self.data, disc)
+        # self.y_train = np.dot(self.data, disc)
+        # self.y_test = np.dot(self.testData, disc)
+        # return self.y_train
     
     def fit_transform(self, l1=0., l2=0., test_percent=None):
         self.fit(l1=l1, l2=l2, test_percent=test_percent)
-        return self.trainingLabels, self.y_train, self.testLabels, self.y_test
+        # return self.trainingOrder, self.labels, self.y_train, self.testOrder, self.labels, self.y_test
+        # return self.order()
+        return self.labels, self.output_data

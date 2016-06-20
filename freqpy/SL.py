@@ -4,9 +4,10 @@ class SL:
     def __init__(self, data, labels):
         if data.shape[1] > data.shape[0]:
             data = data.T
+        labels = labels.ravel()
         self.data = data
         self.labels = labels
-        self.nr_classes = int(max(set(labels)))
+        self.nr_classes = int(max(set(labels.flat)))
         self.nr_repetitions = self.data.shape[0]
         self.nvar = self.data.shape[1]
         np.random.seed(0122)
@@ -15,6 +16,9 @@ class SL:
         self.trainingLabels = None
         self.testData = None
         self.testLabels = None
+
+        self.trainingOrder = None
+        self.testOrder = None
 
     def classStats(self, data, labels):
         classes = set(labels)
@@ -28,25 +32,54 @@ class SL:
         return weights, means, stds
 
     def splitData(self, data, test_percent=None):
-        trainingData = list()
-        testData = list()
-        X = np.c_[data, self.labels]
         if test_percent is None: test_percent = 40.0
         if test_percent >= 1.0: test_percent = test_percent / 100.00
+
+        original_indices = np.arange(0, data.shape[0], 1)
+        
+        X = np.c_[original_indices, data, self.labels]
+        
+        shuffled_indices = np.random.permutation(X.shape[0])
+        X_shuf = X[shuffled_indices, :]
+
+        trainingData = list()
+        testData = list()
+        
         for lab in set(self.labels):
-            curr = X[self.labels==lab, :]
-            indices = np.random.permutation(curr.shape[0])
-            curr_percent = int(len(indices) * test_percent)
-            training_idx, test_idx = indices[curr_percent:], indices[:curr_percent]
-            training, test = curr[training_idx,:].tolist(), curr[test_idx,:].tolist()
-            trainingData.extend(training)
-            testData.extend(test)
-        trainingData = np.array(trainingData)
-        testData = np.array(testData)
-        self.trainingData = np.array(trainingData[:, :-1])
-        self.testData = np.array(testData[:, :-1])
+            where_class = np.where(X_shuf[:, -1]==lab)[0]
+            curr = X_shuf[where_class, :]
+            curr_percent = int(curr.shape[0] * test_percent)
+            training, test = curr[curr_percent:, :], curr[:curr_percent, :]
+            trainingData.append(training)
+            testData.append(test)
+
+        trainingData = np.concatenate(trainingData)
+        testData = np.concatenate(testData)
+
+        self.trainingData = np.array(trainingData[:, 1:-1])
+        self.testData = np.array(testData[:, 1:-1])
+
         self.trainingLabels = np.array(trainingData[:, -1])
         self.testLabels = np.array(testData[:, -1])
+
+        self.trainingOrder = np.array(trainingData[:, 0]).astype(int)
+        self.testOrder = np.array(testData[:, 0]).astype(int)
+
+    def order(self):
+        all_dat = np.r_[self.trainingData, self.testData]
+        all_lab = np.r_[self.trainingLabels, self.testLabels]
+        all_ord = np.r_[self.trainingOrder, self.testOrder]
+
+        with_ix = np.c_[all_dat, all_lab, all_ord].tolist()
+
+        original_order = np.array(sorted(with_ix, key=lambda ixk: ixk[-1]))
+
+        LabelsOut = original_order[:, all_dat.shape[1]]
+        DataOut = original_order[:, :all_dat.shape[1]]
+
+        # print self.labels, LabelsOut
+
+        return LabelsOut.astype(int), DataOut
 
     def fit(self, test_percent=None):
         # implement separately for each alg

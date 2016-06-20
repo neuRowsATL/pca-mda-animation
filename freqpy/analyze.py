@@ -116,21 +116,16 @@ class Analyze(wx.Panel):
     def mda_selected(self, data, labels):
         self.axes.set_title('MDA', size=10)
         mda = MDA(data, labels)
-        train_labels, y_train, test_labels, y_test = mda.fit_transform(test_percent=30.0)
+        moutput = mda.fit_transform(test_percent=30.0)
+        mda_labels, transformed_data = moutput
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         self.axes.set_xlabel('D1',size=5)
         self.axes.set_ylabel('D2',size=5)
         self.axes.set_zlabel('D3',size=5)
         for ii in set(labels):
-            test_val = y_test[test_labels==ii, 0:3]
-            self.axes.scatter(test_val[:, 0], test_val[:, 1], test_val[:, 2], c=color_list[int(ii-1)], 
-                      marker='o', edgecolor='k', label=str(ii))
-            # selected_projection = y_train[train_labels==ii, 0:3]
-            # x = selected_projection[:, 0]
-            # y = selected_projection[:, 1]
-            # z = selected_projection[:, 2]
-            # self.axes.scatter(x, y, z, c=color_list[int(ii-1)], 
-                      # marker='o', edgecolor='k', label=str(ii))
+            d = transformed_data[mda_labels==ii, 0:3]
+            self.axes.scatter(d[:, 0], d[:, 1], d[:, 2], c=color_list[int(ii-1)], 
+                              marker='o', edgecolor='k', label=str(ii))
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None, alg='PCA'):
@@ -167,7 +162,7 @@ class Analyze(wx.Panel):
             projected = pca.fit_transform(X)
         elif alg == 'MDA':
             mda = MDA(X, labels)
-            train_labels, y_train, test_labels, y_test = mda.fit_transform(test_percent=30.0)
+            test_labels, y_test = mda.fit_transform(test_percent=30.0)
             projected = y_test[:, 0:3]
             labels = test_labels
 

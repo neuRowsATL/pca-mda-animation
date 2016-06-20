@@ -1,55 +1,46 @@
 from extimports import *
 
-def opener(names):
-    df = dict()
-    for name in names:
-        if '_tmp.txt' in name:
-            with open(name, 'r') as nf:
-                df[name] = [line for line in nf]
-        elif 'labels' in name:
-            df[name] = np.loadtxt(name)
-        elif '.' not in name:
-            df['data_dir'] = name
+def opener(args):
+    data_dir, temp_file = args
+    
     of = dict()
-    for k, it in df.items():
-        if '_tmp.txt' in k:
-            of['title'] = it[0].split(':')[1].replace('\n','')
-            of['axes_labels'] = eval(it[1].split(':')[1].replace('\n', ''))
-            of['out_name'] = it[2].split(':')[1].replace('\n', '')
-            of['dpi'] = int(it[3].split(':')[1].replace('\n', ''))
-        elif 'labels' in k:
-            of['labels'] = it
-        elif 'data_dir' == k:
-            of['data_dir'] = it
+    with open(temp_file, 'r') as tf:
+        tlines = tf.readlines()
+    if len(tlines) == 1: tlines = tlines[0].split('\r')
+    for tl in tlines:
+        if 'title' in tl:
+            of['title'] = tl.split(':')[1].replace('\n','')
+        elif 'ax_labels' in tl:
+            of['axes_labels'] = eval(tl.split(':')[1].replace('\n', ''))
+        elif 'outmoviename' in tl:
+            of['out_name'] = tl.split(':')[1].replace('\n', '')
+        elif 'DPI' in tl:
+            of['dpi'] = int(tl.split(':')[1].replace('\n', ''))
+        elif 'labels_name' in tl:
+            of['labels'] = np.loadtxt(os.path.join(data_dir, tl.split(':')[1].replace('\n', '')))
+
+    of['data_dir'] = data_dir
+
     if of['title'] == 'PCA':
-        # os.chdir('Data')
-        of['data'] = np.loadtxt([fi for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
+        of['data'] = np.loadtxt([os.path.join(of['data_dir'], fi) for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
-        # os.chdir('..')
         pca = PCA(n_components=3)
         of['projected'] = pca.fit_transform(of['data'])
+
     elif of['title'] == 'ICA':
-        # os.chdir('Data')
         of['data'] = np.loadtxt([os.path.join(of['data_dir'],fi) for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
-        # os.chdir('..')
         ica = FastICA(n_components=3)
         of['projected'] = ica.fit_transform(of['data'])
+
     elif of['title'] == 'MDA':
-        # os.chdir('Data')
         of['projected'] = np.loadtxt(os.path.join(of['data_dir'], '_mda_projected.txt'))
         of['labels'] = np.loadtxt(os.path.join(of['data_dir'], '_mda_labels.txt'))
-        # os.remove('_mda_labels.txt')
-        # os.remove('_mda_projected.txt')
-        # os.chdir('..')
+
     elif of['title'] == 'K-Means (PCA)':
-        # os.chdir('Data')
         of['projected'] = np.loadtxt(os.path.join(of['data_dir'],'_kmeans_projected.txt'))
         of['labels'] = np.loadtxt(os.path.join(of['data_dir'],'_kmeans_labels.txt'))
-        # os.remove('_kmeans_labels.txt')
-        # os.remove('_kmeans_projected.txt')
-        # os.chdir('..')
-    # os.remove('_tmp.txt')
+
     return of
 
 def waveforms(folder):
@@ -58,7 +49,8 @@ def waveforms(folder):
     return list(waveform_names.values())
 
 def init_func(fig, axes, axes2, title_, ax_labels, projected, 
-            labels, waveform, data_dir, all_ret=True, color=None, i=None):
+            labels, waveform, data_dir, 
+            all_ret=True, color=None, i=None):
     wave_labels = waveforms(data_dir)
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
     centers = list()
@@ -68,12 +60,7 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
     plt.setp(axes.get_xticklabels(), fontsize=4)
     plt.setp(axes.get_yticklabels(), fontsize=4)
     plt.setp(axes.get_zticklabels(), fontsize=4)
-    allmin = np.min(projected, 0)
-    allmax = np.max(projected, 0)
-    axes.set_xlim3d([allmin[0], allmax[0]])
-    axes.set_ylim3d([allmin[1], allmax[1]])
-    axes.set_zlim3d([allmin[2], allmax[2]])
-
+    
     text_label = "Frame #: %d" % int(0)
     frame_no = axes.text2D(0., -0.3, text_label,
            verticalalignment='bottom', horizontalalignment='left',
@@ -127,26 +114,33 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
         return centers, classes, frame_no
     return centers, classes
 
-def save_anim(data_dir, export_dir, res=1000):
+def save_anim(data_dir, export_dir, res=None):
     t0 = time.time()
     try:
-        os.mkdir(export_dir+'tmp')
+        os.mkdir(os.path.join(export_dir, 'tmp'))
     except Exception:
         pass
     waveform_list = waveforms(data_dir)
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
-    input_dict = opener([data_dir, os.path.join(data_dir, '_tmp.txt'), 
-                        os.path.join(data_dir,'waveform.txt'),
-                        os.path.join(data_dir,'pdat_labels.txt')])
+    input_dict = opener([data_dir, os.path.join(data_dir, '_tmp.txt')])
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
     labels = input_dict['labels']
-    ##### WHY IS LABELS/PROJECTED NOT BEING PICKED UP FOR MDA?????
+    
+    # Delete temp file
+    os.remove(os.path.join(data_dir, '_tmp.txt'))
 
     # interpolation (bezier)
-    projected = bezier(projected, res=len(labels))
+    if projected.shape[0] <= 1000:
+        projected = bezier(projected, res=len(labels))
+    else:
+        projected = exponential(projected, alpha=0.1)
+        # projected = gauss_spline(projected, 10)
+        # projected = spline_filter(projected, order=5)
+        # projected = gaussian_filter(projected, sigma=3.0, mode='reflect')
+        # projected = spline_filter(projected, lmbda=20.0)
     
-    waveform = np.loadtxt(data_dir+'waveform.txt')
+    waveform = np.loadtxt(os.path.join(data_dir, 'waveform.txt'))
     dpi = int(input_dict['dpi'])
 
     fig = plt.figure(figsize=(6, 6), dpi=dpi)
@@ -160,31 +154,36 @@ def save_anim(data_dir, export_dir, res=1000):
     axes2.set_xticks(np.arange(0, len(labels), 10), minor=True)
     axes2.plot(waveform, color='k')
     axes2.axvline(0, color='r')
+
     plot_args = (fig, axes, axes2,
                  input_dict['title'], input_dict['axes_labels'], 
                  input_dict['projected'], input_dict['labels'],
                  waveform, data_dir)
     centers, classes, frame_no = init_func(*plot_args)
+    axes.autoscale_view()
+    xlims = axes.get_xlim()
+    ylims = axes.get_ylim()
+    zlims = axes.get_zlim()
 
     range_curr = 10
-    total_range = np.arange(1, len(projected)-range_curr-1)
+    total_range = np.arange(1, projected.shape[0]-range_curr-1)
 
     last_pts = [projected[range_curr:range_curr+1, 0], 
                     projected[range_curr:range_curr+1, 1], 
                     projected[range_curr:range_curr+1, 2]]
     last_color = color_list[0]
-
-    # os.chdir(export_dir+'tmp')
-    filenames = list()
     
     fig.canvas.blit()
     for i in total_range:
         color = color_list[int(labels[i])-1]
         centers, classes = init_func(*plot_args, all_ret=False, color=color, i=i)
+        axes.set_xlim3d(xlims)
+        axes.set_ylim3d(ylims)
+        axes.set_zlim3d(zlims)
         center = centers[int(labels[i]-1)]
         axes.view_init(elev=30., azim=i)
-        curr_projected = projected[i-range_curr:i+range_curr, :]
-        curr_label = [color_list[int(cc)-1] for cc in labels[i-range_curr:i+range_curr]]
+        curr_projected = projected[i:i+range_curr, :]
+        curr_label = [color_list[int(cc)-1] for cc in labels[i:i+range_curr]]
         try:
             x = curr_projected[:, 0]
             y = curr_projected[:, 1]
@@ -197,6 +196,7 @@ def save_anim(data_dir, export_dir, res=1000):
         acoef = 0.1
         scoef = 0.5
         for start, end in zip(last_arr.T, curr_xyz.T):
+            # print start, end
             axes.plot([start[0], end[0]], 
                       [start[1], end[1]], 
                       zs=[start[2], end[2]], 
@@ -210,8 +210,7 @@ def save_anim(data_dir, export_dir, res=1000):
         last_pts = [x, y, z]
         fig.canvas.draw()
         filename = '__frame%03d.png' % int(i)
-        fig.savefig(os.path.join(export_dir+'tmp', filename), dpi='figure')
-        # filenames.append(filename)
+        fig.savefig(os.path.join(os.path.join(export_dir, 'tmp'), filename), dpi='figure')
         if sys.platform[0:3] == "win":
             wx.CallAfter(Publisher.sendMessage, "update", str('{0} of {1}'.format(i, len(total_range))))
 
@@ -223,14 +222,33 @@ def save_anim(data_dir, export_dir, res=1000):
     elif dpi == 200:
         crf = 20
         reso = '5120x2880'
+
+    output_path = os.path.join(export_dir, out_movie)
+    # output_path = output_path.replace('\\', '/')
+    def rename_out(output_path):
+        oi = 0
+        while os.path.exists(output_path):
+            output_path = output_path.split('.')[0] + str(oi) + '.' + output_path.split('.')[1]
+            oi += 1
+        return output_path
+
+    output_path = rename_out(output_path)
+
     if sys.platform[0:3] == 'win':
-        command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(export_dir+'tmp', '__frame%03d.png'),) + reso + ' -c:v libx264 ' +\
-                  '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + out_movie
+        command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(os.path.join(export_dir, 'tmp'), '__frame%03d.png'),) + reso + ' -c:v libx264 ' +\
+                  '-crf ' + str(crf) + ' -tune animation -pix_fmt yuv420p ' + output_path
     elif sys.platform[0:3] == 'dar':
-        command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(export_dir+'tmp', '__frame%03d.png'),) + reso + ' -c:v libx264 -crf ' + str(crf) +\
-                  ' ' + out_movie
-    return_code = subprocess.call(command, shell=True)
-    return filenames
+        command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(os.path.join(export_dir, 'tmp'), '__frame%03d.png'),) + reso + ' -c:v libx264 -crf ' + str(crf) +\
+                  ' ' + output_path
+    
+    # return_code = subprocess.call(command, shell=True)
+    # return return_code
+    # command = "exec " + command
+    command = command.split()
+    pro = subprocess.Popen(command, shell=True)
+    pro.communicate()
+    # pro.kill()
+    
 
 class SaveThread(Thread):
     def __init__(self, func, args):
@@ -240,4 +258,5 @@ class SaveThread(Thread):
         self.start()
 
     def run(self):
-        self.func(self.args[0], self.args[1])
+        return_code = self.func(self.args[0], self.args[1])
+        return return_code

@@ -1,12 +1,16 @@
 from extimports import *
+
 from importfiles import ImportFiles
 from labeldata import LabelData
 from analyze import Analyze
 from visualize import Visualize
 from clusterize import Clusterize
 from compareize import Compareize
+
 from waveform_entry import WaveformEntry
 from label_entry import LabelEntry
+from config import PreferencesDialog
+
 from viz_save import *
 
 if sys.platform[0:3] == "win":
@@ -18,10 +22,10 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, None, -1, "FreqPy", wx.DefaultPosition, 
                           size=(800, 750), style=wx.SYSTEM_MENU|wx.CAPTION|wx.CLOSE_BOX)
 
-        ### Get Delimiter for OS ####
+        ### Get Delimiter for OS
         self.delim = ''
         self.plat = ''
-        def do_delims(dir_):
+        def do_delims(dir_='.'):
             win_delim = "\\"
             dar_delim = "/"
             if sys.platform[0:3] == "win":
@@ -31,12 +35,43 @@ class MainFrame(wx.Frame):
                 self.delim = dar_delim
                 self.plat = 'dar'
             return '.'+self.delim+dir_+self.delim
-        self.data_dir = do_delims('Data')
-        self.export_dir = do_delims('output_dir')
-        self.open_counter = 1
+        do_delims()
+
+        ### Load Settings
+        self.settings_dir = os.path.normpath(r'SETTINGS\\SETTINGS.json')
+        self.settings = get_settings(os.path.join(os.getcwd(), os.path.normpath(r'SETTINGS\\SETTINGS.json')))
 
         ### Default Resolution
-        self.resolution = 1e3
+        try:
+            self.resolution = int(self.settings['resolution'])
+        except Exception as re:
+            print(repr(re))
+            self.resolution = int(1e3)
+
+        ### INPUT AND OUTPUT FOLDERS
+        dirs = [('data', self.settings['data_dir']), 
+                ('export', self.settings['output_dir'])
+                    ]
+        for d in dirs:
+            try:
+                if os.path.isdir(d[1]):
+                    if d[0] == 'data': self.data_dir = self.settings['data_dir']
+                    elif d[0] == 'export': self.export_dir = self.settings['output_dir']
+                else:
+                    raise IOError('%s does not exist!' % (d,))
+            except IOError:
+                self.data_dir = do_delims('Data')
+                self.export_dir = do_delims('OUTPUT')
+                fm_dlg = wx.MessageDialog(self,
+                      message="%s was not found." % (d,),
+                      caption="Couldn't Find Directory",
+                      style=wx.OK
+                      )
+                fm_dlg.ShowModal()
+                fm_dlg.Destroy()
+
+        ### Load Background Color
+        self.bg_color = self.settings['bg_color']
 
         ### Data files that will be imported
         self.frequency_data = None
@@ -45,9 +80,12 @@ class MainFrame(wx.Frame):
         self.waveform = None
 
         ### Auto-import (imports demo data folder)
-        # OnLoad, EVT_ON_LOAD = wx.lib.newevent.NewEvent()
-        # wx.PostEvent(self, OnLoad(attr1=True))
-        # self.Bind(EVT_ON_LOAD, self.on_add_file)
+        if int(self.settings['auto_demo']) == True:
+            OnLoad, EVT_ON_LOAD = wx.lib.newevent.NewEvent()
+            wx.PostEvent(self, OnLoad(attr1=True))
+            self.Bind(EVT_ON_LOAD, self.on_add_file)
+
+        ###################################################################
 
         #### Set up menu bars
         self.mbar = wx.MenuBar()
@@ -57,9 +95,11 @@ class MainFrame(wx.Frame):
 
         #### Set up notebook and pages ###
         p = wx.Panel(self)
+
         self.nb = wx.Notebook(p)
 
         self.import_files = ImportFiles(self.nb)
+        # self.import_files.bg_color = self.bg_color
         self.import_files.DataButton.Bind(wx.EVT_BUTTON, self.on_add_file)
         self.import_files.SaveButton.Bind(wx.EVT_BUTTON, self.on_save)
 
@@ -85,12 +125,15 @@ class MainFrame(wx.Frame):
         filemenu = wx.Menu()
 
         open_menu = wx.Menu()
-        demo_data = wx.MenuItem(open_menu, wx.ID_OPEN, '&Data&Folder\tCtrl+D')
+        demo_data = wx.MenuItem(open_menu, wx.ID_OPEN, '&Data &Folder\tCtrl+D') # maybe add setting that toggles a button to auto load demo data
         open_menu.AppendItem(demo_data)
         self.Bind(wx.EVT_MENU, self.on_add_file, demo_data)
-        # open_menu.Append(wx.ID_OPEN, 'Data Folder')
 
         filemenu.AppendMenu(wx.ID_OPEN, 'O&pen...', open_menu)
+
+        pmi = wx.MenuItem(filemenu, wx.ID_ANY, '&Preferences\tCtrl+P')
+        filemenu.AppendItem(pmi)
+        self.Bind(wx.EVT_MENU, self.settings_dialog, pmi)
 
         qmi = wx.MenuItem(filemenu, wx.ID_EXIT, '&Quit\tCtrl+W')
         filemenu.AppendItem(qmi)
@@ -116,21 +159,33 @@ class MainFrame(wx.Frame):
 
         self.mbar.Append(readme_menu, "&Readme")
 
-        # m = self.nb.GetCurrentPage().Menu
-        # n = self.nb.GetCurrentPage().MenuName
-        # self.mbar.Append(m, n)
-
         self.SetMenuBar(self.mbar)
         sizer = wx.BoxSizer()
         sizer.Add(self.nb, 1, wx.ALL|wx.EXPAND)
         p.SetSizerAndFit(sizer)
         self.Layout()
 
-        # self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.AdjustMenus)
         self.Bind(wx.EVT_MENU, self.OnMenu)
 
-        # Disable currently selected tab
-        # self.mbar.Enable(self.nb.GetSelection(), False)
+    def distribute_settings(self):
+        curr_id = self.nb.GetSelection()
+        for pi in range(self.nb.GetPageCount()):
+            self.nb.ChangeSelection(pi)
+            page = self.nb.GetCurrentPage()
+            page.SetBackgroundColour(self.settings['bg_color'])
+        self.nb.ChangeSelection(curr_id)
+        self.resolution = int(self.settings['resolution'])
+        self.data_dir = self.settings['data_dir']
+        self.export_dir = self.settings['output_dir']
+        self.bg_color = self.settings['bg_color']
+
+    def settings_dialog(self, evt):
+        prefs = PreferencesDialog()
+        prefs.get_settings(self.settings)
+        prefs.ShowModal()
+        self.settings = prefs.update_settings()
+        prefs.Destroy()
+        self.distribute_settings()
 
     def OpenReadme(self, evt):
         readme = os.path.join(os.getcwd(), 'Readme'+self.delim+'README.md')
@@ -141,20 +196,7 @@ class MainFrame(wx.Frame):
 
     def GoToPage(self, evt):
         self.nb.ChangeSelection(evt.GetId())
-        self.AdjustMenus(evt)
-
-    def AdjustMenus(self, evt):
-        m = self.nb.GetCurrentPage().Menu
-        n = self.nb.GetCurrentPage().MenuName
-
-        self.mbar = self.GetMenuBar()
-        self.mbar.Replace(1, m, n)
-
-        for page in range(self.nb.GetPageCount()):
-            if page == self.nb.GetSelection():
-                self.mbar.Enable(page, False)
-            else:
-                self.mbar.Enable(page, True)
+        # self.AdjustMenus(evt)
 
     def OnMenu(self, evt):
         evt.Skip()
@@ -189,6 +231,8 @@ class MainFrame(wx.Frame):
             self.export_dir = self.export_dir+delim
             self.clusterize.export_dir = self.export_dir
             self.compareize.export_dir = self.export_dir
+            self.settings['output_dir'] = self.export_dir
+            save_settings(self.settings, self.settings_dir)
 
     def OnClose(self, event):
         self.Close(True)
@@ -200,29 +244,34 @@ class MainFrame(wx.Frame):
         labels = self.visualize.labels
         out_movie = self.visualize.out_movie
         dpi = self.visualize.dpi
+        labels_name = self.visualize.labels_name
         plot_args = (title_, ax_labels, out_movie)
         with open(os.path.join(self.data_dir, '_tmp.txt'), 'w') as tf:
             tf.write('title:' + title_ +'\n')
             tf.write('ax_labels:' + str(ax_labels) +'\n') 
             tf.write('outmoviename:' + out_movie + '\n')
             tf.write('DPI:' + str(dpi) + '\n')
+            tf.write('labels_name:' + labels_name + '\n')
         t0 = time.time()
         if sys.platform[0:3] == "dar":
             filenames = save_anim(self.data_dir, self.export_dir, res=self.resolution) # line for mac
         elif sys.platform[0:3] == "win":
             save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir, self.resolution))
             dlg = MyProgressDialog()
+            dlg.getTitle("Exporting Video: %s" % (os.path.join(self.export_dir, out_movie),))
             dlg.setRange(int(self.resolution-12))
             dlg.ShowModal()
             dlg.Destroy()
         t1 = time.time()
         dial = wx.MessageDialog(None,
-                              'Exported Video to: %s' % os.path.join(self.export_dir, out_movie), 
-                              'Done in %.3f seconds.' % round(t1 - t0, 3), 
+                              'Exported Video to: %s' % os.path.join(self.export_dir, out_movie),
+                              'Done in %.3f seconds.' % round(t1 - t0, 3),
                                wx.OK)
         dial.ShowModal()
+        dial.Destroy()
         if sys.platform[0:3] == "win":
-            wx.CallAfter(save_thread.join())
+            wx.CallAfter(save_thread.join)
+        shutil.rmtree(os.path.join(self.export_dir, 'tmp'))
 
     def on_add_file(self, event):
         def check_platform():
@@ -248,9 +297,9 @@ class MainFrame(wx.Frame):
                 self.frequency_data = load_data(data_files, nr_pts=self.resolution)
             else:
                 fd_dlg = wx.TextEntryDialog(self, 
-                                    message="Please enter the name of the neural data files.\n" +\
-                                     "Don't include numbers or file extensions.", 
-                                    defaultValue="CBCO")
+                                    message="Enter the prefix of the spike times data files.\n" +\
+                                            "Don't include numbers or file extensions.",
+                                            defaultValue="CBCO")
                 fd_dlg.ShowModal()
                 dfn = fd_dlg.GetValue()
                 data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if '.' in f and f.split('.')[1]=='txt' \
@@ -267,15 +316,20 @@ class MainFrame(wx.Frame):
                                           )
                     fm_dlg.ShowModal()
                     fm_dlg.Destroy()
+                    return 1
 
-            try:
-                self.labels = np.loadtxt(os.path.join(data_dir, 'pdat_labels.txt'))
-            except IOError:
+            def labels_load():
                 lbls_diag = LabelEntry(self, size=(550, 400))
                 lbls_diag.ShowModal()
                 self.labels = lbls_diag.labeller(data_files, nr_pts=self.resolution)
                 lbls_diag.Destroy()
                 np.savetxt(os.path.join(data_dir, 'pdat_labels.txt'), self.labels.astype(np.uint8))
+
+            try:
+                self.labels = np.loadtxt(os.path.join(data_dir, 'pdat_labels.txt'))
+                if self.labels.shape[0] != self.resolution: labels_load()
+            except IOError:
+                labels_load()
 
             try:
                 self.waveform_names = get_waveform_names(data_dir)
@@ -291,7 +345,7 @@ class MainFrame(wx.Frame):
             waveform_list = [ff for ff in os.listdir(data_dir) if ff.split('.')[-1] == 'asc']
             txt_wv_list = [ff for ff in os.listdir(data_dir) if ff == 'waveform.txt']
 
-            if len(waveform_list) > 0 and len(txt_wv_list) < 1:
+            def waveform_creation():
                 waveform_file = os.path.join(data_dir, waveform_list[0])
                 wv_dlg = wx.TextEntryDialog(self, message="Which trace contains the waveform data?", defaultValue="0")
                 wv_dlg.ShowModal()
@@ -299,8 +353,13 @@ class MainFrame(wx.Frame):
                 wv_dlg.Destroy()
                 self.waveform = waveform_compress(waveform_file, trace=trace, n=self.resolution)
                 np.savetxt(os.path.join(data_dir, 'waveform.txt'), self.waveform)
+
+            if len(waveform_list) > 0 and len(txt_wv_list) < 1:
+                waveform_creation()
+
             elif len(txt_wv_list) > 0:
                 self.waveform = np.loadtxt(os.path.join(data_dir, 'waveform.txt'))
+                if self.waveform.shape[0] != self.resolution: waveform_creation()
             elif len(txt_wv_list) == 0 and len(waveform_list) == 0:
                 self.waveform = None
                 wv_m = wx.MessageDialog(self,
@@ -341,32 +400,39 @@ class MainFrame(wx.Frame):
 
         delim = check_platform()
 
-        try:
+
+        try: # Auto import ?
             etest = event.attr1
         except AttributeError:
             etest = False
 
-        if etest is True:
+        if etest is True: # Do you want to auto-import?
             y_n_dialog = wx.MessageDialog(self,
                                           message="Import data from %s?" % self.data_dir,
                                           caption="Auto-Import?",
                                           style=wx.YES_NO|wx.YES_DEFAULT|wx.ICON_QUESTION
                                           )
             if y_n_dialog.ShowModal() == wx.ID_NO:
-                etest = False
+                etest = False # No.
+                y_n_dialog.Destroy()
                 return 1
 
-        if etest is False:
+        if etest is False: # Not an auto_import event
             dialog = wx.DirDialog(self,
                                   message="Import Data Directory",
                                   style=wx.OPEN|wx.MULTIPLE
                                 )
             if dialog.ShowModal() == wx.ID_OK:
+                self.import_files.listCtrl.DeleteAllItems()
                 data_dir = dialog.GetPath() + delim
                 distribute_path(data_dir)
                 dialog.Destroy()
+                self.settings['data_dir'] = self.data_dir
+                save_settings(self.settings, self.settings_dir)
         else:
-            distribute_path(self.data_dir)
+            self.import_files.listCtrl.DeleteAllItems()
+            distribute_path(self.data_dir) # Yes.
+            y_n_dialog.Destroy()
 
 
 

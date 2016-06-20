@@ -16,6 +16,7 @@ class Visualize(wx.Panel):
         self.export_dir = ''
         self.title_ = ''
         self.out_movie = ''
+        self.labels_name = ''
 
         self.ax_labels = list()
         self.vis_selected = False
@@ -69,12 +70,14 @@ class Visualize(wx.Panel):
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
         self.out_movie = 'PCA_Anim.mp4'
+        self.labels_name = 'pdat_labels.txt'
 
     def ica_selected(self, data, labels):
         self.title_ = 'ICA'
         self.ax_labels = ['IC1', 'IC2', 'IC3']
         self.labels = labels
         self.out_movie = 'ICA_Anim.mpg'
+        self.labels_name = 'pdat_labels.txt'
 
     def mda_selected(self, data, labels):
         self.title_ = 'MDA'
@@ -82,9 +85,10 @@ class Visualize(wx.Panel):
         self.labels = labels
         self.out_movie = 'MDA_Anim.mp4'
         mda = MDA(data, labels)
-        train_labels, y_train, test_labels, y_test = mda.fit_transform()
-        np.savetxt(os.path.join(self.data_dir, '_mda_labels.txt'), test_labels)
-        np.savetxt('_mda_projected.txt', y_test[:, 0:3])
+        mlabels, mdata = mda.fit_transform()
+        np.savetxt(os.path.join(self.data_dir, '_mda_labels.txt'), mlabels)
+        np.savetxt(os.path.join(self.data_dir, '_mda_projected.txt'), mdata[:, 0:3])
+        self.labels_name = '_mda_projected.txt'
 
     def kmeans_selected(self, selected_data, labels=None):
         self.title_ = 'K-Means (PCA)'
@@ -99,6 +103,7 @@ class Visualize(wx.Panel):
         y_pred = kmeans.labels_
         np.savetxt(os.path.join(self.data_dir,'_kmeans_labels.txt'), y_pred)
         np.savetxt(os.path.join(self.data_dir,'_kmeans_projected.txt'), projected)
+        self.labels_name = '_kmeans_labels.txt'
 
     def gmm_selected(self, selected_data, labels=None):
         self.title_ = 'GMM (PCA)'
@@ -112,6 +117,7 @@ class Visualize(wx.Panel):
         y_pred = gmm.fit_predict(projected)
         np.savetxt(os.path.join(self.data_dir,'_gmm_labels.txt'), y_pred)
         np.savetxt(os.path.join(self.data_dir,'_gmm_projected.txt'), projected)
+        self.labels_name = '_gmm_labels.txt'
 
     def class_creation(self, labels, data):
         classes = dict()

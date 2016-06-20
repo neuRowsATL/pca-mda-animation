@@ -118,3 +118,12 @@ def renamer(data_files, add_this=None, type_='spikes'):
             out.append(os.path.join(fp, add_this))
 
     return out
+
+def get_settings(settings_path):
+    with open(settings_path, 'r') as sf:
+        settings = json.load(sf)
+    return settings
+
+def save_settings(new_settings, settings_path):
+    with open(settings_path, 'w') as sf:
+        json.dump(new_settings, sf)

@@ -18,5 +18,10 @@ def bezier(points, res=1000, dim=3):
         curve += np.outer(bernstein(N - 1, ii)(t), points[ii])
     return curve
 
-# points = np.random.normal(loc=0.0, scale=1.1, size=(1000, 3))
-# curve = bezier(points)
+def exponential(x, alpha=0.3):
+    N = x.shape[0]
+    S_t = np.zeros_like(x)
+    S_t[0, :] = x[0, :]
+    for ii in range(1, N):
+        S_t[ii, :] = alpha*x[ii-1, :] + (1.0-alpha)*S_t[ii-1, :]
+    return S_t

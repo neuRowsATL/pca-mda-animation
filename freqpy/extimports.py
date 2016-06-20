@@ -1,13 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import shutil
 import os
 import pprint
 import random
 import sys
 import itertools
 import time
+import shlex
 from operator import itemgetter
 
+import signal
+from multiprocessing import Process
 from threading import Thread
 import subprocess
 
@@ -25,6 +29,9 @@ from scipy.stats import entropy
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import cophenet
 from scipy.spatial.distance import pdist, cdist
+from scipy.signal import spline_filter, gauss_spline
+from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.interpolation import spline_filter
 
 import matplotlib
 matplotlib.use('WXAgg')
@@ -52,6 +59,6 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.mixture import GMM
 from sklearn.svm import OneClassSVM
 
-from smoothing import bezier
+from smoothing import bezier, exponential
 from utils import *
 from generic_menu import GenericMenu

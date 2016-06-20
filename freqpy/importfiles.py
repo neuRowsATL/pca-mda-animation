@@ -4,6 +4,9 @@ class ImportFiles(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
+
+        # self.SetBackgroundColour('RED')
+
         self.create_buttons()
         self.create_listctrl()
         self.__do_layout()
@@ -16,7 +19,7 @@ class ImportFiles(wx.Panel):
         self.listCtrl.SetColumnWidth(1, 100)
 
     def create_buttons(self):
-        self.DataButton = wx.Button(self, -1, "Select Data Folder")
+        self.DataButton = wx.Button(self, -1, "Import Data Folder")
         self.SaveButton = wx.Button(self, -1, "Select Export Folder")
 
     def __do_layout(self):

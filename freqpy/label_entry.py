@@ -96,3 +96,7 @@ class LabelEntry(wx.Dialog):
             label = int(l[2])
             labels[np.where((time_space >= on_time) & (time_space <= off_time))] = label
         return labels.ravel().astype(np.uint8)
+
+    def SetRows(self, nr_rows):
+        pass
+
