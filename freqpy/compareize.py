@@ -1,4 +1,5 @@
 from extimports import *
+from mda import MDA
 
 class Compareize(wx.Panel):
     def __init__(self, parent):
@@ -19,6 +20,9 @@ class Compareize(wx.Panel):
         self.axesList = ['Original/Original', 'K-Means/K-Means', 'Original/K-Means']
         self.axesCurr = 'Original/Original'
 
+        self.proList = ['None', 'PCA', 'MDA', 'ICA']
+        self.proCurr = 'None'
+
         self.class_title = wx.StaticText(self, -1, "Choose Axis1/Axis2:", (80, 10))
         self.class_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.axesList)
         self.Bind(wx.EVT_CHOICE, self.plotting, self.class_choice)
@@ -29,7 +33,12 @@ class Compareize(wx.Panel):
         self.Bind(wx.EVT_CHOICE, self.plotting, self.algchoice)
         self.algchoice.SetSelection(0)
 
-        self.save_button = wx.Button(self, -1, "Save as PNG", size=(800, 100))
+        self.protitle = wx.StaticText(self, -1, "Choose Projection:", (80, 10))
+        self.prochoice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.proList)
+        self.Bind(wx.EVT_CHOICE, self.plotting, self.prochoice)
+        self.prochoice.SetSelection(0)
+
+        self.save_button = wx.Button(self, -1, "Save as PNG", size=(100, 50))
         self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
 
         self.__do_layout()
@@ -97,6 +106,24 @@ class Compareize(wx.Panel):
         elif A.size < B.size: A = bezier(A, res=B.shape[0], dim=A.shape[1])
         return np.trace(np.dot(A.T, B)) / (np.linalg.norm(A)*np.linalg.norm(B))
 
+    def pca(self, data, labels):
+        pca = PCA(n_components=3)
+        proj = pca.fit_transform(data)
+        return proj
+
+    def mda(self, data, labels):
+        mda = MDA(data, labels)
+        moutput = mda.fit_transform()
+        return moutput[1][:, 0:3]
+
+    def ica(self, data, labels):
+        ica = FastICA(n_components=3, max_iter=1000)
+        proj = ica.fit_transform(data)
+        return proj
+
+    def orig(self, data, labels):
+        return data
+
     def compare(self):
         comp_algs = {
                 'PCA Distance': self.spca,
@@ -108,8 +135,17 @@ class Compareize(wx.Panel):
                 'K-Means/K-Means': 'kk',
                 'Original/K-Means': 'ok'
                 }
-        data = self.get_data()
+        comp_pro = {
+                'None': self.orig,
+                'PCA': self.pca,
+                'MDA': self.mda,
+                'ICA': self.ica
+                }
+
+        pfunc = comp_pro[self.proCurr]
+
         labels = self.labels
+        data = pfunc(self.get_data(), labels)
 
         if 'k' in comp_ax[self.axesCurr]:
             starts = list()
@@ -145,6 +181,7 @@ class Compareize(wx.Panel):
     def plotting(self, event=None):
         self.alg = self.algList[self.algchoice.GetSelection()]
         self.axesCurr = self.axesList[self.class_choice.GetSelection()]
+        self.proCurr = self.proList[self.prochoice.GetSelection()]
         comparison, ax_tip = self.compare()
         if comparison is not None:
             titles = {
@@ -162,7 +199,7 @@ class Compareize(wx.Panel):
             self.fig.clf()
 
             ax = self.fig.add_subplot(111)
-            ax.set_title('Metric:\n' + titles[self.alg], size=7)
+            ax.set_title('Metric:\n' + titles[self.alg] +'\nProjection: %s' % (self.proCurr,), size=7)
 
             mask = np.tri(comparison.shape[0], k=-1)
             comparison_masked = np.ma.array(comparison.copy(), mask=mask)
@@ -209,7 +246,8 @@ class Compareize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig(self.export_dir+'Class_sim_'+self.alg+'.png', dpi=200)
+        output_path = os.path.join(self.export_dir, 'Class_sim_'+self.alg+'_'+self.proCurr+'.png')
+        self.fig.savefig(rename_out(output_path), dpi=200)
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -219,6 +257,10 @@ class Compareize(wx.Panel):
         sizer_1.AddSpacer(5)
         sizer_1.Add(self.algtitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.algchoice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+
+        sizer_1.AddSpacer(5)
+        sizer_1.Add(self.protitle, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.prochoice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
 
         sizer_1.AddSpacer(5)
         sizer_1.Add(self.class_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)

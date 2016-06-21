@@ -25,7 +25,7 @@ dll_excludes = ['libgdk-win32-2.0-0.dll', 'libgobject-2.0-0.dll', 'tcl84.dll',
                 'tk84.dll']
 
 demo_data = list()
-demo_dir = 'C:\\Users\\Robbie\\Documents\\GitHub\\pca-mda-animation\\freqpy\\Data'
+demo_dir = os.path.join(os.getcwd(), 'Data')
 for files in os.listdir(demo_dir):
   f1 = os.path.join(demo_dir, files)
   if os.path.isfile(f1):
@@ -33,8 +33,10 @@ for files in os.listdir(demo_dir):
     demo_data.append(f2)
 data_files = matplotlib.get_py2exe_datafiles()
 data_files.extend(demo_data)
-fdir = 'C:\\Users\\Robbie\\Documents\\GitHub\\pca-mda-animation\\freqpy\\Readme'
-data_files.append(('Readme', [os.path.join(fdir, 'README.md')]))
+rdir = os.path.join(os.getcwd(), 'Readme')
+sdir = os.path.join(os.getcwd(), 'SETTINGS')
+data_files.append(('Readme', [os.path.join(rdir, 'README.md')]))
+data_files.append(('SETTINGS', [os.path.join(sdir, 'SETTINGS.json')]))
 
 
 setup(

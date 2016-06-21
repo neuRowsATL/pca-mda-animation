@@ -15,21 +15,20 @@ class Clusterize(wx.Panel):
         self.data_dir = ''
         self.export_dir = ''
 
-        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(800, 1))
-        self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
-
-        self.binary_title = wx.StaticText(self, -1, "Toggle Binary/Graded Plot:", (80, 10))
+        self.binary_title = wx.StaticText(self, -1, "Toggle Binary/Heat Map:")
         
-        self.binary_tog = wx.Button(self, -1, "Toggle", size=(800, 1))
-        self.Bind(wx.EVT_BUTTON, self.toggle_binary)
+        self.binary_tog = wx.ToggleButton(self, -1, "Toggle Binary/Heat Map", size=(400, 50))
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.toggle_binary)
 
-        self.threshList = ['mean', 'mean + 1s', 'mean + 2s']
+        self.thresh_title = wx.StaticText(self, -1, r"Choose Threshold: % of (mean + 1std)")
 
-        self.thresh_title = wx.StaticText(self, -1, "Choose a Threshold:", (80, 10))
+        self.thresh_slider = wx.Slider(self, -1, 100, 0, 100, wx.DefaultPosition, size=(400, 50),
+                                       style=wx.SL_HORIZONTAL|wx.SL_AUTOTICKS|wx.SL_LABELS, name="Threshold Slider")
 
-        self.thresh_choice = wx.Choice(self, -1, (80, 50), wx.DefaultSize, self.threshList)
-        self.Bind(wx.EVT_CHOICE, self.plotting, self.thresh_choice)
-        self.thresh_choice.SetSelection(1)
+        self.thresh_slider.Bind(wx.EVT_SLIDER, self.plotting)
+
+        self.save_button = wx.Button(self, -1, "Save Image as PNG", size=(400, 50))
+        self.Bind(wx.EVT_BUTTON, self.save_fig, self.save_button)
 
         self.__do_layout()
 
@@ -40,10 +39,6 @@ class Clusterize(wx.Panel):
             return 1
         self.is_binary = True
         self.plotting()
-
-    def set_inargs(self, intup):
-        self.in_args = intup
-        # print('clusterize', self.in_args)
 
     def get_data(self):
         return self.data
@@ -66,10 +61,13 @@ class Clusterize(wx.Panel):
     def sort_cluster(self, freqs):
         freqs = (np.tanh(freqs) + 1.0) / 2.0
         freqs = (freqs - np.min(freqs)) / (np.max(freqs) - np.min(freqs))
-        chosen_thresh = self.thresh_choice.GetSelection()
-        # if chosen_thresh <= 2:  
-        thresh = np.mean(freqs) + (np.std(freqs)*chosen_thresh)
+
+        chosen_thresh = self.thresh_slider.GetValue() * 1e-2
+
+        thresh = (np.mean(freqs) + np.std(freqs)) * chosen_thresh
+
         w = np.where(freqs > thresh)
+
         if self.is_binary:
             freqs[freqs < thresh] = 0
             freqs[freqs >= thresh] = 1
@@ -97,8 +95,8 @@ class Clusterize(wx.Panel):
             plt.setp(ax.get_yticklabels(), fontsize=4)
             ax.get_yaxis().set_ticks([])
 
-            ax.set_xlabel('Class')
-            ax.set_ylabel('Neuron')
+            ax.set_xlabel('Class', size=8)
+            ax.set_ylabel('Neuron', size=8)
 
             p = ax.pcolormesh(fchanges)
 
@@ -108,24 +106,42 @@ class Clusterize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        self.fig.savefig(self.export_dir+'FreqRespClusters.png')
+        output_path = os.path.join(self.export_dir, 'FreqRespClusters.png')
+        output_path = rename_out(output_path)
+        self.fig.savefig(output_path)
 
     def __do_layout(self):
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_1.Add(self.canvas, wx.ALIGN_CENTER)
 
         sizer_1.AddSpacer(5)
-        sizer_1.Add(self.binary_title, 0, wx.ALIGN_CENTER, 0)
-        sizer_1.Add(self.binary_tog, wx.ALIGN_CENTER)
 
-        sizer_1.AddSpacer(5)
-        sizer_1.Add(self.thresh_title, 0, wx.ALIGN_CENTER, 0)
-        sizer_1.Add(self.thresh_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+        sizer_1.Add(self.binary_title, 0, wx.ALIGN_CENTER, 0)
 
         sizer_1.AddSpacer(5)
         
-        sizer_1.Add(self.save_button, wx.ALIGN_CENTER)
+        hsize_0 = wx.BoxSizer(wx.HORIZONTAL)
+        hsize_0.Add(self.binary_tog, 0, wx.ALIGN_CENTER, 0)
+        sizer_1.AddSizer(hsize_0, 0, wx.ALIGN_CENTER, 0)
 
+        sizer_1.AddSpacer(5)
+
+        sizer_1.Add(self.thresh_title, 0, wx.ALIGN_CENTER, 0)
+
+        sizer_1.AddSpacer(5)
+
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        hsize.Add(self.thresh_slider, 0, wx.ALIGN_CENTER, 0)
+        sizer_1.AddSizer(hsize, 0, wx.ALIGN_CENTER, 0)
+
+        sizer_1.AddSpacer(5)
+        
+        hsize_2 = wx.BoxSizer(wx.HORIZONTAL)
+        hsize_2.Add(self.save_button, 0, wx.ALIGN_CENTER, 0)
+        sizer_1.AddSizer(hsize_2, 0, wx.ALIGN_CENTER, 0)
+        
+        sizer_1.SetSizeHints(self)
+        
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
         self.Layout()

@@ -127,3 +127,9 @@ def get_settings(settings_path):
 def save_settings(new_settings, settings_path):
     with open(settings_path, 'w') as sf:
         json.dump(new_settings, sf)
+
+def rename_out(output_path):
+    oi = 0
+    while os.path.exists(output_path):
+        output_path = output_path.split('.')[0] + str(oi) + '.' + output_path.split('.')[1]
+        oi += 1
