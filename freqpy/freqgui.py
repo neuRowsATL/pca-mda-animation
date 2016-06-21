@@ -188,7 +188,8 @@ class MainFrame(wx.Frame):
         self.distribute_settings()
 
     def OpenReadme(self, evt):
-        readme = os.path.join(os.getcwd(), 'Readme'+self.delim+'README.md')
+        # readme = os.path.join(os.getcwd(), 'Readme'+self.delim+'README.md')
+        readme = os.path.normpath(".\\Readme\\README.md")
         if self.plat == 'win':
             os.system("start %s" % (readme,))
         elif self.plat == 'dar':

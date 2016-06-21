@@ -25,13 +25,13 @@ from wx.lib.pubsub import pub as Publisher
 import wx.lib.newevent
 
 import numpy as np
-from scipy.stats import entropy
+# from scipy.stats import entropy
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import cophenet
 from scipy.spatial.distance import pdist, cdist
-from scipy.signal import spline_filter, gauss_spline
-from scipy.ndimage.filters import gaussian_filter
-from scipy.ndimage.interpolation import spline_filter
+# from scipy.signal import spline_filter, gauss_spline
+# from scipy.ndimage.filters import gaussian_filter
+# from scipy.ndimage.interpolation import spline_filter
 
 import matplotlib
 matplotlib.use('WXAgg')
@@ -52,6 +52,7 @@ from matplotlib.lines import Line2D
 from matplotlib import cm as CM
 import matplotlib.ticker as plticker
 
+from sklearn import cluster
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans

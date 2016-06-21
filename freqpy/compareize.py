@@ -91,8 +91,8 @@ class Compareize(wx.Panel):
         # Matching patterns from historical data using pca and distance similarity factors,
         # 2001.
         
-        pcaA = PCA(n_components=10)
-        pcaB = PCA(n_components=10)
+        pcaA = PCA(n_components=3)
+        pcaB = PCA(n_components=3)
         
         A_p = pcaA.fit_transform(A)
         B_p = pcaB.fit_transform(B)
