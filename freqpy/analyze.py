@@ -53,7 +53,7 @@ class Analyze(wx.Panel):
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
         elif selected_alg == 'k-Means (PCA)':
-            self.kmeans_selected(selected_dat, labels=selected_labels)
+            self.kmeans_selected(selected_dat, labels=selected_labels, alg='PCA')
         elif selected_alg == 'k-Means (ICA)':
             self.kmeans_selected(selected_dat, labels=selected_labels, alg='ICA')
         elif selected_alg == 'k-Means (MDA)':
@@ -162,7 +162,7 @@ class Analyze(wx.Panel):
             projected = pca.fit_transform(X)
         elif alg == 'MDA':
             mda = MDA(X, labels)
-            test_labels, y_test = mda.fit_transform(test_percent=30.0)
+            test_labels, y_test = mda.fit_transform()
             projected = y_test[:, 0:3]
             labels = test_labels
 

@@ -60,7 +60,7 @@ class PreferencesDialog(wx.Dialog):
 
     def OnOk(self, evt):
         self.update_settings()
-        self.save_settings(os.path.join(os.getcwd(), os.path.normpath(r'SETTINGS\\SETTINGS.json')))
+        self.save_settings(os.path.join(os.getcwd(), os.path.normpath('SETTINGS/SETTINGS.json')))
         self.Close(True)
 
     def update_settings(self):

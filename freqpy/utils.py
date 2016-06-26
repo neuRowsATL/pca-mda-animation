@@ -133,3 +133,4 @@ def rename_out(output_path):
     while os.path.exists(output_path):
         output_path = output_path.split('.')[0] + str(oi) + '.' + output_path.split('.')[1]
         oi += 1
+    return output_path
