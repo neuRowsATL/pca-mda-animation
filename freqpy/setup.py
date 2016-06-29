@@ -16,13 +16,13 @@ import freqgui
 import macholib_patch
 
 APP = ['FreqPy.py']
-DATA_FILES = ['Data', 'README.md']
+DATA_FILES = ['Data', 'Readme', 'SETTINGS']
 includes = ['matplotlib.backends.backend_wxagg', 'matplotlib.figure', 'numpy', 
             'sklearn', 'sklearn.utils.*', 'sklearn.neighbors.typedefs', 
             'sklearn.utils.sparsetools._graph_validation',
             'pylab', 'mpl_toolkits', 'scipy.sparse.csgraph._validation', 'scipy',
-            'scipy.integrate', 'scipy.special.*', 'scipy.linalg.*',
-            'wx.*']
+            'scipy.integrate', 'scipy.special.*', 'scipy.linalg.*']
+            # 'wx.*']
 OPTIONS = {'argv_emulation': True, 'includes': includes}
 
 setup(

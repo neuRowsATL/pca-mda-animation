@@ -16,6 +16,10 @@ from viz_save import *
 if sys.platform[0:3] == "win":
     from prog_diag import MyProgressDialog
 
+if sys.platform[0:3] == "dar":
+    import site
+    site.addsitedir("/usr/local/lib/python2.7/site-packages/")
+
 class MainFrame(wx.Frame):
     def __init__(self):
 
@@ -38,8 +42,8 @@ class MainFrame(wx.Frame):
         do_delims()
 
         ### Load Settings
-        self.settings_dir = os.path.normpath(r'SETTINGS\\SETTINGS.json')
-        self.settings = get_settings(os.path.join(os.getcwd(), os.path.normpath(r'SETTINGS\\SETTINGS.json')))
+        self.settings_dir = os.path.normpath('SETTINGS/SETTINGS.json')
+        self.settings = get_settings(os.path.join(os.getcwd(), os.path.normpath('SETTINGS/SETTINGS.json')))
 
         ### Default Resolution
         try:
@@ -189,7 +193,7 @@ class MainFrame(wx.Frame):
 
     def OpenReadme(self, evt):
         # readme = os.path.join(os.getcwd(), 'Readme'+self.delim+'README.md')
-        readme = os.path.normpath(".\\Readme\\README.md")
+        readme = os.path.normpath("Readme/README.md")
         if self.plat == 'win':
             os.system("start %s" % (readme,))
         elif self.plat == 'dar':

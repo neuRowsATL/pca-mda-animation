@@ -62,4 +62,4 @@ from sklearn.svm import OneClassSVM
 
 from smoothing import bezier, exponential
 from utils import *
-from generic_menu import GenericMenu
+# from generic_menu import GenericMenu
