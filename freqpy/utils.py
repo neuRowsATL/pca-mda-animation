@@ -20,7 +20,7 @@ def get_waveform_names(data_dir=None, fn='waveform_names.json'):
     else:
         with open(fn, 'r') as wf:
             waveform_names = json.load(wf)
-    return list(waveform_names.values())
+    return [ww[1] for ww in sorted(waveform_names.items(), key=lambda wt: wt[0])]
 
 def average_waveform(wave, nr_pts=1000):
     wave_out = np.zeros((nr_pts, 1))
@@ -130,6 +130,8 @@ def save_settings(new_settings, settings_path):
 
 def rename_out(output_path):
     oi = 0
+    orig = output_path
     while os.path.exists(output_path):
-        output_path = output_path.split('.')[0] + str(oi) + '.' + output_path.split('.')[1]
+        output_path = orig.split('.')[0] + str(oi) + '.' + orig.split('.')[1]
         oi += 1
+    return output_path

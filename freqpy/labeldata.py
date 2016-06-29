@@ -9,6 +9,7 @@ class LabelData(wx.Panel):
         self.t = 0
         self.data_dir = ''
         self.export_dir = ''
+        self.prefix = ''
         self.data = None
         self.labels = None
         self.__do_layout()

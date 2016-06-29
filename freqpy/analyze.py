@@ -9,14 +9,29 @@ class Analyze(wx.Panel):
 
         self.data = None
         self.labels = None
+        self.waveform_names = None
+        self.projected_data = None
         self.data_dir = ''
         self.export_dir = ''
+        self.prefix = ''
         
         self.fig = Figure((5.5, 3.5), dpi=self.dpi)
         self.canvas = FigCanvas(self, -1, self.fig)
         
         self.create_listbox()
+
+        self.save_title = wx.StaticText(self, -1, "Save as...", (80, 10))
+        self.save_button = wx.Button(self, -1, "Export Image and Projection")
+        self.save_button.Bind(wx.EVT_BUTTON, self.save_as)
+
         self.__do_layout()
+
+    def save_as(self, evt):
+        alg = self.alg_choice.GetString(self.alg_choice.GetSelection())
+        output_path = os.path.join(self.export_dir, alg+'_'+'.png')
+        self.fig.savefig(rename_out(output_path), dpi='figure')
+        output_path2 = os.path.join(self.export_dir, alg+"_projected"+'_.txt')
+        np.savetxt(rename_out(output_path2), self.projected_data)
 
     def create_listbox(self):
 
@@ -31,7 +46,7 @@ class Analyze(wx.Panel):
     def plot_selected(self, event):
         self.axes.cla()
         self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('PCA', size=10)
+        self.axes.set_title('PCA: {}'.format(self.prefix), size=10)
 
         self.axes.set_xlabel('PC1',size=5)
         self.axes.set_ylabel('PC2',size=5)
@@ -53,7 +68,7 @@ class Analyze(wx.Panel):
             elif selected_alg == 'MDA':
                 self.mda_selected(selected_dat, selected_labels)
         elif selected_alg == 'k-Means (PCA)':
-            self.kmeans_selected(selected_dat, labels=selected_labels)
+            self.kmeans_selected(selected_dat, labels=selected_labels, alg='PCA')
         elif selected_alg == 'k-Means (ICA)':
             self.kmeans_selected(selected_dat, labels=selected_labels, alg='ICA')
         elif selected_alg == 'k-Means (MDA)':
@@ -66,7 +81,7 @@ class Analyze(wx.Panel):
     def init_plot(self):
         self.axes = self.fig.add_axes((0, 0, 1, 1), projection='3d')
         self.axes.set_axis_bgcolor('white')
-        self.axes.set_title('PCA', size=10)
+        self.axes.set_title('PCA: {}'.format(self.prefix), size=10)
         self.axes.set_xlabel('PC1',size=5)
         self.axes.set_ylabel('PC2',size=5)
         self.axes.set_zlabel('PC3',size=5)
@@ -79,42 +94,55 @@ class Analyze(wx.Panel):
 
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         self.pca_selected(init_dat, init_labels, toplot=True)
-        self.legend = self.axes.legend(frameon=True, loc='upper left', scatterpoints=1, ncol=2, fontsize=8, bbox_to_anchor=(0, 0))
 
     def pca_selected(self, data, labels, toplot=True):
-        self.axes.set_title('PCA', size=10)
+        self.axes.set_title('PCA: {}'.format(self.prefix), size=10)
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         if data.shape[0] < data.shape[1]: data = data.T
         pca = PCA(n_components=3)
         projected = pca.fit_transform(data)
+        classes = list()
         for class_label in set(labels):
             projected_class = projected[labels==class_label,:]
             x = projected_class[:, 0]
             y = projected_class[:, 1]
             z = projected_class[:, 2]
             if toplot:
-                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                                  marker='o', edgecolor='k', label=str(int(class_label)))
+                curr_ = self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                                  marker='o', edgecolor='k', label=unicode(int(class_label)))
+                classes.append(curr_)
+        self.axes.legend(handles=classes, loc=3,
+         scatterpoints=1, ncol=len(set(labels)), fontsize=4.5, 
+         labels=self.waveform_names, frameon=True
+         )
+        self.projected_data = projected
         self.canvas.draw()
 
     def ica_selected(self, data, labels, toplot=True):
-        self.axes.set_title('ICA', size=10)
+        self.axes.set_title('ICA: {}'.format(self.prefix), size=10)
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         if data.shape[0] < data.shape[1]: data = data.T
         ica = FastICA(n_components=3, max_iter=1000)
         projected = ica.fit_transform(data)
+        classes = list()
         for class_label in set(labels):
             projected_class = projected[labels==class_label,:]
             x = projected_class[:, 0]
             y = projected_class[:, 1]
             z = projected_class[:, 2]
             if toplot:
-                self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
-                                  marker='o', edgecolor='k', label=str(int(class_label)))
+                curr_=self.axes.scatter(x, y, z, c=color_list[int(class_label)-1], 
+                                  marker='o', edgecolor='k', label=unicode(int(class_label)))
+                classes.append(curr_)
+        self.axes.legend(handles=classes, loc=3,
+         scatterpoints=1, ncol=len(set(labels)), fontsize=4.5, 
+         labels=self.waveform_names, frameon=True
+         )
+        self.projected_data = projected
         self.canvas.draw()
 
     def mda_selected(self, data, labels):
-        self.axes.set_title('MDA', size=10)
+        self.axes.set_title('MDA: {}'.format(self.prefix), size=10)
         mda = MDA(data, labels)
         moutput = mda.fit_transform(test_percent=30.0)
         mda_labels, transformed_data = moutput
@@ -122,10 +150,17 @@ class Analyze(wx.Panel):
         self.axes.set_xlabel('D1',size=5)
         self.axes.set_ylabel('D2',size=5)
         self.axes.set_zlabel('D3',size=5)
+        classes = list()
         for ii in set(labels):
             d = transformed_data[mda_labels==ii, 0:3]
-            self.axes.scatter(d[:, 0], d[:, 1], d[:, 2], c=color_list[int(ii-1)], 
-                              marker='o', edgecolor='k', label=str(ii))
+            curr_=self.axes.scatter(d[:, 0], d[:, 1], d[:, 2], c=color_list[int(ii-1)], 
+                              marker='o', edgecolor='k', label=unicode(int(ii)))
+            classes.append(curr_)
+        self.axes.legend(handles=classes, loc=3,
+         scatterpoints=1, ncol=len(set(labels)), fontsize=4.5, 
+         labels=self.waveform_names, frameon=True
+         )
+        self.projected_data = transformed_data[:, 0:3]
         self.canvas.draw()
 
     def kmeans_selected(self, selected_data, labels=None, alg='PCA'):
@@ -162,7 +197,7 @@ class Analyze(wx.Panel):
             projected = pca.fit_transform(X)
         elif alg == 'MDA':
             mda = MDA(X, labels)
-            test_labels, y_test = mda.fit_transform(test_percent=30.0)
+            test_labels, y_test = mda.fit_transform()
             projected = y_test[:, 0:3]
             labels = test_labels
 
@@ -201,11 +236,12 @@ class Analyze(wx.Panel):
         self.axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2],
                           c=colist, marker='o', s=30)
 
-        self.axes.set_title('k-Means (%s) \n %01f %% correct' % (alg, 100.00*colist.count('g')/float(len(colist))), size=10)
+        self.axes.set_title('k-Means (%s): %s \n %01f %% correct' % (alg, self.prefix, 100.00*colist.count('g')/float(len(colist))), size=10)
         
         self.canvas.draw()
 
     def gmm_selected(self, selected_data, labels=None):
+        self.axes.set_title('GMM: {}'.format(self.prefix), size=10)
         color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
         X = selected_data
         pca = PCA(n_components=3)
@@ -227,6 +263,9 @@ class Analyze(wx.Panel):
 
         sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+
+        sizer_1.Add(self.save_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
         
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)

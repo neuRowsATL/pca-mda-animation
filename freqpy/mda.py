@@ -38,10 +38,11 @@ class MDA(SL):
         lambda_2 = l2
         sw = (1 - lambda_1)*sw + lambda_1*np.eye(sw.shape[1])
         sb = (1 - lambda_2)*sb + lambda_2*np.eye(sb.shape[1])
-        eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
-        order = np.flipud(eigval.argsort())
-        # print(eigval[eigval.argsort()])
-        disc = eigvect[order]
+        # eigvect, eigval = np.linalg.eig(np.linalg.inv(sw)*sb)
+        u, s, v = np.linalg.svd(np.linalg.inv(sw)*sb, compute_uv=True)
+        disc = v
+        # order = np.flipud(eigval.argsort())
+        # disc = eigvect[order]
         disc = disc[:, :self.nr_classes]
         return disc
 

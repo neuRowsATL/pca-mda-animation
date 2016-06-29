@@ -12,11 +12,14 @@ class Visualize(wx.Panel):
         
         self.data = None
         self.labels = None
+        self.alpha = 0.3
+        self.gamma = 0.3
         self.data_dir = ''
         self.export_dir = ''
         self.title_ = ''
         self.out_movie = ''
         self.labels_name = ''
+        self.prefix = ''
 
         self.ax_labels = list()
         self.vis_selected = False
@@ -34,9 +37,25 @@ class Visualize(wx.Panel):
         self.dpi_choice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.set_dpi, self.dpi_choice)
 
+        # Slider for Smoothing
+        self.smooth_title1 = wx.StaticText(self, -1, r"Choose Smoothing alpha:")
+        self.smooth_slider1 = wx.Slider(self, -1, 99, 0, 100, wx.DefaultPosition, size=(400, 50),
+                                       style=wx.SL_HORIZONTAL|wx.SL_AUTOTICKS|wx.SL_LABELS, name="Smoothing Slider 1")
+        self.smooth_slider1.Bind(wx.EVT_SLIDER, self.set_alpha)
+        self.smooth_title2 = wx.StaticText(self, -1, r"Choose Smoothing gamma:")
+        self.smooth_slider2 = wx.Slider(self, -1, 90, 0, 100, wx.DefaultPosition, size=(400, 50),
+                                       style=wx.SL_HORIZONTAL|wx.SL_AUTOTICKS|wx.SL_LABELS, name="Smoothing Slider 2")
+        self.smooth_slider2.Bind(wx.EVT_SLIDER, self.set_gamma)
+
         self.save_button = wx.Button(self, -1, "Export as MPEG.", size=(800, 100))
         
         self.__do_layout()
+
+    def set_alpha(self, evt):
+        self.alpha = 1.00 / float(self.smooth_slider1.GetValue())
+
+    def set_gamma(self, evt):
+        self.gamma = 1.00 / float(self.smooth_slider2.GetValue())
 
     def init_viz(self):
         init_labels = self.labels
@@ -65,30 +84,38 @@ class Visualize(wx.Panel):
         elif selected_alg == 'GMM':
             self.gmm_selected(selected_dat, labels=selected_labels)
 
-    def pca_selected(self, labels, data=None):
+    def pca_selected(self, data, labels):
+        if data.shape[0] < data.shape[1]: data = data.T
         self.title_ = 'PCA'
         self.ax_labels = ['PC1', 'PC2', 'PC3']
         self.labels = labels
-        self.out_movie = 'PCA_Anim.mp4'
+        self.out_movie =  self.prefix+'_PCA_Anim.mp4'
         self.labels_name = 'pdat_labels.txt'
+        pca = PCA(n_components=3)
+        projected = pca.fit_transform(data)
+        np.savetxt(os.path.join(self.data_dir, '_pca_projected.txt'), projected)
 
     def ica_selected(self, data, labels):
+        if data.shape[0] < data.shape[1]: data = data.T
         self.title_ = 'ICA'
         self.ax_labels = ['IC1', 'IC2', 'IC3']
         self.labels = labels
-        self.out_movie = 'ICA_Anim.mpg'
+        self.out_movie = self.prefix+'_ICA_Anim.mp4'
         self.labels_name = 'pdat_labels.txt'
+        ica = FastICA(n_components=3)
+        projected = ica.fit_transform(data)
+        np.savetxt(os.path.join(self.data_dir, '_ica_projected.txt'), projected)
 
     def mda_selected(self, data, labels):
         self.title_ = 'MDA'
         self.ax_labels = ['D1', 'D2', 'D3']
         self.labels = labels
-        self.out_movie = 'MDA_Anim.mp4'
+        self.out_movie = self.prefix+'_MDA_Anim.mp4'
         mda = MDA(data, labels)
         mlabels, mdata = mda.fit_transform()
         np.savetxt(os.path.join(self.data_dir, '_mda_labels.txt'), mlabels)
         np.savetxt(os.path.join(self.data_dir, '_mda_projected.txt'), mdata[:, 0:3])
-        self.labels_name = '_mda_projected.txt'
+        self.labels_name = '_mda_labels.txt'
 
     def kmeans_selected(self, selected_data, labels=None):
         self.title_ = 'K-Means (PCA)'
@@ -132,10 +159,23 @@ class Visualize(wx.Panel):
         sizer_1.Add(self.alg_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.alg_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
 
+        sizer_1.AddSpacer(10)
+
         sizer_1.Add(self.dpi_title, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
         sizer_1.Add(self.dpi_choice, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
 
-        sizer_1.AddSpacer(5)
+        sizer_1.Add(self.smooth_title1, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.smooth_slider1, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+
+        sizer_1.AddSpacer(3)
+
+        sizer_1.Add(self.smooth_title2, 0, wx.ALIGN_CENTER|wx.EXPAND, 1)
+        sizer_1.Add(self.smooth_slider2, 0, wx.ALIGN_CENTER|wx.EXPAND, 5)
+
+        sizer_1.AddSpacer(10)
+        sizer_1.Add(wx.StaticLine(self, -1, style=wx.LI_HORIZONTAL, size=(800,3)))
+        sizer_1.AddSpacer(10)
+
         sizer_1.Add(self.save_button, 0, wx.ALIGN_CENTER, 10)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)

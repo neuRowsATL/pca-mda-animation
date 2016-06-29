@@ -7,12 +7,15 @@ class LabelEntry(wx.Dialog):
     def __init__(self, *args, **kw):
         super(LabelEntry, self).__init__(*args, **kw)
 
-        fd_dlg = wx.TextEntryDialog(self,
-                                    message="Please enter the total number of events (Event On -> Event Off).", 
-                                    defaultValue="7")
-        fd_dlg.ShowModal()
-        self.nr_rows = int(fd_dlg.GetValue())
-        fd_dlg.Destroy()
+        def get_nr_events():
+            fd_dlg = wx.TextEntryDialog(self,
+                                        message="Please enter the total number of events (Event On -> Event Off).", 
+                                        defaultValue="7")
+            fd_dlg.ShowModal()
+            self.nr_rows = int(fd_dlg.GetValue())
+            fd_dlg.Destroy()
+
+        get_nr_events()
 
         self.label_list = list()
 
@@ -26,10 +29,14 @@ class LabelEntry(wx.Dialog):
         self.open_button = wx.Button(panel, -1, "Open Event Times CSV", style=wx.BU_EXACTFIT)
         self.open_button.Bind(wx.EVT_BUTTON, self.open_dialog)
 
+        self.add_row_b = wx.Button(panel, -1, "Add Row")
+        self.add_row_b.Bind(wx.EVT_BUTTON, self.add_row)
+        
         self.ok_button = wx.Button(panel, -1, "Ok", style=wx.BU_EXACTFIT)
         self.ok_button.Bind(wx.EVT_BUTTON, self.OnOk)
 
         sbs.Add(self.open_button, -1)
+        sbs.Add(self.add_row_b, -1)
 
         self.grid = gridlib.Grid(panel)
         self.grid.CreateGrid(self.nr_rows, 3)
@@ -45,6 +52,9 @@ class LabelEntry(wx.Dialog):
 
         vbox.Add(panel, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
         self.SetSizer(vbox)
+
+    def add_row(self, evt):
+        self.grid.AppendRows(1, True)
         
     def open_dialog(self, event):
         dialog = wx.FileDialog(self,
@@ -84,6 +94,12 @@ class LabelEntry(wx.Dialog):
                         self.label_list.append(line)
     
     def OnOk(self, evt):
+        if len(self.label_list) < 1:
+            for gl in range(self.grid.GetNumberRows()):
+                on_time = self.grid.GetCellValue(gl, 0)
+                off_time = self.grid.GetCellValue(gl, 1)
+                label = self.grid.GetCellValue(gl, 2)
+                self.label_list.append([on_time, off_time, label])
         self.Close(True)
 
     def labeller(self, data_files, nr_pts=1000):

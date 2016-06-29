@@ -18,12 +18,13 @@ class MyProgressDialog(wx.Dialog):
 
         sizer.Add(self.progress, 0, wx.EXPAND, border=1)
         hs = wx.BoxSizer(wx.HORIZONTAL)
-        hs.Add(self.text, -1, wx.ALIGN_CENTER, border=0)
-        sizer.Add(hs, -1, wx.ALIGN_CENTER|wx.EXPAND, border=1)
+        hs.Add(self.text, 0, wx.ALIGN_CENTER, border=0)
+        sizer.Add(hs, 0, wx.ALIGN_CENTER|wx.EXPAND, border=1)
         self.SetSizer(sizer)
 
         # pubsubconf.transitionV1ToV3('msg', step=2)
         Publisher.subscribe(self.updateProgress, "update")
+
 
     def setRange(self, r):
         self.rng = int(r)

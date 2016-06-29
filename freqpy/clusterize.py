@@ -14,6 +14,7 @@ class Clusterize(wx.Panel):
 
         self.data_dir = ''
         self.export_dir = ''
+        self.prefix = ''
 
         self.binary_title = wx.StaticText(self, -1, "Toggle Binary/Heat Map:")
         
@@ -106,7 +107,7 @@ class Clusterize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        output_path = os.path.join(self.export_dir, 'FreqRespClusters.png')
+        output_path = os.path.join(self.export_dir, self.prefix+'_FreqRespClusters.png')
         output_path = rename_out(output_path)
         self.fig.savefig(output_path)
 
