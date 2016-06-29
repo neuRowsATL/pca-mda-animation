@@ -40,8 +40,8 @@ class MainFrame(wx.Frame):
         self.data_dir = 'Data'
         self.export_dir = 'OUTPUT'
 
-        if not os.path.isdir(self.export_dir):
-            os.mkdir(self.export_dir)
+        # if not os.path.isdir(self.export_dir):
+        #     os.mkdir(self.export_dir)
 
         ### Load Settings
         # self.settings_dir = os.path.normpath(r'SETTINGS\\SETTINGS.json')
@@ -85,6 +85,7 @@ class MainFrame(wx.Frame):
         self.waveform_names = None
         self.waveform = None
         self.data_files = None
+        self.prefix = None
 
         ### Auto-import (imports demo data folder)
         # if int(self.settings['auto_demo']) == True:
@@ -254,6 +255,7 @@ class MainFrame(wx.Frame):
                             defaultValue="CBCO")
         fd_dlg.ShowModal()
         dfn = fd_dlg.GetValue()
+        self.prefix = dfn
         fd_dlg.Destroy()
         self.data_files = [os.path.join(self.data_dir, f) for f in os.listdir(self.data_dir) if '.' in f and f.split('.')[1]=='txt' \
                       and dfn in f.split('.')[0]]
@@ -269,8 +271,15 @@ class MainFrame(wx.Frame):
                       )
             fm_dlg.ShowModal()
             fm_dlg.Destroy()
+            return 1
 
         self.initial_run()
+        dial = wx.MessageDialog(None,
+                  'Data Imported!',
+                  'Data was imported.',
+                   wx.OK)
+        dial.ShowModal()
+        dial.Destroy()
 
 
     def import_labels(self, evt):
@@ -287,6 +296,13 @@ class MainFrame(wx.Frame):
             labels_load()
 
         self.initial_run()
+
+        dial = wx.MessageDialog(None,
+              'Labels Imported!',
+              'Labels were imported.',
+               wx.OK)
+        dial.ShowModal()
+        dial.Destroy()
 
     def import_waveform(self, evt):
         ### Waveform Names
@@ -316,11 +332,12 @@ class MainFrame(wx.Frame):
 
         if len(waveform_list) > 0 and len(txt_wv_list) < 1:
             waveform_creation()
+            self.initial_run()
 
         elif len(txt_wv_list) > 0:
             self.waveform = np.loadtxt(os.path.join(self.data_dir, 'waveform.txt'))
             if self.waveform.shape[0] != self.resolution: waveform_creation()
-
+            self.initial_run()
         else:
             wv_m = wx.MessageDialog(self,
                       message="There was an issue importing the waveform files.\n" +\
@@ -328,8 +345,16 @@ class MainFrame(wx.Frame):
                       caption="Missing Waveform",
                       style=wx.OK
                       )
+            wv_m.ShowModal()
+            wv_m.Destroy()
+            return 1
 
-        self.initial_run()
+        dial = wx.MessageDialog(None,
+                      'Waveforms Imported!',
+                      'Waveforms were imported.',
+                       wx.OK)
+        dial.ShowModal()
+        dial.Destroy()
 
     def initial_run(self, evt=None):
         # self.import_files.listCtrl.DeleteAllItems()
@@ -341,7 +366,9 @@ class MainFrame(wx.Frame):
                  self.compareize, self.analyze]
         if self.frequency_data is not None and self.labels is not None:
             for ix, p in enumerate(pages):
+                p.prefix = self.prefix
                 p.data_dir = self.data_dir
+                p.export_dir = self.export_dir
                 if ix > 0:
                     p.data = self.frequency_data
                 p.labels = self.labels
@@ -352,6 +379,7 @@ class MainFrame(wx.Frame):
             self.label_data.data = load_data(self.data_files, full=False)
         
         if self.frequency_data is not None and self.labels is not None and self.waveform is not None:
+            self.analyze.alg_choice.SetSelection(0)
             self.analyze.init_plot()
             self.label_data.init_plot()
             self.clusterize.plotting()
@@ -361,22 +389,33 @@ class MainFrame(wx.Frame):
 
     def open_vis_thread(self, event):
         self.visualize.plot_selected()
+
         title_ = self.visualize.title_
         ax_labels = self.visualize.ax_labels
         labels = self.visualize.labels
         out_movie = self.visualize.out_movie
         dpi = self.visualize.dpi
         labels_name = self.visualize.labels_name
-        plot_args = (title_, ax_labels, out_movie)
+        alpha = self.visualize.alpha
+        gamma = self.visualize.gamma
+
         with open(os.path.join(self.data_dir, '_tmp.txt'), 'w') as tf:
             tf.write('title:' + title_ +'\n')
             tf.write('ax_labels:' + str(ax_labels) +'\n') 
             tf.write('outmoviename:' + out_movie + '\n')
             tf.write('DPI:' + str(dpi) + '\n')
             tf.write('labels_name:' + labels_name + '\n')
+            tf.write('alpha:' + str(alpha) + '\n')
+            tf.write('gamma:' + str(gamma) + '\n')
+
         t0 = time.time()
         if sys.platform[0:3] == "dar":
-            filenames = save_anim(self.data_dir, self.export_dir, res=self.resolution) # line for mac
+            self.Hide()
+            msg = "Please wait while video exports..."
+            busy = wx.BusyInfo(msg)
+            return_code = save_anim(self.data_dir, self.export_dir, res=self.resolution) # line for mac
+            busy = None
+            self.Show()
         elif sys.platform[0:3] == "win":
             save_thread = SaveThread(func=save_anim, args=(self.data_dir, self.export_dir, self.resolution))
             dlg = MyProgressDialog()
@@ -385,15 +424,22 @@ class MainFrame(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
         t1 = time.time()
+
+        render_time = round(t1 - t0, 3)
+        render_min = int(render_time / 60)
+        render_sec = render_time - 60*render_min
         dial = wx.MessageDialog(None,
-                              'Exported Video to: %s' % os.path.join(self.export_dir, out_movie),
-                              'Done in %.3f seconds.' % round(t1 - t0, 3),
-                               wx.OK)
+                      'Exported Video to: %s' % os.path.join(self.export_dir, out_movie),
+                      'Done in %d minutes and %.3f seconds.' % (render_min, render_sec),
+                       wx.OK)
+        time.sleep(10)
         dial.ShowModal()
         dial.Destroy()
-        if sys.platform[0:3] == "win":
-            wx.CallAfter(save_thread.join)
-        shutil.rmtree(os.path.join(self.export_dir, 'tmp'))
+        time.sleep(10)
+        wx.CallAfter(shutil.rmtree, os.path.join(self.export_dir, 'tmp'))
+        if sys.platform[0:3] == 'win': wx.CallAfter(save_thread.join)
+
+
 
     def OnClose(self, event):
         self.Close(True)

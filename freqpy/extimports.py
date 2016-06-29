@@ -60,6 +60,6 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.mixture import GMM
 from sklearn.svm import OneClassSVM
 
-from smoothing import bezier, exponential
+from smoothing import *
 from utils import *
 from generic_menu import GenericMenu

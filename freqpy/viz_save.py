@@ -18,20 +18,22 @@ def opener(args):
             of['dpi'] = int(tl.split(':')[1].replace('\n', ''))
         elif 'labels_name' in tl:
             of['labels'] = np.loadtxt(os.path.join(data_dir, tl.split(':')[1].replace('\n', '')))
-
+        elif 'alpha' in tl:
+            of['alpha'] = float(tl.split(':')[1].replace('\n', ''))
+        elif 'gamma' in tl:
+            of['gamma'] = float(tl.split(':')[1].replace('\n', ''))    
+    
     of['data_dir'] = data_dir
 
     if of['title'] == 'PCA':
         of['data'] = np.loadtxt([os.path.join(of['data_dir'], fi) for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
-        pca = PCA(n_components=3)
-        of['projected'] = pca.fit_transform(of['data'])
+        of['projected'] = np.loadtxt(os.path.join(of['data_dir'], '_pca_projected.txt'))
 
     elif of['title'] == 'ICA':
         of['data'] = np.loadtxt([os.path.join(of['data_dir'],fi) for fi in os.listdir(of['data_dir']) if 'normalized_freq.txt' in fi][0])
         if of['data'].shape[0] < of['data'].shape[1]: of['data'] = of['data'].T
-        ica = FastICA(n_components=3)
-        of['projected'] = ica.fit_transform(of['data'])
+        of['projected'] = np.loadtxt(os.path.join(of['data_dir'], '_ica_projected.txt'))
 
     elif of['title'] == 'MDA':
         of['projected'] = np.loadtxt(os.path.join(of['data_dir'], '_mda_projected.txt'))
@@ -46,7 +48,7 @@ def opener(args):
 def waveforms(folder):
     with open(os.path.join(folder, 'waveform_names.json'), 'r') as wf:
         waveform_names = json.load(wf)
-    return list(waveform_names.values())
+    return [ww[1] for ww in sorted(waveform_names.items(), key=lambda wt: wt[0])]
 
 def init_func(fig, axes, axes2, title_, ax_labels, projected, 
             labels, waveform, data_dir, 
@@ -88,12 +90,12 @@ def init_func(fig, axes, axes2, title_, ax_labels, projected,
         curr_class=axes.scatter(center[0], center[1], center[2], 
               marker='o', s=50, edgecolor='k', 
               c=color_list[int(label)-1],
-              label=color_list[int(label)-1], alpha=aa)
+              label=unicode(int(label)), alpha=aa)
         idx_where = np.where(labels == label)[0]
         classes.append(curr_class)
         centers.append(center)
     
-    if 'K-Means (PCA)' != title_:
+    if 'K-Means' not in title_:
         axes.legend(handles=classes, loc=8,
          scatterpoints=1, ncol=len(set(labels)), fontsize=4.5, 
          labels=wave_labels, frameon=False, 
@@ -126,19 +128,17 @@ def save_anim(data_dir, export_dir, res=None):
     out_movie = input_dict['out_name']
     projected = input_dict['projected']
     labels = input_dict['labels']
+    smooth_params = (input_dict['alpha'], input_dict['gamma'])
     
     # Delete temp file
     os.remove(os.path.join(data_dir, '_tmp.txt'))
 
-    # interpolation (bezier)
+    # interpolation (bezier) or expon
     if projected.shape[0] <= 1000:
         projected = bezier(projected, res=len(labels))
     else:
-        projected = exponential(projected, alpha=0.1)
-        # projected = gauss_spline(projected, 10)
-        # projected = spline_filter(projected, order=5)
-        # projected = gaussian_filter(projected, sigma=3.0, mode='reflect')
-        # projected = spline_filter(projected, lmbda=20.0)
+        smoother = ExpSmooth(projected)
+        projected = smoother.exponential_double(smooth_params)[0]
     
     waveform = np.loadtxt(os.path.join(data_dir, 'waveform.txt'))
     dpi = int(input_dict['dpi'])
@@ -160,10 +160,31 @@ def save_anim(data_dir, export_dir, res=None):
                  input_dict['projected'], input_dict['labels'],
                  waveform, data_dir)
     centers, classes, frame_no = init_func(*plot_args)
+
+    ### Eventually, the visualize tab contains this view to
+    ### allow people to scale with a slider... can also select custom range,
+    ### alpha, size vals
+
+    axes.scatter(projected[:, 0], projected[:, 1], projected[:, 2])
+
     axes.autoscale_view()
+
     xlims = axes.get_xlim()
     ylims = axes.get_ylim()
     zlims = axes.get_zlim()
+
+    new_scale = 0.10
+    new_zmin = zlims[0] - np.abs(zlims[0]*new_scale)
+    new_zmax = zlims[1] + np.abs(zlims[1]*new_scale)
+    zlims = [new_zmin, new_zmax]
+
+    new_xmin = xlims[0] - np.abs(xlims[0]*new_scale)
+    new_xmax = xlims[1] + np.abs(xlims[1]*new_scale)
+    xlims = [new_xmin, new_xmax]
+
+    new_ymin = ylims[0] - np.abs(ylims[0]*new_scale)
+    new_ymax = ylims[1] + np.abs(ylims[1]*new_scale)
+    ylims = [new_ymin, new_ymax]
 
     range_curr = 10
     total_range = np.arange(1, projected.shape[0]-range_curr-1)
@@ -211,8 +232,13 @@ def save_anim(data_dir, export_dir, res=None):
         fig.canvas.draw()
         filename = '__frame%03d.png' % int(i)
         fig.savefig(os.path.join(os.path.join(export_dir, 'tmp'), filename), dpi='figure')
+        # print i
         if sys.platform[0:3] == "win":
-            wx.CallAfter(Publisher.sendMessage, "update", str('{0} of {1}'.format(i, len(total_range))))
+            try:
+                wx.CallAfter(Publisher.sendMessage, "update", str('{0} of {1}'.format(i, len(total_range))))
+            except Exception as PubEx:
+                print repr(PubEx)
+                return 1
 
     crf = 30
     reso = '1280x720'
@@ -241,13 +267,11 @@ def save_anim(data_dir, export_dir, res=None):
         command = 'ffmpeg -framerate 20 -i %s -s:v ' % (os.path.join(os.path.join(export_dir, 'tmp'), '__frame%03d.png'),) + reso + ' -c:v libx264 -crf ' + str(crf) +\
                   ' ' + output_path
     
-    # return_code = subprocess.call(command, shell=True)
-    # return return_code
-    # command = "exec " + command
     command = command.split()
     pro = subprocess.Popen(command, shell=True)
     pro.communicate()
-    # pro.kill()
+    # wx.CallAfter(pro.kill)
+    return 0
     
 
 class SaveThread(Thread):
@@ -255,8 +279,9 @@ class SaveThread(Thread):
         Thread.__init__(self)
         self.func = func
         self.args = args
+        self.return_code = None
         self.start()
 
     def run(self):
         return_code = self.func(self.args[0], self.args[1])
-        return return_code
+        self.return_code = return_code

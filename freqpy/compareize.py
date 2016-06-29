@@ -13,6 +13,7 @@ class Compareize(wx.Panel):
 
         self.export_dir = ''
         self.data_dir = ''
+        self.prefix = ''
 
         self.algList = ['DBI', 'PCA Distance', 'Cosine Similarity']
         self.alg = 'DBI'
@@ -205,7 +206,7 @@ class Compareize(wx.Panel):
             comparison_masked = np.ma.array(comparison.copy(), mask=mask)
             cmap = CM.get_cmap('jet', 10)
             cmap.set_bad('#eeefff')
-            p = ax.pcolormesh(comparison_masked, vmin=np.min(comparison), vmax=np.max(comparison))
+            p = ax.pcolormesh(comparison_masked, vmin=0.0, vmax=1.0) # vmin=np.min(comparison), vmax=np.max(comparison))
 
             ax.set_xticks(np.arange(comparison.shape[1])+0.5, minor=False)
             ax.set_yticks(np.arange(comparison.shape[0])+0.5, minor=False)
@@ -246,7 +247,7 @@ class Compareize(wx.Panel):
             self.canvas.draw()
 
     def save_fig(self, event):
-        output_path = os.path.join(self.export_dir, 'Class_sim_'+self.alg+'_'+self.proCurr+'.png')
+        output_path = os.path.join(self.export_dir, self.prefix+'_Class_sim_'+self.alg+'_'+self.proCurr+'.png')
         self.fig.savefig(rename_out(output_path), dpi=200)
 
     def __do_layout(self):
