@@ -363,7 +363,6 @@ class MainFrame(wx.Frame):
         dial.Destroy()
 
     def initial_run(self, evt=None):
-        # self.import_files.listCtrl.DeleteAllItems()
         if self.frequency_data is not None:
             for each in self.data_files:
                 self.import_files.listCtrl.Append([each.split(self.delim)[-1],'Frequency Data'])
