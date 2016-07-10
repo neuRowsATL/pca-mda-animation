@@ -11,6 +11,7 @@ import matplotlib.transforms as mtransforms
 import matplotlib.gridspec as gridspec
 import os
 import json
+import sys
 
 plt.close()
 
@@ -19,12 +20,23 @@ def waveforms(folder):
         waveform_names = json.load(wf)
     return [ww[1] for ww in sorted(waveform_names.items(), key=lambda wt: wt[0])]
 
-raw_freq = np.loadtxt(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO\_normalized_freq.txt')
-waveform = np.loadtxt(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO\waveform.txt')
-labels = np.loadtxt(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO\pdat_labels.txt')
-waveform_names = waveforms(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO')
+if sys.platform[0:3] == 'win':
+    raw_freq = np.loadtxt(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO\_normalized_freq.txt')
+    waveform = np.loadtxt(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO\waveform.txt')
+    labels = np.loadtxt(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO\pdat_labels.txt')
+    waveform_names = waveforms(r'C:\Users\Robbie\Desktop\Data\20111106K-data\CBCO')
 
-oimgpath = r'C:\Users\Robbie\Desktop\2011-11-06 PDF\CBCO'
+    oimgpath = r'C:\Users\Robbie\Desktop\2011-11-06 PDF\CBCO'
+
+if sys.platform[0:3]=='dar':
+    usr_dir = os.path.expanduser('~')
+    raw_freq = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/_normalized_freq.txt'))
+    waveform = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/waveform.txt'))
+    labels = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/pdat_labels.txt'))
+    waveform_names = waveforms(os.path.join(usr_dir, r'Desktop/2011-11-06'))
+
+    oimgpath = os.path.join(usr_dir, r'Desktop/2011-11-06_CBCO_PDF')
+
 
 if raw_freq.shape[0] < raw_freq.shape[1]: raw_freq = raw_freq.T
 
@@ -34,8 +46,9 @@ proj = pca.fit_transform(raw_freq)
 pd = pairwise_distances(proj, metric='l2')
 pd /= np.max(pd)
 
-eps_range = np.linspace(-0.7, 1.5, 5)
-len_range = sorted([12, 15, 17, 20, 25], reverse=True)
+# eps_range = np.linspace(-0.6, 1.5, 5)
+eps_range = [-1.05]
+len_range = [15]
 
 for ep_ in eps_range:
     for len_check in len_range:
@@ -112,6 +125,7 @@ for ep_ in eps_range:
 
         threeD = True
         if threeD is True:
+            color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
             # proj = bezier(proj, res=1000, dim=3)
             smoother = ExpSmooth(proj)
             proj = smoother.exponential_double(0.01, 0.1)[0]
@@ -125,7 +139,7 @@ for ep_ in eps_range:
             axz = plt.subplot(gs[0, 1], projection='3d', frame_on=False)
             ax2 = plt.subplot(gs[1, :], frame_on=True) # waveform
 
-            def init_ax(pc1=None, pc2=None, r=None, c=None):
+            def init_ax(pc1=None, pc2=None, r=None, c=None, sel_col=None):
                 ax.cla()
                 axz.cla()
                 ax2.cla()
@@ -192,12 +206,14 @@ for ep_ in eps_range:
                                 lw=0.3,marker='',color='g',alpha=1.)
 
                     # plot orbit start/end traj and between
-                    pc3 = proj[r[1]:c[0], :]
+                    p3 = proj[r[1]:c[0], :]
+
                     ax.plot(pc1[:, 0], pc1[:, 1], zs=pc1[:, 2], lw=1.0, marker='.',color='r', alpha=1., markersize=0.1)
                     ax.plot(pc2[:, 0], pc2[:, 1], zs=pc2[:, 2], lw=1.0, marker='.',color='b', alpha=1., markersize=0.1)
-                    ax.plot(pc3[:, 0], pc3[:, 1], zs=pc3[:, 2], lw=1.0, marker='.',color='k', alpha=1., markersize=0.1)
 
-                    axz.plot(pc3[:, 0], pc3[:, 1], zs=pc3[:, 2], lw=1.0, marker='.',color='k', alpha=1., markersize=0.1)
+                    ax.scatter(p3[:, 0], p3[:, 1], zs=p3[:, 2], marker='.', c=sel_col, alpha=1., s=10)
+                    axz.scatter(p3[:, 0], p3[:, 1], zs=p3[:, 2], marker='.', c=sel_col, alpha=1., s=10)
+                    
                     axz.plot(pc1[:, 0], pc1[:, 1], zs=pc1[:, 2], lw=1.0, marker='.',color='r', alpha=1., markersize=0.1)
                     axz.plot(pc2[:, 0], pc2[:, 1], zs=pc2[:, 2], lw=1.0, marker='.',color='b', alpha=1., markersize=0.1)
 
@@ -206,7 +222,7 @@ for ep_ in eps_range:
                     ylims = ax.get_ylim()
                     zlims = ax.get_zlim()
 
-                    new_scale = 0.005
+                    new_scale = 1e-5 # 0.005
                     new_zmin = zlims[0] - np.abs(zlims[0]*new_scale)
                     new_zmax = zlims[1] + np.abs(zlims[1]*new_scale)
                     zlims = [new_zmin, new_zmax]
@@ -262,10 +278,12 @@ for ep_ in eps_range:
                         pc2 = proj[c[0]:c[1], :]
                         
                         # plot selected
-                        xlims, ylims, zlims = init_ax(pc1, pc2, r, c)
+                        sel_col = [color_list[int(cii-1)] for cii in labels[r[1]:c[0]]]
+                        print sel_col
+                        xlims, ylims, zlims = init_ax(pc1, pc2, r, c, sel_col)
 
                         # Plot all data
-                        color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
+                        
                         clab = [color_list[int(cix-1)] for cix in labels]
                         classes = ax.scatter(proj[:, 0], proj[:, 1], proj[:, 2], alpha=0.01, c=clab, marker='.')
 
@@ -276,12 +294,13 @@ for ep_ in eps_range:
                         fig.canvas.draw()
 
                         fname = os.path.join(imgpath, 'manifold_%03d.png' % cnt2)
-                        fig.savefig(fname)
+                        # fig.savefig(fname)
                         cnt2 += 1
-                        # plt.show()
-                        # break
+                        plt.show()
+                        break
 
                 ccc += 1
+            sys.exit()
             info = "Min. Length: %s,Epsilon: %s,# of Trajectories: %s\n" % (str(len_check), str(round(eps, 2)), str(cnt2))
             with open(os.path.join(oimgpath, 'info.txt'), 'a+') as inf:
                 inf.write(info)
