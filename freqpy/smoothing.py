@@ -3,10 +3,10 @@ from scipy.special import binom
 import time
 from itertools import imap, combinations_with_replacement as cwr, starmap
 import matplotlib.pyplot as plt
+from decimal import Decimal
 
 """ Citation: https://gist.github.com/Juanlu001/7284462
 """
-
 def bernstein(n, k):
     coeff = binom(n, k)
     def _bpoly(x):
@@ -19,6 +19,23 @@ def bezier(points, res=1000, dim=3):
     curve = np.zeros((res, dim))
     for ii in range(N):
         curve += np.outer(bernstein(N - 1, ii)(t), points[ii])
+    return curve
+
+def casteljau(points, res, dim, deg=3):
+    N = Decimal(str(len(points)))
+    t = np.linspace(0, 1, num=res)
+    t = [Decimal(t) for t in t.tolist()]
+    if dim > 1: points = [[Decimal(str(p2)) for p2 in p1] for p1 in points.tolist()]
+    else: points = [Decimal(str(p1)) for p1 in points.tolist()]
+    curve = np.zeros((res, dim))
+    curve = [[Decimal(str(c2)) for c2 in c1] for c1 in curve.tolist()]
+    for ii in range(len(points)):
+        coeff = Decimal(str(binom(len(points)-1, ii)))
+        bp = [coeff * (ti ** Decimal(str(ii))) * (Decimal('1')-ti) ** ((N-Decimal('1'))-ii) for ti in t]
+        pi = points[ii]
+        for mm in range(len(bp)):
+            for nn in range(len(pi)):
+                curve[mm][nn] += [cr[0]*cr[1] for cr in zip(bp, pi)]
     return curve
 
 class ExpSmooth:
