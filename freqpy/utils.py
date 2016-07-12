@@ -4,31 +4,6 @@ import json
 import sys
 from waveform_convert import load_waveform, waveform_compress, waveform_convert
 
-def kth_diag_indices(a, k):
-    rows, cols = np.diag_indices_from(a)
-    if k < 0:
-        return rows[:k], cols[-k:]
-    elif k > 0:
-        return rows[k:], cols[:-k]
-    else:
-        return rows, cols
-
-def tconsec(diag):
-    out = list()
-    ix = 0
-    while ix < len(diag):
-        chain = list()
-        if ix >= len(diag):
-            break
-        while diag[ix] == 1:
-            chain.append(ix)
-            ix += 1
-            if ix >= len(diag):
-                break
-        out.append(chain)
-        ix += 1
-    return out
-
 def check_platform():
     win_delim = "\\"
     dar_delim = "/"

@@ -185,10 +185,8 @@ if threeD is True:
             checks.append(
                 any([r[0] == c[1] - iic for iic in range(-chk_rng, chk_rng)]))
             if all([c is False for c in checks]):
-                # print True
                 return True
             else:
-                # print False
                 return False
         return True
 
