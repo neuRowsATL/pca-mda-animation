@@ -27,9 +27,14 @@ if sys.platform[0:3] == 'win':
 
 if sys.platform[0:3] == 'dar':
     usr_dir = os.path.expanduser('~')
-    raw_freq = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/_normalized_freq.txt'))
-    waveform = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/waveform.txt'))
-    labels = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/pdat_labels.txt'))
+
+    raw_freq_low = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/res1e3/_normalized_freq.txt'))
+    waveform_low = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/res1e3/waveform.txt'))
+    labels_low = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/res1e3/pdat_labels.txt'))
+
+    raw_freq_high = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/res1e5/_normalized_freq.txt'))
+    waveform_high = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/res1e5/waveform.txt'))
+    labels_high = np.loadtxt(os.path.join(usr_dir, r'Desktop/2011-11-06/res1e5/pdat_labels.txt'))
     
     waveform_names = get_waveform_names(os.path.join(usr_dir, r'Desktop/2011-11-06'))
 
@@ -38,15 +43,15 @@ if sys.platform[0:3] == 'dar':
 ep_ = -1.05
 len_check = 15
 
-loadit = False
+loadit = True
 if loadit is True:
     raw_freqs = [raw_freq_low, raw_freq_high]
     waveforms = [waveform_low, waveform_high]
     labels_l = [labels_low, labels_high]
 
     plot_dict = dict()
-    plot_dict[0] = {2: '', 3: ''}
-    plot_dict[1] = {2: '', 3: ''}
+    plot_dict[2] = {0: '', 1: ''}
+    plot_dict[3] = {0: '', 1: ''}
 
     for prim_ix in range(0, 2):
         for curr_lab in [2, 3]:
@@ -65,15 +70,12 @@ if loadit is True:
             waveform = np.insert(waveform, 0, wvo[where_lab.min()-50:where_lab.min()])
             waveform = np.insert(waveform, -1, wvo[where_lab.max():where_lab.max()+50])
 
-            # len_check = len_check*len(waveform)/1e3
-            # if len(waveform) > 500: len_check=len_check*1.5
-
-            if prim_ix == 0: len_check = len_check * 100
+            # if prim_ix == 0: len_check = len_check * 100
 
             pca = PCA(n_components=3)
             proj = pca.fit_transform(raw_freq)
             # plot_dict.update({prim_ix: {curr_lab: {'proj': proj}}})
-            plot_dict[prim_ix][curr_lab] = {'proj': proj.tolist()}
+            plot_dict[curr_lab][prim_ix] = {'proj': proj.tolist()}
 
             pd = pairwise_distances(proj, metric='l2')
             pd /= np.max(pd)
@@ -123,52 +125,34 @@ if loadit is True:
             # plot_dict.update({prim_ix: {curr_lab: {'rows': rows}}})
             # plot_dict.update({prim_ix: {curr_lab: {'cols': cols}}})
             # plot_dict.update({prim_ix: {curr_lab: {'wv': waveform.tolist()}}})
-            plot_dict[prim_ix][curr_lab].update({'rows': rows})
-            plot_dict[prim_ix][curr_lab].update({'cols': cols})
-            plot_dict[prim_ix][curr_lab].update({'wv': waveform.tolist()})
-            plot_dict[prim_ix][curr_lab].update({'eps': eps})
+            plot_dict[curr_lab][prim_ix].update({'rows': rows})
+            plot_dict[curr_lab][prim_ix].update({'cols': cols})
+            plot_dict[curr_lab][prim_ix].update({'wv': waveform.tolist()})
+            plot_dict[curr_lab][prim_ix].update({'eps': eps})
 
     with open(os.path.join(oimgpath, 'pdict.json'), 'w') as pf:
         json.dump(plot_dict, pf)
 
-threeD = True
+threeD = False
 if threeD is True:
     with open(os.path.join(oimgpath, 'pdict.json'), 'r') as pf:
         plot_dict = json.load(pf)
 
     color_list = ['r', 'g', 'b', 'k', 'w', 'm', 'c']
 
-    CL_dict_low = plot_dict['0']['2']
-    OL_dict_low = plot_dict['0']['3']
-    CL_dict_high = plot_dict['1']['2']
-    OL_dict_high = plot_dict['1']['3']
+    CL = plot_dict['2']
+    OL = plot_dict['3']
 
-    proj_cl_low = np.array(CL_dict_low['proj'])
-    rows_cl_low = CL_dict_low['rows']
-    cols_cl_low = CL_dict_low['cols']
-    proj_cl_low = bezier(proj_cl_low, res=1000, dim=3)
-    wav_cl_low = CL_dict_low['wv']
-    eps = CL_dict_low['eps']
+    CL['0']['proj'] = bezier(np.array(CL['0']['proj'], res=1000, dim=3))
+    OL['0']['proj'] = bezier(np.array(CL['0']['proj'], res=1000, dim=3))
 
-    proj_cl_high = np.array(CL_dict_high['proj'])
-    rows_cl_high = CL_dict_high['rows']
-    cols_cl_high = CL_dict_high['cols']
-    smoother1 = ExpSmooth(proj_cl_high)
-    proj_cl_high = smoother1.exponential_double(0.1, 0.1)[0]
-    wav_cl_high = CL_dict_high['wv']
+    alpha_exp, gamma_exp = (0.1, 0.1)
 
-    proj_ol_low = np.array(OL_dict_low['proj'])
-    rows_ol_low = OL_dict_low['rows']
-    cols_ol_low = OL_dict_low['cols']
-    proj_ol_low = bezier(proj_ol_low, res=1000, dim=3)
-    wav_ol_low = OL_dict_low['wv']
+    smoother = np.array(ExpSmooth(CL['1']['proj']))
+    CL['1']['proj'] = smoother.exponential_double(alpha_exp, gamma_exp)[0]
 
-    proj_ol_high = np.array(OL_dict_high['proj'])
-    rows_ol_high = OL_dict_high['rows']
-    cols_ol_high = OL_dict_high['cols']
-    smoother2 = ExpSmooth(proj_ol_high)
-    proj_ol_high = smoother2.exponential_double(0.1, 0.1)[0]
-    wav_ol_high = OL_dict_high['wv']
+    smoother2 = ExpSmooth(np.array(OL['1']['proj']))
+    OL['1']['proj'] = smoother2.exponential_double(alpha_exp, gamma_exp)[0]
 
     def consec_check(r, c, done):
         if len(done) > 0:
