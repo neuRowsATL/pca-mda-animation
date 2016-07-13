@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import binom
 import time
-from itertools import imap, combinations_with_replacement as cwr, starmap
+from itertools import combinations_with_replacement as cwr, starmap
 import matplotlib.pyplot as plt
 from decimal import Decimal
 
@@ -129,8 +129,8 @@ class ExpSmooth:
         t0 = time.time()
         if method == 'starmap':
             comps = starmap(smoother, cwr(search_range, 2))
-        elif method == 'imap':
-            comps = imap(smoother, cwr(search_range, 2))
+        # elif method == 'imap':
+            # comps = imap(smoother, cwr(search_range, 2))
         optimal_values = min(comps, key=lambda getter: getter[-1])
         t1 = time.time()
 
