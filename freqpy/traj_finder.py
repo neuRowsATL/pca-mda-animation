@@ -8,7 +8,10 @@ import matplotlib.gridspec as gridspec
 import os
 import json
 import sys
-from utils import get_waveform_names, to_freq, load_data
+from utils import get_waveform_names, to_freq, load_data, raster
+import matplotlib.patches as patches
+
+plt.close('all')
 
 class TrajectoryFinder:
     def __init__(self, *args, **kwargs):
@@ -54,6 +57,9 @@ class TrajectoryFinder:
             out.append(chain)
             ix += 1
         return out
+
+    def tspace(self):
+        return np.linspace(0, self.total_time, self.wv.shape[0])
 
     def pca(self, plot_=False):
         pca = PCA(n_components=3)
@@ -127,38 +133,6 @@ class TrajectoryFinder:
               outside_eps=None, outside_len=None, outside_name=''):
         total_time = self.total_time
         done = list()
-        def consec_check(r, c, done):
-            """ Checks to make sure we haven't already generated a similar figure
-                and that the current figure won't be meaningless.
-            """
-            checks = list()
-            if len(done) > 0:
-                chk_rng = 10
-                for d in done:
-                    dcheck = (d[0][0], d[1][0])
-                    checks.append(
-                        any([(r[0], c[0] - iic) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[0] - iic, c[0]) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[1], c[0] - iic) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[1] - iic, c[0]) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[0], c[1] - iic) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[0] - iic, c[1]) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[1], c[1] - iic) == dcheck for iic in range(-chk_rng, chk_rng)]))
-                    checks.append(
-                        any([(r[1] - iic, c[1]) == dcheck for iic in range(-chk_rng, chk_rng)]))
-            checks.append(r[1] in [c[0]-1, c[0]+1, c[0]])
-            checks.append(r[1] >= c[0])
-            if all([c is False for c in checks]):
-                return True
-            else:
-                return False
-
         def incheck(orc, nrc, thresh=20):
             out = list()
             for r, c in nrc:
@@ -171,12 +145,10 @@ class TrajectoryFinder:
                                         if abs(cii - ci)<=thresh:
                                             out.append((r, c))
             return out
-
         if diags_ == 'self':
             rows, cols = self.find_diags()
         elif diags_ == 'other':
             srows, scols = self.find_diags()
-            # print [tuple(zz) for zz in zip(srows, scols)], '\n'
             if outside_eps is not None: self.options['eps'] = outside_eps
             if outside_len is not None: self.options['len_check'] = outside_len
             self.__pca()
@@ -184,10 +156,8 @@ class TrajectoryFinder:
             rows, cols = outside_diags
             rows = [(r[0]*cratio, r[1]*cratio) for r in rows]
             cols = [(c[0]*cratio, c[1]*cratio) for c in cols]
-            # print [tuple(rrr) for rrr in zip(rows, cols)], '\n'
             rowcols = incheck([tuple(zz) for zz in zip(srows, scols)], 
                             [tuple(nn) for nn in zip(rows, cols)])
-            # sys.exit()
         if smooth == 'bezier':
             proj = bezier(proj, res=proj.shape[0], dim=3)
         elif smooth == 'exp':
@@ -201,11 +171,8 @@ class TrajectoryFinder:
         labels[lwhere] = 1
         labels[np.mean(comp)-np.std(comp) >= comp] = 2
         lcols = [self.color_list[int(cix-1)] for cix in labels]
-        for r, c in rowcols: # zip(rows, cols):
+        for r, c in rowcols:
             plt.close('all')
-            # if consec_check(r, c, done) is True:
-                # print r, c
-            # if (r, c) in [tuple(zz) for zz in zip(srows, scols)]:
             if True:
                 print("Generating Figure #%03d..." %(cnt,))
                 fig = plt.figure(figsize=(20, 10))
@@ -263,20 +230,70 @@ class TrajectoryFinder:
                         marker='.', color='b', alpha=1., markersize=0.1)
                 ax.plot(pc3[:, 0], pc3[:, 1], zs=pc3[:, 2], lw=1.0,
                         marker='.', color='k', alpha=1., markersize=0.1)
-                
                 fig.canvas.draw()
                 fname = os.path.join(
                     oimgpath, 'manifold_%03d.png' % (cnt,))
-                    # oimgpath, '__all.png')
                 fig.savefig(fname)
-                # plt.show()
                 cnt += 1
-                # break
         print("Generated %03d figures." %(cnt,))
 
 
+def distance_to_vertices(proj, corner):
+    # calculate distance from each point in proj to vertex
+    return np.linalg.norm(proj - corner, axis=1)
+
+def find_radius(ds, bins=100, plot_=False):
+    # calculate the radius theshold
+    hist, __= np.histogram(ds, bins=bins)
+    hx = np.linspace(0, hist.shape[0], hist.shape[0])
+    rix = np.where(hist > 0)[0][0]
+    if plot_ is True:
+        plt.bar(hx, hist, width=1)
+        plt.plot(hx, hist)
+        plt.axvline(hx[rix+1], color='r')
+        plt.show()
+    radius = hx[rix+1]
+    if radius < ds.min(): radius += (ds.min()/1.3)
+    return radius
+
+def consecutive_times(tspace, ixs, ixs_show, verbose=0):
+    times = list()
+    def cond(ixs_show, i):
+        if len(ixs_show) == 1:
+            return True
+        if i > 0: return True
+        else: return False
+    for i in range(len(ixs_show)): # Iterate through each set of consecutive pts
+        if cond(ixs_show, i):
+            start_time, end_time = tspace[ixs[ixs_show[i-1]+1]], tspace[ixs[ixs_show[i]]]
+            if verbose > 0: print start_time, end_time
+            times.append((start_time, end_time))
+    return times
+
+def shade_raster(raxes, cts, colors, cii=0, alpha=0.5):
+    for t0, t1 in cts:
+        color = colors[int(cii-1)]
+        raxes.add_patch(patches.Rectangle((t0, raxes.get_ylim()[0]), t1-t0, raxes.get_ylim()[1],
+                         edgecolor=color, fc=color, alpha=alpha, lw=1.))
+    return raxes
+
+def label_raster(tf, corners, raxes):
+    colors = ['c', 'b', 'g', 'm', 'k', 'r', 'y', '#999999', '#AACCBB']
+    cii = 0
+    proj = tf.pca(plot_=False) # get projection
+    tspace = tf.tspace() # create appropriate time space
+    for corner in corners:
+        ds = distance_to_vertices(proj, corner) # calculate distance from each point in proj to vertex
+        radius = find_radius(ds, plot_=False) # This was calculated by taking a histogram, take the first peak
+        ixs = np.where(ds <= radius)[0] # This returns ixs where distance is closer than radius
+        ixs_show = np.where(np.diff(ixs) > 1)[0] # This returns the indices of ixs where there is a break in consecutive pts
+        cts = consecutive_times(tspace, ixs, ixs_show) # yields start/end times for plotting
+        raxes = shade_raster(raxes, cts, colors, cii=cii) # label raster plot
+        # print cii, radius, len(ixs)
+        cii += 1
+    return raxes
+
 def test_finder():
-    plt.close('all')
     spikes_dir = os.path.join(os.path.expanduser('~'), "Desktop/SimSpikes")
     dat = ['stimes1.txt', 'stimes2.txt', 'stimes3.txt']
     dat = [os.path.join(spikes_dir, d) for d in dat]
@@ -286,163 +303,23 @@ def test_finder():
     tiny_freq = load_data(dat, nr_pts=500)
     tiny_wv = np.sin(np.logspace(0.0, 1.0, tiny_freq.shape[0]))
     big_freq = load_data(dat, nr_pts=5e3)
-    # print big_freq.min(), big_freq.max()
     big_wv = np.sin(np.logspace(0.0, 1.0, big_freq.shape[0]))
     
     tf0 = TrajectoryFinder(tiny_freq, tiny_wv, total_time, len_check=150, eps=0.36)
-    tf1 = TrajectoryFinder(small_freq, small_wv, total_time, len_check=160/5, eps=-1.35)#len_check=26, eps=-1.35)
+    tf1 = TrajectoryFinder(small_freq, small_wv, total_time, len_check=160/5, eps=-1.35)
     tf2 = TrajectoryFinder(big_freq, big_wv, total_time, len_check=160, eps=-1.35)
 
-    plt.close('all')
     out_dir = os.path.join(os.path.expanduser('~'), "Desktop/SimSpikes")
     
-    proj = tf2.pca(plot_=False)
-    cond = np.zeros_like(proj[:, 0])
-    colors = ['c', 'b', 'g', 'm', 'w', 'k', 'r', 'y']
+    # proj = tf2.pca(plot_=False)
+    # colors = ['c', 'b', 'g', 'm', 'k', 'r', 'y', '#999999', '#AACCBB']
     corners = np.loadtxt(os.path.join(out_dir, 'scorners.txt'))
-    radius = 2.0
-    idxs = list()
-    mrads = [0]*len(corners)
-    for pi, pp in enumerate(proj):
-        for ii, corn in enumerate(corners):
-            # d = np.linalg.norm(pp - corn)
-            # mrad = np.linalg.norm(corn)*radius
-            d1 = abs(pp[0] - corn[0])
-            d2 = abs(pp[1] - corn[1])
-            d3 = abs(pp[2] - corn[2])
-            # mrads[ii] = mrad
-            # if d <= mrad:
-            if all([d <= radius for d in [d1, d2, d3]]):
-                cond[pi] = ii
-                idxs.append(pi)
-    from utils import raster
-    axes = raster(load_data(dat, nr_pts=5e3, full=False), alpha=1.0, idxs=idxs, cond=cond, proj=proj, corners=corners, mrads=radius)
-    
 
     ## === REWRITE THIS CODE!!!!
-
-    point = np.array([x, y, z]) # define vertex
-    ds = np.linalg.norm(proj-pt, axis=1) # calculate distance from each point in proj to vertex
-
-    radius = 0.8 ## This was calculated by taking a histogram, plt.hist(ds, bins=25)... take the first peak
-    ixs = np.where(ds <= radius)[0] # This returns ixs where distance is closer than radius
-    ixs_show = np.where(np.diff(ixs) > 1)[0] # This returns the indices of ixs where there is a break in consecutive pts
-
-    for i in range(len(ixs_show)): # Iterate through each set of consecutive pts
-        print tspace[ix[ixs_show[i-1]+1]], tspace[ixs[ixs_show[i]]]
-        ## insert funky plotting function here to create a shaded area in the raster histogram from the starting tspace to the ending tspace
-
+    raxes = raster(load_data(dat, nr_pts=5e3, full=False))
+    raxes = label_raster(tf2, corners, raxes)
+    plt.show()
     ## === END REWRITING SECTION :)
-
-    return proj, axes
-    import matplotlib as mpl
-    # colorStep = 1./8
-    # colors = []
-    # for i in range(8):
-        # colors.append(mpl.colors.hsv_to_rgb([colorStep*i, 0.7, 0.85]))
-    colors = ['c', 'b', 'g', 'm', 'w', 'k', 'r', 'y']
-    corners = np.loadtxt(os.path.join(out_dir, 'scorners.txt'))
-    radius = 2.0
-    idxs = list()
-    mrads = [0]*len(corners)
-    for pi, pp in enumerate(proj):
-        for ii, corn in enumerate(corners):
-            # d = np.linalg.norm(pp - corn)
-            # mrad = np.linalg.norm(corn)*radius
-            d1 = abs(pp[0] - corn[0])
-            d2 = abs(pp[1] - corn[1])
-            d3 = abs(pp[2] - corn[2])
-            # mrads[ii] = mrad
-            # if d <= mrad:
-            if all([d <= radius for d in [d1, d2, d3]]):
-                cond[pi] = ii
-                idxs.append(pi)
-    # cond[cond != 7.0] = 6
-    # colers = [colors[int(li-1.0)] for li in cond]
-
-    # print max(idxs)
-    axes = raster(load_data(dat, nr_pts=5e3, full=False), alpha=1.0, idxs=idxs, cond=cond, proj=proj, corners=corners, mrads=radius)
-    # raster(load_data(dat, nr_pts=5e3, full=False), colers, axes=axes, alpha=0.3)
-    # plt.show()
-    # ax = plt.subplot(projection='3d')
-    # ax.scatter(proj[:, 0], proj[:, 1], proj[:, 2], c=colers)
-    # plt.show()
-
-    # tf2.pca(plot_=True)
-
-
-
-
-    # tr, tc = tf1.find_diags(plot_=False)
-    # print(len(tr))
-    # tf2.do_3d(out_dir, smooth='exp', diags_='other', outside_diags=(tr, tc),
-            # cratio=5, outside_eps=-1.35/5.0, outside_len=160/5, outside_name='1000res')
-
-    # br, bc = tf2.find_diags()
-    # print(len(br))
-    # tf1.do_3d(out_dir, smooth='bezier', diags_='other', outside_diags=(br, bc), cratio=0.2,
-                # outside_eps=-1.35, outside_len=160, outside_name='5000res')
-
-
-    # opd_norm, pdc_norm = tf5.do_2d(dist_=True, plot_=False, norm_=True)
-
-    # hist, bine = np.histogram(opd_norm, bins=100)
-    # ax = plt.subplot()
-    # ax.bar(np.arange(len(hist)), hist, 0.5)
-    # ax.set_title("500 res")
-    # plt.show()
-
-    # hist, bine = np.histogram(tiny_freq, bins=100)
-    # plt.figure()
-    # plt.bar(np.arange(len(hist)), hist, 0.5)
-    # plt.title("500 res")
-
-    # hist, bine = np.histogram(small_freq, bins=100)
-    # plt.figure()
-    # plt.bar(np.arange(len(hist)), hist, 0.5)
-    # plt.title("1000 res")
-
-    # hist, bine = np.histogram(big_freq, bins=100)
-    # plt.figure()
-    # plt.bar(np.arange(len(hist)), hist, 0.5)
-    # plt.title("5000 res")
-    # plt.show()
-
-    
-    # tfs = [tf1]
-    # time_spent = list()
-    # for tf in tfs:
-    #     rows, cols = tf.find_diags()
-    #     time_space = np.linspace(0, tf.total_time, tf.wv.shape[0])
-    #     ts = (tf.total_time / float(tf.wv.shape[0]))
-    #     mns = list()
-    #     for r, c in zip(rows, cols):
-    #         ctime = np.linspace(r[1] * ts, c[0] * ts, len(time_space[r[1]:c[0]])).tolist()
-    #         if len(ctime) > 0:
-    #             mns.extend(ctime)
-    #     time_spent.append([np.mean(mns), np.std(mns)])
-    # print(time_spent)
-
-    # out_dir = os.path.join(os.path.expanduser('~'), "Desktop/IMG_OUTPUT")
-
-    # tf5.do_3d(os.path.join(out_dir, 'bezier_500'), smooth='bezier')
-    # tf5.do_3d(os.path.join(out_dir, 'exp_500'), smooth='exp')
-    # tf5.do_3d(os.path.join(out_dir, 'raw_500'), smooth='')
-
-    # tf1.do_3d(os.path.join(out_dir, 'bezier_1000'), smooth='bezier')
-    # tf1.do_3d(os.path.join(out_dir, 'exp_1000'), smooth='exp')
-    # tf1.do_3d(os.path.join(out_dir, 'raw_1000'), smooth='')
-
-    # tf2.do_3d(os.path.join(out_dir, 'raw_5000'), smooth='')
-    # tf2.do_3d(os.path.join(out_dir, 'exp_5000'), smooth='exp')
-
-    # tf2.do_3d('./OUTPUT/exp_manifolds', smooth='exp', sparams=(0.1, 0.1))
-    
-    # tf3.do_3d('./OUTPUT/raw_nosmooth_5e3', smooth='')
-    
-    # tf4.do_3d('./OUTPUT/raw_nosmooth_1e3', smooth='')
-    
-    # tf5.do_3d('./OUTPUT/raw_nosmooth_500', smooth='')
 
 if __name__ == '__main__':
     test_finder()

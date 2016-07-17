@@ -29,14 +29,13 @@ def average_waveform(wave, nr_pts=1000):
         wave_out[ii] = np.mean(curr_wave)
     return wave_out
 
-def raster(event_times_list, color='k', cond=None, alpha=1.0, axes=None, idxs=None, proj=None, corners=None, mrads=None):
+def raster(event_times_list, color='k', alpha=1.0, axes=None):
     """
     https://scimusing.wordpress.com/2013/05/06/making-raster-plots-in-python-with-matplotlib/
     Creates a raster plot
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    colors = ['c', 'b', 'g', 'm', 'w', 'k', 'r', 'y']
     if axes is None:
         axes = plt.subplot()
     axes.tick_params(axis='both', which='major', labelsize=3)
@@ -48,35 +47,9 @@ def raster(event_times_list, color='k', cond=None, alpha=1.0, axes=None, idxs=No
     axes.tick_params(axis='both', which='major', labelsize=3)
     axes.tick_params(axis='both', which='minor', labelsize=3)
     axes.yaxis.set_ticks(np.arange(0, len(event_times_list) + 1, 1))
-    # tspace = np.linspace(0, max([evt for evtt in event_times_list for evt in evtt]), max(idxs))
-
-    print np.where(cond == 0)
-    print np.where(cond == 1)
-    print np.where(cond == 2)
-    print np.where(cond == 3)
-    print np.where(cond == 4)
-    print np.where(cond == 5)
-    print np.where(cond == 6)
-
-    tspace = np.linspace(0, 4501.1999, 5000)
     for ith, trial in enumerate(event_times_list):
         axes.vlines(trial, ith + 0.5, ith + 1.5, color=color, linewidth=0.2, alpha=alpha)
     axes.set_ylim([0.5, len(event_times_list) + 0.5])
-    if idxs is not None:
-        trange = [0, 0]
-        for iix, ix in enumerate(idxs):
-            if ix - trange[1] > 1:
-                # axes.add_patch(patches.Rectangle((trange[0], 0), ))
-                if iix > 0:
-                    # print cond[ix]
-                    axes.fill_between(x=np.linspace(tspace[trange[0]], tspace[trange[1]], tspace[trange[1]]-tspace[trange[0]]),
-                                    y1=axes.get_ylim()[0], y2=axes.get_ylim()[1], facecolor=colors[int(cond[trange[1]]-1)], alpha=.5, edgecolor='')
-                    # print "(%.3f, %.3f, %.3f) | d=%.3f (%.3f) %s" % (proj[ix][0], proj[ix][1], proj[ix][2], np.linalg.norm(proj[ix]-corners[int(cond[trange[1]])]), mrads[int(cond[trange[1]])], str(np.linalg.norm(proj[ix]-corners[int(cond[trange[1]])]) <= mrads[int(cond[trange[1]])]))
-                    # print "(%.3f, %.3f, %.3f) | d=%s (%.3f) %s" % (proj[ix][0], proj[ix][1], proj[ix][2], str(abs(proj[ix]-corners[int(cond[trange[1]])])), mrads, str(all([aa <= mrads for aa in abs(proj[ix]-corners[int(cond[trange[1]])])])))
-                    # print "%.3f" % (tspace[trange[1]])
-                trange = [ix, ix]
-            else:
-                trange[1] = ix
     return axes
 
 def to_freq(data, nr_pts=1e3):
