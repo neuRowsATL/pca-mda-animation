@@ -13,7 +13,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import Toolbar
 from mpl_toolkits.mplot3d import Axes3D
 
-
+from lib_freqpy_data import *
 
 ID_VIEW_STATUSBAR = wx.NewId()
 ID_WINDOW_ENVIRONMENT = wx.NewId()
@@ -58,7 +58,7 @@ class FreqPyGUI(wx.Frame):
     
         menu = wx.Menu()
         m_open = menu.Append(wx.ID_OPEN, "&Open\tCtrl+O", "Open a saved working environment")
-        self.Bind(wx.EVT_MENU, self.Save, m_open)
+        self.Bind(wx.EVT_MENU, self.Open, m_open)
         m_save = menu.Append(wx.ID_SAVE, "&Save\tCtrl+S", "Save current working environment")
         self.Bind(wx.EVT_MENU, self.Save, m_save)
         m_saveAs = menu.Append(wx.ID_SAVEAS, "&Save As...\tCtrl+Shift+S", "Save current working environment")
@@ -298,6 +298,7 @@ class pane_Environment(pane_FreqPy):
                             style=wx.DEFAULT_FRAME_STYLE)
         
         self.filePaths = []
+        self.I = Import() # Create an instance of the Import class
         
         #self.notebook = wx.Notebook(self)
         
@@ -334,24 +335,27 @@ class pane_Environment(pane_FreqPy):
         sizer = wx.BoxSizer(wx.VERTICAL)        
         
         sizer.Add(wx.StaticText(self, label='Import file type:'))        
-        exts = ['All Files | .*', 'Tab delimited | .txt', 'Comma separated | .csv', 'FreqPy | .fpy']
+        exts = ['All Files | .*', 'Tab delimited | .txt', 'Comma separated | .csv', 'FreqPy | .fpy',
+                'Numpy binary | .npy']
         self.importExts = wx.ComboBox(self, choices=exts)
+        self.importExts.Select(0)
         sizer.Add(self.importExts)        
-                
+
         self.importFiles = wx.Panel(self, size=size)
-        
+
         sizer.Add(wx.StaticText(self, label='Drag and drop files or folders to import...'))
         sizer.Add(tab_ImportFiles(self.importFiles, self))
-        
+
         btn1 = wx.Button(self.importFiles, -1, label='Import selected folders or files')
         btn1.Bind(wx.EVT_BUTTON, self.DoImport)
         sizer.Add(btn1)
-        
+
         self.SetSizer(sizer)
-        
         
     def DoImport(self, e):
         self.MainPane.StatusBar.SetStatusText('Importing %d files' % len(self.filePaths))
+        self.I.SetParams({'filenames': self.filePaths}) # Update filenames list
+        self.I.ImportData() # Import data
     
 class tab_ImportFiles(wx.Panel):
     
@@ -366,7 +370,7 @@ class tab_ImportFiles(wx.Panel):
         sizer.Add(textCtrl, 1, wx.EXPAND)
         self.SetSizer(sizer)
         
-        
+
 class tab_SelectFiles(wx.Panel):
     def __init__(self, parent, id=-1, size=(300,300)):
         
@@ -416,8 +420,6 @@ class FileDrop(wx.FileDropTarget):
                                 elif f.split('.')[1] == exts:
                                     self.window.WriteText('\nFile: %s' % f)
                                     self.controls.filePaths.append(os.path.join(name, f))
-                                
-                
             except IOError, error:
                 dlg = wx.MessageDialog(None, 'Error opening file\n' + str(error))
                 dlg.ShowModal()

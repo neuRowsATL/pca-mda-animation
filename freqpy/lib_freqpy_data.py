@@ -52,18 +52,25 @@ class Import:
         self._FreqData = dict() # Dict that stores frequency data arrays as (Name: array)
         self.LoadDict = LoadDict() # Instance of LoadDict class
         self.opt.update(kwargs) # Update options from keywords
-        self.SetVars() # Store these options as class attributes
+        self._SetVars() # Store these options as class attributes
 
-    def SetVars(self):
+    def _SetVars(self):
         # Stores keyword options as class attributes
         for k, v in self.opt.items():
             setattr(self, k, v)
 
-    def ImportData(self):
+    def SetParams(self, param_dict):
+        """ Update parameters after instantiation
+        """
+        self.opt.update(param_dict)
+        self._SetVars()
+
+    def ImportData(self, fns=None):
         """ Main Data import function """
         # Check if given list of filenames or a folder
         if self.IsFilenames(): filenames = self.filenames
-        elif self.IsFolder() and not self.IsFilenames(): 
+        elif fns is not None: filenames = fns
+        elif self.IsFolder() and not self.IsFilenames() and fns is None: 
             filenames = list(map(lambda fff: os.path.join(self.folder, fff), 
                                         os.listdir(self.folder)))
         if len(filenames) > 0:
@@ -71,9 +78,9 @@ class Import:
             self._Data = list(map(lambda fn: self._ConsultLoadDict(fn), filenames))
             for fimp, fna in self._Data:
                 getattr(self, fimp)(fna) # Perform import function for each file
-        if len(self._NeuralList) > 0:
-            self._ToFreq() # If there is uncomputed raw neural data, compute it
-            self._NeuralList = list() # Reset list of raw neural data
+            if len(self._NeuralList) > 0:
+                self._ToFreq() # If there is uncomputed raw neural data, compute it
+                self._NeuralList = list() # Reset list of raw neural data
 
     def Get(self, tagname):
         """
@@ -93,10 +100,10 @@ class Import:
     def _ConsultLoadDict(self, filename):
         # LoadDict maps file type/ext to correct import function
         filename0 = filename # Keep full path intact
-        filename = filename.split(os.sep)[-1] # separate from path
+        filename1 = filename.split(os.sep)[-1] # separate from path
         keys, import_function = self.LoadDict(filename) # Consult LoadDict
         # :returns: correct import function name, original filename
-        return import_function, filename
+        return import_function, filename0
 
     def _MvtTxt2Np(self, filename):
         """ [Mvt###.txt] -> [np.ndarray] """
@@ -141,7 +148,11 @@ class Import:
             data = np.fromiter(iter_func(), dtype=dtype)
             data = data.reshape((-1, iter_loadtxt.rowlength))
             return data
-        if fmt == 'txt': wv = iter_loadtxt(filename, delimiter='\t', skiprows=6) # Load waveform from txt
+        if fmt == 'txt':
+            try:
+                wv = iter_loadtxt(filename, delimiter='\t', skiprows=6) # Load waveform from txt
+            except ValueError:
+                wv = iter_loadtxt(filename, delimiter='\t', skiprows=7) # Load waveform from txt
         elif fmt == 'npy': wv = np.load(filename) # Load waveform from npy
         if nr_trace is not None: wv = wv[:, nr_trace] # check if trace provided
         mvt_ntf = NamedTemporaryFile(prefix='mvt_', suffix='.npy', delete=False) # Temporary file
@@ -199,14 +210,12 @@ class LoadDict(dict):
         super(dict).__init__(dict, self)
 
     def __call__(self, filename):
-        return CompareName(filename)
+        return self.CompareName(filename)
 
     def CompareName(self, filename):
         # :returns: ('key1', 'key2'), 'import_function'
-        diffs = list(map(lambda kv: (kv,
-                                        distance.nlevenshtein(
-                                            seq1='.'.join(kv), 
-                                            seq2=filename, method=2), self.opt.items())))
+        if filename.split('.')[-1] == 'asc': return ('mvt', 'txt'), '_MvtTxt2Np'
+        diffs = list(map(lambda kv: (kv, distance.nlevenshtein('.'.join(kv[0]), filename, method=2)), self.opt.items()))
         return min(diffs, key=lambda itt: itt[1])[0]
 
 class Data:
