@@ -82,6 +82,15 @@ class Data:
             if len(self._NeuralList) > 0:
                 self._ToFreq() # If there is uncomputed raw neural data, compute it
 
+    def GetSpikes(self):
+        return self._SpikesData
+
+    def GetMvt(self):
+        return self._MvtData
+
+    def GetFreq(self):
+        return self._FreqData
+
     def Get(self, tagname):
         """
             >> I = Data(filenames)
@@ -180,7 +189,7 @@ class Data:
                 freq[neuron, ii] = np.divide(count, delta)
         if data is not None:
             freq = np.zeros((len(data), int(nr_pts)))
-            time_space = np.linspace(np.array(data).min(), np.array(data).max(), nr_pts)
+            time_space = np.linspace(min([da.min() for da in data]), max([da.max() for da in data]), nr_pts)
             delta = time_space[1] - time_space[0]
             time_space = np.insert(time_space, 0, time_space[0] - delta)
             time_space = np.insert(time_space, -1, time_space[-1] + delta)

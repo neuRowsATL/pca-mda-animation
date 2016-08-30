@@ -356,7 +356,7 @@ class pane_Environment(pane_FreqPy):
         self.MainPane.StatusBar.SetStatusText('Importing %d files' % len(self.filePaths))
         self.I.SetParams({'filenames': self.filePaths}) # Update filenames list
         self.I.ImportData() # Import data
-        # self.I.Get("waveform").flush()
+        print self.I.GetSpikes()
     
 class tab_ImportFiles(wx.Panel):
     
