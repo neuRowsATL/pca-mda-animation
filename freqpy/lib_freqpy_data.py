@@ -220,7 +220,7 @@ class LoadDict(dict):
         if filename.split('.')[-1] == 'asc': return ('mvt', 'txt'), '_MvtTxt2Np'
         elif filename.split('.')[-1] == 'txt': return ('neuron000', 'txt'), '_NeuralTxt2Np'
         # diffs = list(map(lambda kv: (kv, distance.nlevenshtein('.'.join(kv[0]), filename, method=2)), self.opt.items()))
-        return min(diffs, key=lambda itt: itt[1])[0]
+        # return min(diffs, key=lambda itt: itt[1])[0]
 
 # if __name__ == '__main__':
 #     import time
