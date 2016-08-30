@@ -1,15 +1,15 @@
 import numpy as np
 import os
-import distance
+# import distance
 from tempfile import NamedTemporaryFile
 
-class Import:
+class Data:
 
-    """ Import Class
+    """ Data Class
     
     Typical usage:
     
-        >> I = Import(filenames=list_of_filenames,
+        >> I = Data(filenames=list_of_filenames,
                       resolution=1e5,
                       skiprows=6) # Instantiates
 
@@ -17,7 +17,7 @@ class Import:
 
     ...or using the call function:
 
-       >> I = Import() # Instantiates
+       >> I = Data() # Instantiates
 
        >> I(filenames=list_of_filenames,
             resolution=1e5,
@@ -48,6 +48,7 @@ class Import:
             'resolution': 5e3 # Set import resolution
         }
         self._NeuralList = list() # Create a new list of neurons
+        self._SpikesData = dict() # Dict that stores spike data arrays as (Name: array)
         self._MvtData = dict() # Dict that stores mvt data arrays as (Name: array)
         self._FreqData = dict() # Dict that stores frequency data arrays as (Name: array)
         self.LoadDict = LoadDict() # Instance of LoadDict class
@@ -80,16 +81,16 @@ class Import:
                 getattr(self, fimp)(fna) # Perform import function for each file
             if len(self._NeuralList) > 0:
                 self._ToFreq() # If there is uncomputed raw neural data, compute it
-                self._NeuralList = list() # Reset list of raw neural data
 
     def Get(self, tagname):
         """
-            >> I = Import(filenames)
+            >> I = Data(filenames)
             >> mvt_data = I.Get("mvt_000") 
         :return: memmap corresponding to tagname
         """
         if tagname in self._MvtData.keys(): return self._MvtData[tagname]
         elif tagname in self._FreqData.keys(): return self._FreqData[tagname]
+        elif tagname in self._SpikesData.keys(): return self._SpikesData[tagname]
 
     def IsFolder(self):
         return self.folder != ''
@@ -164,8 +165,11 @@ class Import:
     def _ToFreq(self):
         # Convert neural data to frequency response data
         # :return: np.array([time points, neurons])
-        tagname = ''.join(list(filter(lambda tl: tl.isalpha(), self._NeuralList[0][0].split(os.sep)[-1].split('.')[0]))) # Get tagname
+        tagname = ''.join(list(filter(lambda tl: tl.isalpha(), 
+                                self._NeuralList[0][0].split(os.sep)[-1].split('.')[0]))) # Get tagname
         data = list(map(lambda naa: naa[1], self._NeuralList)) # Get stored raw neural data
+        self._SpikesData.update(dict(map(lambda nii: (nii[0].split(os.sep)[-1].split('.')[0], nii[1]), self._NeuralList))) # Store raw neural data
+        self._NeuralList = list() # Reset neural list
         nr_pts = self.resolution # Get output resolution
         def where_pts(nr_pts, time_space, delta, freq, datum):
             for ii in np.arange(nr_pts):
@@ -188,15 +192,14 @@ class Import:
                    np.expand_dims(fstd,axis=1))
             freq = (1.000 + np.tanh(freq)) / 2.000
             freq = freq.T
-            freq_ntf = NamedTemporaryFile(prefix='freq_', suffix='.npy', delete=False)
-            # np.save(freq_ntf, freq) # Store frequency in temporary npy file
+            freq_ntf = NamedTemporaryFile(prefix='freq_', suffix='.npy', delete=False) # temporary file
             freq_mem = np.memmap(freq_ntf.name, dtype=freq.dtype, shape=freq.shape) # Create a memmap for quick access
             freq_mem[:] = freq[:] # Store in memmap
             self._FreqData.update({tagname: freq_mem}) # Store memmap in _FreqData dict
 
 class LoadDict(dict):
 
-    """ Used by the Import class:
+    """ Used by the Data class:
         [file type/ext] -> [correct import function]
     """
 
@@ -216,17 +219,13 @@ class LoadDict(dict):
         # :returns: ('key1', 'key2'), 'import_function'
         if filename.split('.')[-1] == 'asc': return ('mvt', 'txt'), '_MvtTxt2Np'
         elif filename.split('.')[-1] == 'txt': return ('neuron000', 'txt'), '_NeuralTxt2Np'
-        diffs = list(map(lambda kv: (kv, distance.nlevenshtein('.'.join(kv[0]), filename, method=2)), self.opt.items()))
+        # diffs = list(map(lambda kv: (kv, distance.nlevenshtein('.'.join(kv[0]), filename, method=2)), self.opt.items()))
         return min(diffs, key=lambda itt: itt[1])[0]
-
-class Data:
-    def __init__(self, **kwargs):
-        pass
 
 # if __name__ == '__main__':
 #     import time
 #     narr = [np.random.random((int(1e6),1)) for i in range(33)]
 #     t0=time.time()
-#     I = Import()
+#     I = Data()
 #     print I.ToFreq(narr, 1000).shape
 #     print time.time() - t0

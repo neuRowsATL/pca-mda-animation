@@ -298,7 +298,7 @@ class pane_Environment(pane_FreqPy):
                             style=wx.DEFAULT_FRAME_STYLE)
         
         self.filePaths = []
-        self.I = Import() # Create an instance of the Import class
+        self.I = Data() # Create an instance of the Import class
         
         #self.notebook = wx.Notebook(self)
         
